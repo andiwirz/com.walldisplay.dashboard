@@ -3,4 +3,5 @@
 .github/
 .claude/
 node_modules/.cache/
+node_modules/homey-api/
 dashboard/settings.html

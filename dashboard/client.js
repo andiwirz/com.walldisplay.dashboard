@@ -291,7 +291,7 @@
         return ac.value === 'armed' ? 'Scharf' : ac.value === 'partially_armed' ? 'Teilscharf' : 'Unscharf';
       }
     }
-    if (caps.measure_temperature && caps.measure_temperature.value !== null && caps.measure_temperature.value !== undefined) {
+    if (d.class !== 'socket' && caps.measure_temperature && caps.measure_temperature.value !== null && caps.measure_temperature.value !== undefined) {
       return caps.measure_temperature.value.toFixed(1) + ' °C';
     }
     if (caps.measure_power && caps.measure_power.value !== null && caps.measure_power.value !== undefined) {
@@ -313,8 +313,8 @@
     var container = createElement('div', 'device-values');
     var added = 0;
 
-    // Primärwert: Temperatur
-    if (caps.measure_temperature) {
+    // Primärwert: Temperatur (nicht bei Steckdosen)
+    if (d.class !== 'socket' && caps.measure_temperature) {
       var el = createElement('div', 'device-value primary');
       var val = caps.measure_temperature.value;
       el.innerHTML = (val !== null && val !== undefined ? val.toFixed(1) : '--') +

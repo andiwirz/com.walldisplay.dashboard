@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Shelly Wall Display</title>
-  <!-- data-origin="settings" ist zwingend erforderlich für Homey.get / Homey.set / Homey.api -->
+  <!-- data-origin="settings" ist zwingend erforderlich für Homey.get / Homey.set -->
   <script src="/homey.js" data-origin="settings"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -221,6 +221,7 @@
     var _Homey;
     var _allDevices = [];
     var _allZones = {};
+    var _dashboardBase = null;
 
     var CLASS_ICONS = {
       light:'💡', socket:'🔌', thermostat:'🌡', sensor:'📡', lock:'🔒',
@@ -231,7 +232,7 @@
 
     function getIcon(cls) { return CLASS_ICONS[cls] || CLASS_ICONS.other; }
 
-    // ── Homey SDK (callback → Promise) ──────────────────────────────────
+    // ── Homey SDK Wrappers (Homey.get / Homey.set) ─────────────────────
     function hGet(key) {
       return new Promise(function(resolve) {
         _Homey.get(key, function(err, val) { resolve(err ? null : val); });
@@ -246,18 +247,26 @@
       });
     }
 
-    function hApi(method, path, body) {
+    // ── HTTP-Wrapper für direkte Dashboard-Anfragen ────────────────────
+    function dashboardGet(path) {
       return new Promise(function(resolve, reject) {
-        // Homey.api() benötigt immer genau 4 Argumente (method, path, body, callback).
-        // Wird kein Body übergeben, übergibt null-/undefined-Body → SDK behandelt Callback
-        // als Body → undefined[0] → TypeError. Daher immer {} als Fallback.
-        _Homey.api(method, path, body !== null && body !== undefined ? body : {}, function(err, result) {
-          if (err) reject(err); else resolve(result);
-        });
+        var req = new XMLHttpRequest();
+        req.open('GET', _dashboardBase + path, true);
+        req.onreadystatechange = function() {
+          if (req.readyState !== 4) return;
+          if (req.status >= 200 && req.status < 300) {
+            try { resolve(JSON.parse(req.responseText)); }
+            catch (e) { reject(new Error('JSON-Parse-Fehler')); }
+          } else {
+            reject(new Error('HTTP ' + req.status));
+          }
+        };
+        req.onerror = function() { reject(new Error('Netzwerkfehler')); };
+        req.send(null);
       });
     }
 
-    // ── Init ─────────────────────────────────────────────────────────────
+    // ── Init ───────────────────────────────────────────────────────────
     function onHomeyReady(Homey) {
       _Homey = Homey;
       Homey.ready();
@@ -265,35 +274,47 @@
     }
 
     async function loadAll() {
-      var info;
-      try {
-        info = await hApi('GET', '/info');
-      } catch (e) {
-        document.getElementById('url-display').textContent = '(Fehler beim Laden)';
-        document.getElementById('devices-loading').textContent = 'Fehler: ' + e.message;
-        return;
+      // 1) Gespeicherte Werte aus Homey-Settings lesen (Homey.get – immer verfügbar)
+      var port = await hGet('port') || 7575;
+      var storedUrl = await hGet('currentUrl');
+      var enabledDevices = await hGet('enabledDevices');
+
+      document.getElementById('port-input').value = port;
+
+      // 2) Dashboard-URL anzeigen
+      if (storedUrl) {
+        _dashboardBase = storedUrl;
+        document.getElementById('url-display').textContent = storedUrl;
+      } else {
+        // Fallback: Hostname der Homey-Settings-Seite + Port
+        _dashboardBase = 'http://' + window.location.hostname + ':' + port;
+        document.getElementById('url-display').textContent =
+          '(unbekannt — App neu starten oder Dashboard öffnen)';
       }
 
-      document.getElementById('url-display').textContent = info.url || '(unbekannt — App neu starten)';
-      document.getElementById('port-input').value = info.port || 7575;
+      // 3) Geräte & Zonen direkt vom Dashboard-Server abrufen
+      try {
+        var devices = await dashboardGet('/api/alldevices');
+        var zones   = await dashboardGet('/api/zones');
 
-      var devices = info.devices || [];
-      var zones   = info.zones   || [];
-      var enabled = info.enabledDevices || null;
-
-      if (devices.length) {
-        _allDevices = devices;
-        _allZones = {};
-        zones.forEach(function(z) { _allZones[z.id] = z; });
-        renderDeviceList(enabled);
-        document.getElementById('save-devices-btn').disabled = false;
-      } else {
+        if (devices && devices.length) {
+          _allDevices = devices;
+          _allZones = {};
+          zones.forEach(function(z) { _allZones[z.id] = z; });
+          renderDeviceList(enabledDevices);
+          document.getElementById('save-devices-btn').disabled = false;
+        } else {
+          document.getElementById('devices-loading').textContent =
+            'Keine Geräte gefunden – App neu starten.';
+        }
+      } catch (e) {
         document.getElementById('devices-loading').textContent =
-          'Keine Geräte gefunden – App neu starten.';
+          'Geräte konnten nicht geladen werden: ' + e.message +
+          '. Stelle sicher, dass das Dashboard läuft.';
       }
     }
 
-    // ── Render ───────────────────────────────────────────────────────────
+    // ── Render ─────────────────────────────────────────────────────────
     function renderDeviceList(enabledDevices) {
       var isAll = !Array.isArray(enabledDevices);
       var enabledSet = isAll ? null : new Set(enabledDevices);
@@ -386,7 +407,7 @@
       listEl.style.display = 'block';
     }
 
-    // ── Auswahl-Helfer ───────────────────────────────────────────────────
+    // ── Auswahl-Helfer ─────────────────────────────────────────────────
     function selectAllDevices(state) {
       document.querySelectorAll('#devices-list input[type="checkbox"]').forEach(function(cb) {
         cb.checked = state;
@@ -401,7 +422,7 @@
       });
     }
 
-    // ── Speichern ────────────────────────────────────────────────────────
+    // ── Speichern ──────────────────────────────────────────────────────
     async function savePort() {
       var port = parseInt(document.getElementById('port-input').value, 10);
       if (isNaN(port) || port < 1024 || port > 65535) {

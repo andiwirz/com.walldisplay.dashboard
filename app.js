@@ -450,7 +450,11 @@ class ShellyWallDisplayApp extends Homey.App {
       } catch (_) {}
       try {
         const zoneMap = await this.homeyApi.zones.getZones();
-        zones = Object.values(zoneMap);
+        zones = Object.values(zoneMap).map((z) => ({
+          id: z.id,
+          name: z.name,
+          parent: z.parent || null,
+        }));
       } catch (_) {}
     }
 

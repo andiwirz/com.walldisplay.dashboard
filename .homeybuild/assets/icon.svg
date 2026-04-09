@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- Display frame -->
+  <rect x="5" y="15" width="90" height="70" rx="8" ry="8" fill="#1c1c1c" stroke="#333" stroke-width="2"/>
+  <!-- Screen -->
+  <rect x="12" y="22" width="76" height="56" rx="4" ry="4" fill="#111"/>
+  <!-- Shelly red circle background -->
+  <circle cx="50" cy="47" r="18" fill="#E8001D"/>
+  <!-- Shelly "S" letterform — simplified wave shape -->
+  <path d="M43,40 C43,37 46,35 50,35 C54,35 57,37 57,40 C57,43 54,45 50,47 C46,49 43,51 43,54 C43,57 46,59 50,59 C54,59 57,57 57,54"
+        fill="none" stroke="white" stroke-width="3.5" stroke-linecap="round"/>
+  <!-- Mount -->
+  <rect x="44" y="85" width="12" height="5" rx="2" fill="#2a2a2a"/>
+  <rect x="36" y="90" width="28" height="3" rx="1.5" fill="#333"/>
+</svg>

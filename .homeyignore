@@ -1,0 +1,6 @@
+.homeybuild/
+.git/
+.github/
+.claude/
+node_modules/.cache/
+dashboard/settings.html

@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "WebFetch(domain:www.home-assistant.io)",
+      "WebFetch(domain:blog.bajonczak.com)",
+      "WebFetch(domain:community.shelly.cloud)",
+      "WebFetch(domain:shelly-api-docs.shelly.cloud)",
+      "WebFetch(domain:developers.home-assistant.io)",
+      "WebFetch(domain:kb.shelly.cloud)"
+    ]
+  }
+}

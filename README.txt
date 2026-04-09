@@ -1,0 +1,3 @@
+The Shelly Wall Display Dashboard app transforms your Shelly Wall Display into a fully interactive smart home control panel for Homey.
+
+It mimics a Home Assistant interface, so the display believes it’s connecting to one — but instead, it shows your Homey devices grouped by room, complete with on/off controls, dimmer sliders, and live sensor data. Configure which devices appear and connect easily through the built‑in Home Assistant‑compatible interface.

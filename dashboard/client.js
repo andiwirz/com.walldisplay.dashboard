@@ -55,9 +55,27 @@
     other:       '●',
   };
 
-  // homealarm: armed/partially_armed → true, disarmed → false
+  // homealarm: armed/partially_armed oder boolean true → scharf
   function alarmIsArmed(value) {
+    if (typeof value === 'boolean') return value;
     return value === 'armed' || value === 'partially_armed';
+  }
+
+  // Gibt die steuerbare Alarm-Capability zurück oder null.
+  // Unterstützt Standard homealarm_state sowie custom boolean Capabilities.
+  function getAlarmCapability(d) {
+    var caps = d.capabilitiesObj || {};
+    if (caps.homealarm_state) return { capId: 'homealarm_state', isBoolean: false, value: caps.homealarm_state.value };
+    if (caps.homealarm)       return { capId: 'homealarm',       isBoolean: false, value: caps.homealarm.value };
+    // Custom boolean mit setable: true (z.B. Shelly Wall Display Alarm)
+    var capIds = d.capabilities || [];
+    for (var i = 0; i < capIds.length; i++) {
+      var cap = caps[capIds[i]];
+      if (cap && cap.type === 'boolean' && cap.setable) {
+        return { capId: capIds[i], isBoolean: true, value: cap.value };
+      }
+    }
+    return null;
   }
 
   function getIcon(cls) {
@@ -179,8 +197,8 @@
                   !!(d.capabilities && d.capabilities.indexOf('homealarm') !== -1);
     var hasDim   = d.capabilities && d.capabilities.indexOf('dim') !== -1;
     var isOn = hasOnOff && caps.onoff && caps.onoff.value === true;
-    var alarmVal = hasAlarm && caps.homealarm ? caps.homealarm.value : 'disarmed';
-    var isArmed = alarmIsArmed(alarmVal);
+    var alarmCap = hasAlarm ? getAlarmCapability(d) : null;
+    var isArmed = alarmCap ? alarmIsArmed(alarmCap.value) : false;
 
     if (isOn || isArmed) card.classList.add('on');
 
@@ -195,8 +213,11 @@
           if (!d) return;
           var c = d.capabilitiesObj || {};
           if (hasAlarm) {
-            var cur = c.homealarm ? c.homealarm.value : 'disarmed';
-            setCapability(deviceId, 'homealarm', alarmIsArmed(cur) ? 'disarmed' : 'armed');
+            var ac = getAlarmCapability(devices[deviceId]);
+            if (ac) {
+              var newVal = ac.isBoolean ? !alarmIsArmed(ac.value) : (alarmIsArmed(ac.value) ? 'disarmed' : 'armed');
+              setCapability(deviceId, ac.capId, newVal);
+            }
           } else {
             setCapability(deviceId, 'onoff', !(c.onoff && c.onoff.value));
           }
@@ -227,8 +248,10 @@
       alarmToggle.setAttribute('data-alarm', 'true');
       (function (deviceId, btn) {
         btn.addEventListener('click', function () {
-          var newVal = btn.classList.contains('on') ? 'disarmed' : 'armed';
-          setCapability(deviceId, 'homealarm', newVal);
+          var ac = getAlarmCapability(devices[deviceId]);
+          if (!ac) return;
+          var newVal = ac.isBoolean ? !alarmIsArmed(ac.value) : (btn.classList.contains('on') ? 'disarmed' : 'armed');
+          setCapability(deviceId, ac.capId, newVal);
         });
       }(d.id, alarmToggle));
       header.appendChild(alarmToggle);
@@ -261,9 +284,12 @@
     var hasAlarm = d.class === 'homealarm' ||
                   !!(d.capabilities && d.capabilities.indexOf('homealarm') !== -1);
 
-    if (hasAlarm && caps.homealarm) {
-      var v = caps.homealarm.value;
-      return v === 'armed' ? 'Scharf' : v === 'partially_armed' ? 'Teilscharf' : 'Unscharf';
+    if (hasAlarm) {
+      var ac = getAlarmCapability(d);
+      if (ac) {
+        if (ac.isBoolean) return alarmIsArmed(ac.value) ? 'Scharf' : 'Unscharf';
+        return ac.value === 'armed' ? 'Scharf' : ac.value === 'partially_armed' ? 'Teilscharf' : 'Unscharf';
+      }
     }
     if (caps.measure_temperature && caps.measure_temperature.value !== null && caps.measure_temperature.value !== undefined) {
       return caps.measure_temperature.value.toFixed(1) + ' °C';
@@ -340,13 +366,19 @@
     }
 
     // Heimalarm-Status
-    if (caps.homealarm) {
+    var alarmCapForValues = (d.class === 'homealarm') ? getAlarmCapability(d) : null;
+    if (alarmCapForValues) {
       var el = createElement('div', 'device-value alarm-status');
-      var val = caps.homealarm.value;
-      var label = val === 'armed' ? '🔐 Scharf' :
-                  val === 'partially_armed' ? '🔐 Teilscharf' : '🔓 Unscharf';
+      var armed = alarmIsArmed(alarmCapForValues.value);
+      var label;
+      if (alarmCapForValues.isBoolean) {
+        label = armed ? '🔐 Scharf' : '🔓 Unscharf';
+      } else {
+        label = alarmCapForValues.value === 'armed' ? '🔐 Scharf' :
+                alarmCapForValues.value === 'partially_armed' ? '🔐 Teilscharf' : '🔓 Unscharf';
+      }
       el.textContent = label;
-      if (alarmIsArmed(val)) el.classList.add('alarm-active');
+      if (armed) el.classList.add('alarm-active');
       container.appendChild(el);
       added++;
     }
@@ -420,8 +452,8 @@
     var hasAlarm = d.class === 'homealarm' ||
                   !!(d.capabilities && d.capabilities.indexOf('homealarm') !== -1);
     var isOn = hasOnOff && caps.onoff && caps.onoff.value === true;
-    var alarmVal = hasAlarm && caps.homealarm ? caps.homealarm.value : 'disarmed';
-    var isArmed = alarmIsArmed(alarmVal);
+    var alarmCapUpdate = hasAlarm ? getAlarmCapability(d) : null;
+    var isArmed = alarmCapUpdate ? alarmIsArmed(alarmCapUpdate.value) : false;
 
     if (isOn || isArmed) card.classList.add('on');
     else card.classList.remove('on');
@@ -439,9 +471,14 @@
     }
 
     var alarmStatus = card.querySelector('.alarm-status');
-    if (alarmStatus && caps.homealarm) {
-      var label = alarmVal === 'armed' ? '🔐 Scharf' :
-                  alarmVal === 'partially_armed' ? '🔐 Teilscharf' : '🔓 Unscharf';
+    if (alarmStatus && alarmCapUpdate) {
+      var label;
+      if (alarmCapUpdate.isBoolean) {
+        label = isArmed ? '🔐 Scharf' : '🔓 Unscharf';
+      } else {
+        label = alarmCapUpdate.value === 'armed' ? '🔐 Scharf' :
+                alarmCapUpdate.value === 'partially_armed' ? '🔐 Teilscharf' : '🔓 Unscharf';
+      }
       alarmStatus.textContent = label;
       if (isArmed) alarmStatus.classList.add('alarm-active');
       else alarmStatus.classList.remove('alarm-active');

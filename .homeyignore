@@ -3,5 +3,10 @@
 .github/
 .claude/
 node_modules/.cache/
-node_modules/homey-api/
+node_modules/homey/
+node_modules/homey-lib/
+node_modules/socket.io-client/
+node_modules/socket.io-parser/
+node_modules/engine.io-client/
+node_modules/component-emitter/
 dashboard/settings.html

@@ -1,5 +1,5 @@
 {
-  "name": "com.shellywalldisplay.homey",
+  "name": "com.walldisplay.dashboard",
   "version": "1.0.0",
   "description": "Homey dashboard for Shelly Wall Display",
   "main": "app.js",
@@ -10,7 +10,10 @@
     "node": ">=16"
   },
   "dependencies": {
-    "homey": "^4.1.1",
+    "homey-api": "3.18.1",
     "ws": "^8.0.0"
+  },
+  "devDependencies": {
+    "homey": "^4.1.1"
   }
 }

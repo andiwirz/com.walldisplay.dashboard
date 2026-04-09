@@ -291,12 +291,6 @@
         return ac.value === 'armed' ? 'Scharf' : ac.value === 'partially_armed' ? 'Teilscharf' : 'Unscharf';
       }
     }
-    if (d.class !== 'socket' && caps.measure_temperature && caps.measure_temperature.value !== null && caps.measure_temperature.value !== undefined) {
-      return caps.measure_temperature.value.toFixed(1) + ' °C';
-    }
-    if (caps.measure_power && caps.measure_power.value !== null && caps.measure_power.value !== undefined) {
-      return Math.round(caps.measure_power.value) + ' W';
-    }
     if (hasOnOff) {
       var isOn = caps.onoff && caps.onoff.value === true;
       if (caps.dim && isOn) {

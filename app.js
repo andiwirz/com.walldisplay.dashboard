@@ -35,7 +35,10 @@ class ShellyWallDisplayApp extends Homey.App {
 
   async _initHomeyApi() {
     try {
-      const { HomeyAPI } = require('homey-api');
+      // Direkt HomeyAPI-Klasse laden (nicht index.js), da index.js HomeyAPIV3
+      // eager-loaded, welches socket.io-client benötigt – diese Sub-Dependency
+      // fehlt im Homey-Runtime-Environment.
+      const HomeyAPI = require('homey-api/lib/HomeyAPI/HomeyAPI');
       this.homeyApi = await HomeyAPI.createAppAPI({ homey: this.homey });
       this.log('Homey API verbunden');
 

@@ -7,7 +7,12 @@
       "WebFetch(domain:community.shelly.cloud)",
       "WebFetch(domain:shelly-api-docs.shelly.cloud)",
       "WebFetch(domain:developers.home-assistant.io)",
-      "WebFetch(domain:kb.shelly.cloud)"
+      "WebFetch(domain:kb.shelly.cloud)",
+      "Bash(xargs grep:*)",
+      "Bash(node -e ':*)",
+      "Bash(node -e \"const pkg = require\\('./node_modules/homey-api/package.json'\\); console.log\\(pkg.version\\);\")",
+      "Bash(node -e \" const api = require\\('./node_modules/homey/node_modules/homey-api'\\); // Deep search for HomeyAPI / createAppAPI function findKeys\\(obj, depth\\) { if \\(depth > 3\\) return; Object.keys\\(obj||{}\\).forEach\\(k => { if \\(k.includes\\('Homey'\\) || k.includes\\('App'\\)\\) console.log\\(' '.repeat\\(depth*2\\) + k\\); if \\(typeof obj[k] === 'object' && obj[k]\\) findKeys\\(obj[k], depth+1\\); }\\); } findKeys\\(api, 0\\); \")",
+      "Bash(npm install:*)"
     ]
   }
 }

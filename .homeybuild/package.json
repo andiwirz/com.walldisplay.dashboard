@@ -10,8 +10,8 @@
     "node": ">=16"
   },
   "dependencies": {
-    "homey": "^3.9.6",
-    "homey-api": "^3.0.0",
+    "homey": "^4.1.1",
+    "homey-api": "^1.0.0",
     "ws": "^8.0.0"
   }
 }

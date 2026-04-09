@@ -26,8 +26,7 @@
     "xlarge": "/assets/images/xlarge.png"
   },
   "author": {
-    "name": "Homey User",
-    "email": "user@example.com"
+    "name": "Andi"
   },
   "api": [
     {

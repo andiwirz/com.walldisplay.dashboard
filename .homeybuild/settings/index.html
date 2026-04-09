@@ -248,7 +248,10 @@
 
     function hApi(method, path, body) {
       return new Promise(function(resolve, reject) {
-        _Homey.api(method, path, body || null, function(err, result) {
+        // Homey.api() benötigt immer genau 4 Argumente (method, path, body, callback).
+        // Wird kein Body übergeben, übergibt null-/undefined-Body → SDK behandelt Callback
+        // als Body → undefined[0] → TypeError. Daher immer {} als Fallback.
+        _Homey.api(method, path, body !== null && body !== undefined ? body : {}, function(err, result) {
           if (err) reject(err); else resolve(result);
         });
       });
@@ -264,7 +267,7 @@
     async function loadAll() {
       var info;
       try {
-        info = await hApi('GET', '/info', null);
+        info = await hApi('GET', '/info');
       } catch (e) {
         document.getElementById('url-display').textContent = '(Fehler beim Laden)';
         document.getElementById('devices-loading').textContent = 'Fehler: ' + e.message;

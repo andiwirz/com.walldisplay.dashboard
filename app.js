@@ -430,7 +430,9 @@ class ShellyWallDisplayApp extends Homey.App {
 
   // Homey App-API: GET /api/app/com.shellywalldisplay.homey/info
   // Gibt URL, Port, Geräte und Zonen zurück (alles in einem Call, um Mixed-Content zu vermeiden)
-  async onGet({ homey, query, params, body }) {
+  async onGet(args) {
+    // Homey OS kann onGet() ohne Argument aufrufen → safe default
+    const { query } = (args || {});
     const port = this.homey.settings.get('port') || DEFAULT_PORT;
     const url = this.homey.settings.get('currentUrl') || null;
 
@@ -456,7 +458,8 @@ class ShellyWallDisplayApp extends Homey.App {
     return { url, port, devices, zones, enabledDevices };
   }
 
-  async onPost({ body }) {
+  async onPost(args) {
+    const { body } = (args || {});
     const { key, value } = body || {};
     const allowed = ['port', 'enabledDevices'];
     if (!allowed.includes(key)) throw new Error('Not allowed');

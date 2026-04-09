@@ -17,7 +17,9 @@
       "Bash(homey app:*)",
       "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(d.get\\('version','?'\\)\\)\")",
       "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\('files:', d.get\\('files','not specified'\\)\\)\")",
-      "Bash(node -e \"var p=require\\('C:/Users/andi/OneDrive/Documents/GitHub/com.walldisplay.dashboard/node_modules/homey-api/package.json'\\); console.log\\('files:', JSON.stringify\\(p.files\\)\\); console.log\\('version:', p.version\\);\")"
+      "Bash(node -e \"var p=require\\('C:/Users/andi/OneDrive/Documents/GitHub/com.walldisplay.dashboard/node_modules/homey-api/package.json'\\); console.log\\('files:', JSON.stringify\\(p.files\\)\\); console.log\\('version:', p.version\\);\")",
+      "Bash(node -e \"var homeyPkg = require\\('C:/Users/andi/AppData/Roaming/npm/node_modules/homey/package.json'\\); console.log\\(JSON.stringify\\(Object.keys\\(homeyPkg.dependencies || {}\\).filter\\(k=>k.includes\\('athom'\\)\\), null, 2\\)\\);\")",
+      "Bash(node -e \"var p = require\\('C:/Users/andi/AppData/Roaming/npm/node_modules/homey/package.json'\\); console.log\\(Object.keys\\(p.dependencies\\)\\);\")"
     ]
   }
 }

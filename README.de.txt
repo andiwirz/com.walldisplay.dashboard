@@ -1,0 +1,3 @@
+Verwandle dein Shelly Wall Display in ein vollwertiges Smart-Home-Bedienpanel, das von Homey angetrieben wird. Die App betreibt einen lokalen Server auf deinem Homey, mit dem sich das Display verbindet -- so hast du Lichter, Steckdosen, Jalousien, Alarmanlagen und mehr direkt an der Wand im Griff.
+
+Alle Geraete aus deinem Homey-System erscheinen als Kacheln auf dem Display, nach Raum gruppiert oder als flache Liste. Zustandsaenderungen werden in Echtzeit aktualisiert, ein Antippen schaltet das Geraet sofort. Das Dashboard unterstuetzt ausserdem Dimmer-Regler, Sensorwerte, Kamera-Schnappschuesse, PIN-geschietzte Alarmsteuerung und die freie Anordnung der Kacheln per Drag and Drop -- alles fuer den Touchbetrieb optimiert.

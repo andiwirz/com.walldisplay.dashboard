@@ -38,10 +38,7 @@
   "author": {
     "name": "Andi"
   },
-  "api": [
-    {
-      "method": "GET",
-      "path": "/info"
-    }
-  ]
+  "homepage": "https://github.com/andiwirz/com.walldisplay.dashboard",
+  "support": "https://github.com/andiwirz/com.walldisplay.dashboard/issues",
+  "source": "https://github.com/andiwirz/com.walldisplay.dashboard"
 }

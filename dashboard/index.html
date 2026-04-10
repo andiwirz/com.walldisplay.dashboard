@@ -35,6 +35,31 @@
     <div id="zones-container" style="display:none"></div>
   </main>
 
+  <!-- PIN-Modal -->
+  <div id="pin-modal" class="pin-modal" style="display:none">
+    <div class="pin-modal-inner">
+      <div class="pin-modal-title" id="pin-modal-title">Enter PIN</div>
+      <div class="pin-dots" id="pin-dots">
+        <span></span><span></span><span></span><span></span>
+      </div>
+      <div class="pin-error" id="pin-error"></div>
+      <div class="pin-pad">
+        <button onclick="pinKey('1')">1</button>
+        <button onclick="pinKey('2')">2</button>
+        <button onclick="pinKey('3')">3</button>
+        <button onclick="pinKey('4')">4</button>
+        <button onclick="pinKey('5')">5</button>
+        <button onclick="pinKey('6')">6</button>
+        <button onclick="pinKey('7')">7</button>
+        <button onclick="pinKey('8')">8</button>
+        <button onclick="pinKey('9')">9</button>
+        <button onclick="pinCancel()" class="pin-cancel">✕</button>
+        <button onclick="pinKey('0')">0</button>
+        <button onclick="pinBackspace()" class="pin-back">⌫</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Kamera-Modal -->
   <div id="camera-modal" class="camera-modal" style="display:none" onclick="closeCameraModal()">
     <div class="camera-modal-inner" onclick="event.stopPropagation()">

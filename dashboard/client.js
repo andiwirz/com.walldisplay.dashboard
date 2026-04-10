@@ -8,6 +8,9 @@
   var devices = {};
   var eventSource = null;
   var pollTimer = null;
+  var _alarmPin = '';
+  var _pinEntry = '';
+  var _pinCallback = null;
 
   // ── Theme ('light' | 'dark') ───────────────────────
   var theme = 'light';
@@ -137,6 +140,11 @@
   function loadData() {
     showLoading();
 
+    // PIN aus Settings laden
+    xhr('GET', '/api/settings', null, function (err, cfg) {
+      if (!err && cfg) _alarmPin = cfg.alarmPin || '';
+    });
+
     xhr('GET', '/api/zones', null, function (err, zonesData) {
       if (err) return showError();
 
@@ -153,6 +161,128 @@
         connectSSE();
       });
     });
+  }
+
+  // ── Drag & Drop Reihenfolge ─────────────────────────
+  var _order = [];
+  try { _order = JSON.parse(localStorage.getItem('deviceOrder') || '[]'); } catch (_) {}
+
+  function getOrderedDevices(list) {
+    return list.slice().sort(function (a, b) {
+      var ia = _order.indexOf(a.id);
+      var ib = _order.indexOf(b.id);
+      if (ia === -1 && ib === -1) return a.name.localeCompare(b.name);
+      if (ia === -1) return 1;
+      if (ib === -1) return -1;
+      return ia - ib;
+    });
+  }
+
+  function saveOrderFromGrid(grid) {
+    var ids = Array.from(grid.querySelectorAll('.device-card'))
+      .map(function (c) { return c.id.replace('card-', ''); });
+    // Remove these IDs from _order, then reinsert at their old block position
+    var first = ids.find(function (id) { return _order.indexOf(id) !== -1; });
+    var insertAt = first ? _order.indexOf(first) : _order.length;
+    ids.forEach(function (id) {
+      var i = _order.indexOf(id);
+      if (i !== -1) { if (i < insertAt) insertAt--; _order.splice(i, 1); }
+    });
+    ids.forEach(function (id, i) { _order.splice(insertAt + i, 0, id); });
+    try { localStorage.setItem('deviceOrder', JSON.stringify(_order)); } catch (_) {}
+  }
+
+  var _drag = null;
+
+  function initDragOnGrid(grid) {
+    Array.from(grid.querySelectorAll('.device-card')).forEach(function (card) {
+      makeDraggable(card, grid);
+    });
+  }
+
+  function makeDraggable(card, grid) {
+    var st = null;
+
+    function onDown(e) {
+      if (_drag || st) return;
+      var pt = e.touches ? e.touches[0] : e;
+      st = { startX: pt.clientX, startY: pt.clientY };
+      st.timer = setTimeout(function () { activateDrag(pt.clientX, pt.clientY); }, 400);
+      if (e.touches) {
+        document.addEventListener('touchmove', onMove, { passive: false });
+        document.addEventListener('touchend', onUp);
+        document.addEventListener('touchcancel', onUp);
+      } else {
+        document.addEventListener('mousemove', onMove);
+        document.addEventListener('mouseup', onUp);
+      }
+    }
+
+    function onMove(e) {
+      var pt = e.touches ? e.touches[0] : e;
+      if (!_drag) {
+        if (st && Math.abs(pt.clientX - st.startX) + Math.abs(pt.clientY - st.startY) > 10) {
+          clearTimeout(st.timer); cleanup();
+        }
+        return;
+      }
+      if (e.cancelable) e.preventDefault();
+      _drag.ghost.style.left = (pt.clientX - _drag.offX) + 'px';
+      _drag.ghost.style.top  = (pt.clientY - _drag.offY) + 'px';
+      _drag.ghost.style.visibility = 'hidden';
+      var el = document.elementFromPoint(pt.clientX, pt.clientY);
+      _drag.ghost.style.visibility = '';
+      var target = el && el.closest ? el.closest('.device-card') : null;
+      Array.from(grid.querySelectorAll('.device-card.drag-over'))
+        .forEach(function (c) { c.classList.remove('drag-over'); });
+      _drag.over = (target && target !== card) ? target : null;
+      if (_drag.over) _drag.over.classList.add('drag-over');
+    }
+
+    function onUp() {
+      if (!_drag) { clearTimeout(st && st.timer); cleanup(); return; }
+      Array.from(grid.querySelectorAll('.device-card.drag-over'))
+        .forEach(function (c) { c.classList.remove('drag-over'); });
+      if (_drag.over) {
+        // Reorder in DOM: move card before or after target
+        var cards = Array.from(grid.querySelectorAll('.device-card'));
+        var fi = cards.indexOf(card);
+        var ti = cards.indexOf(_drag.over);
+        if (fi < ti) grid.insertBefore(card, _drag.over.nextSibling);
+        else         grid.insertBefore(card, _drag.over);
+        saveOrderFromGrid(grid);
+      }
+      _drag.ghost.remove();
+      card.style.opacity = '';
+      card.style.transform = '';
+      _drag = null;
+      cleanup();
+    }
+
+    function cleanup() {
+      document.removeEventListener('touchmove', onMove);
+      document.removeEventListener('touchend', onUp);
+      document.removeEventListener('touchcancel', onUp);
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+      st = null;
+    }
+
+    function activateDrag(x, y) {
+      var rect = card.getBoundingClientRect();
+      var ghost = card.cloneNode(true);
+      ghost.removeAttribute('id');
+      ghost.style.cssText = 'position:fixed;pointer-events:none;z-index:9999;width:' +
+        rect.width + 'px;left:' + rect.left + 'px;top:' + rect.top + 'px;' +
+        'opacity:0.92;box-shadow:0 8px 32px rgba(0,0,0,0.25);transform:rotate(1.5deg) scale(1.04);';
+      document.body.appendChild(ghost);
+      card.style.opacity = '0.3';
+      _drag = { ghost: ghost, offX: x - rect.left, offY: y - rect.top, over: null };
+      st = null;
+    }
+
+    card.addEventListener('touchstart', onDown, { passive: true });
+    card.addEventListener('mousedown', onDown);
   }
 
   // ── Rendern ─────────────────────────────────────────
@@ -197,12 +327,11 @@
   }
 
   function renderAllFlat(container) {
-    var allDevices = Object.values(devices).slice().sort(function (a, b) {
-      return a.name.localeCompare(b.name);
-    });
+    var allDevices = getOrderedDevices(Object.values(devices));
     var section = createElement('div', 'zone-section');
     var grid = createElement('div', 'device-grid');
     allDevices.forEach(function (d) { grid.appendChild(buildDeviceCard(d)); });
+    initDragOnGrid(grid);
     section.appendChild(grid);
     container.appendChild(section);
   }
@@ -215,11 +344,10 @@
 
     var grid = createElement('div', 'device-grid');
 
-    // Geräte sortiert nach Name
-    deviceList.sort(function (a, b) { return a.name.localeCompare(b.name); });
-    deviceList.forEach(function (d) {
+    getOrderedDevices(deviceList).forEach(function (d) {
       grid.appendChild(buildDeviceCard(d));
     });
+    initDragOnGrid(grid);
 
     section.appendChild(grid);
     return section;
@@ -265,7 +393,7 @@
             var ac = getAlarmCapability(devices[deviceId]);
             if (ac) {
               var newVal = ac.isBoolean ? !alarmIsArmed(ac.value) : (alarmIsArmed(ac.value) ? 'disarmed' : 'armed');
-              setCapability(deviceId, ac.capId, newVal);
+              requirePin(function () { setCapability(deviceId, ac.capId, newVal); });
             }
           } else {
             setCapability(deviceId, 'onoff', !(c.onoff && c.onoff.value));
@@ -298,7 +426,7 @@
           var ac = getAlarmCapability(devices[deviceId]);
           if (!ac) return;
           var newVal = ac.isBoolean ? !alarmIsArmed(ac.value) : (btn.classList.contains('on') ? 'disarmed' : 'armed');
-          setCapability(deviceId, ac.capId, newVal);
+          requirePin(function () { setCapability(deviceId, ac.capId, newVal); });
         });
       }(d.id, alarmToggle));
       header.appendChild(alarmToggle);
@@ -707,6 +835,66 @@ function flashRefresh() {
 
   // Globale Funktion für den "Erneut versuchen"-Button
   window.loadData = loadData;
+
+  // ── PIN-Modal ────────────────────────────────────────
+  function requirePin(callback) {
+    if (!_alarmPin) { callback(); return; }
+    _pinEntry = '';
+    _pinCallback = callback;
+    updatePinDots();
+    document.getElementById('pin-error').textContent = '';
+    document.getElementById('pin-modal').style.display = 'flex';
+  }
+
+  function pinKey(digit) {
+    if (_pinEntry.length >= 4) return;
+    _pinEntry += digit;
+    updatePinDots();
+    if (_pinEntry.length === 4) {
+      setTimeout(checkPin, 80);
+    }
+  }
+
+  function pinBackspace() {
+    _pinEntry = _pinEntry.slice(0, -1);
+    updatePinDots();
+  }
+
+  function pinCancel() {
+    document.getElementById('pin-modal').style.display = 'none';
+    _pinEntry = '';
+    _pinCallback = null;
+  }
+
+  function checkPin() {
+    if (_pinEntry === _alarmPin) {
+      document.getElementById('pin-modal').style.display = 'none';
+      var cb = _pinCallback;
+      _pinEntry = '';
+      _pinCallback = null;
+      if (cb) cb();
+    } else {
+      var inner = document.querySelector('.pin-modal-inner');
+      inner.classList.remove('shake');
+      void inner.offsetWidth; // reflow
+      inner.classList.add('shake');
+      document.getElementById('pin-error').textContent = 'Wrong PIN';
+      _pinEntry = '';
+      updatePinDots();
+    }
+  }
+
+  function updatePinDots() {
+    var dots = document.querySelectorAll('.pin-dots span');
+    dots.forEach(function (dot, i) {
+      if (i < _pinEntry.length) dot.classList.add('filled');
+      else dot.classList.remove('filled');
+    });
+  }
+
+  window.pinKey       = pinKey;
+  window.pinBackspace = pinBackspace;
+  window.pinCancel    = pinCancel;
 
   // ── Kamera-Modal ────────────────────────────────────
   var _cameraRefreshTimer = null;

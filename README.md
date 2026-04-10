@@ -12,12 +12,15 @@ The app runs a local HTTP/WebSocket server on your Homey that emulates the Home 
 - **Device control** — toggle lights, sockets, locks, fans, blinds, heaters, TVs, and more directly from the wall
 - **Dimmer support** — adjust brightness or position with a slider for dimmable lights and covers
 - **Alarm control** — arm, disarm, or partially arm your home alarm; view motion and contact alerts
+- **PIN protection** — optional 4-digit PIN for the home alarm, configurable in the settings page
+- **Camera & doorbell images** — tap a camera or doorbell tile to view the latest snapshot
 - **Sensor readings** — temperature, humidity, CO₂, power consumption, and more shown inline
 - **Room grouping** — devices organized by Homey zones with a toggle to view all devices flat
 - **Device filtering** — choose exactly which devices appear on the display via the settings page
-- **Pull-to-refresh** — swipe down or tap the header to manually refresh
-- **Auto-refresh** — fallback polling every 10 seconds and full refresh every 5 minutes
-- **Home Assistant protocol emulation** — the display connects seamlessly without any device firmware changes
+- **Custom device icons** — respects user-set custom icons from the Homey app; 226 named icons served locally
+- **Drag & drop reordering** — long-press a tile to drag it to a new position; order is saved across reloads
+- **Dark / light mode** — toggle between themes via the header button; preference is saved in localStorage
+- **Auto-refresh** — SSE stream for instant updates, fallback polling every 10 seconds, full refresh every 5 minutes
 
 ---
 
@@ -48,21 +51,21 @@ Homey App (com.walldisplay.dashboard)
 
 | Device Class | Icon | Controllable | Sensor Data |
 |---|---|---|---|
-| Light | 💡 | On/Off, Dim | Temperature |
+| Light | 💡 | On/Off, Dim | — |
 | Socket | 🔌 | On/Off | Power (W) |
 | Thermostat | 🌡️ | — | Temperature, Humidity |
 | Sensor | 📡 | — | Temperature, Humidity, CO₂ |
 | Lock | 🔒 | On/Off | — |
-| Blinds / Curtain / Window Coverings | 🪟 | On/Off, Position | — |
-| Fan | 💨 | On/Off, Speed | — |
+| Blinds / Curtain / Shutterblind / Window Coverings | 🪟 | On/Off, Position | — |
+| Fan | 💨 | On/Off | — |
 | Heater | 🔥 | On/Off | Temperature |
 | Home Alarm | 🔐 | Armed / Disarmed / Partial | Motion, Contact |
 | TV | 📺 | On/Off | — |
 | Vacuum Cleaner | 🤖 | On/Off | — |
 | Solar Panel | ☀️ | — | Power (W) |
-| Camera | 📷 | — | — |
+| Camera | 📷 | — | Snapshot image |
+| Doorbell | 🔔 | — | Snapshot image |
 | Speaker / Media Player | 🔊 🎵 | — | — |
-| Doorbell | 🔔 | — | — |
 | Button / Remote | 🔘 🕹️ | — | — |
 
 ---
@@ -86,6 +89,19 @@ Open the app settings in the Homey app to configure:
 | **Dashboard URL** | The address to enter on your Shelly Wall Display | Auto-detected |
 | **Port** | HTTP server port (1024–65535). The server restarts automatically when changed. | `7575` |
 | **Device Selection** | Choose which devices are visible on the dashboard. Devices are listed by room. Select all, clear all, or pick individually. | All devices |
+| **Alarm PIN** | Optional 4-digit PIN required to arm/disarm the home alarm from the dashboard. Leave empty to disable. | — |
+
+---
+
+## Dashboard Usage
+
+| Interaction | Action |
+|---|---|
+| Tap tile | Toggle device on/off (where supported) |
+| Long-press tile (400 ms) | Start drag & drop to reorder |
+| Tap camera / doorbell tile | Open live snapshot |
+| ⊞ All / ⊟ Rooms button | Switch between flat and grouped view |
+| ☀️ / 🌙 button | Toggle dark / light mode |
 
 ---
 
@@ -102,6 +118,9 @@ The app exposes the following HTTP endpoints (primarily for internal use by the 
 | `/api/zones` | GET | Homey zones / rooms |
 | `/api/settings` | GET / POST | Read or update app settings |
 | `/api/device/:id/capability/:cap` | POST | Set a device capability value |
+| `/api/camera/:id` | GET | Latest camera snapshot (proxied from Homey) |
+| `/api/icon-proxy` | GET | Proxy for external device icon URLs |
+| `/device-icons/:name.svg` | GET | Named device icons (served locally) |
 | `/api/config` | GET | Simulated Home Assistant config |
 | `/api/discovery_info` | GET | Simulated HA discovery info |
 | `/auth/*` | GET / POST | Simulated HA authentication flow |
@@ -123,15 +142,17 @@ The app exposes the following HTTP endpoints (primarily for internal use by the 
 
 ```
 com.walldisplay.dashboard/
-├── app.js              # Homey app entry point — HTTP/WebSocket server, Homey API integration
-├── app.json            # App manifest (id, permissions, metadata)
-├── package.json        # Node.js dependencies
+├── app.js                  # Homey app entry point — HTTP/WebSocket server, Homey API integration
+├── app.json                # App manifest (id, permissions, metadata)
+├── package.json            # Node.js dependencies
+├── .gitignore              # Excludes node_modules, .claude/, build artefacts
 ├── dashboard/
-│   ├── index.html      # Dashboard HTML shell
-│   ├── client.js       # Frontend logic (device rendering, SSE, controls)
-│   └── style.css       # Dashboard styles (touch-optimized)
+│   ├── index.html          # Dashboard HTML shell
+│   ├── client.js           # Frontend logic (device rendering, SSE, controls, drag & drop, PIN)
+│   ├── style.css           # Dashboard styles (touch-optimized, dark/light mode)
+│   └── device-icons/       # 226 SVG device icons (copied from homey-lib)
 └── settings/
-    └── index.html      # Settings UI (port, device filter)
+    └── index.html          # Settings UI (port, device filter, alarm PIN)
 ```
 
 ---

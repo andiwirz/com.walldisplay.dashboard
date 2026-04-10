@@ -241,6 +241,7 @@ class ShellyWallDisplayApp extends Homey.App {
         res.end(JSON.stringify({
           port: this.homey.settings.get('port') || DEFAULT_PORT,
           enabledDevices: this.homey.settings.get('enabledDevices') || null,
+          alarmPin: this.homey.settings.get('alarmPin') || '',
         }));
         return;
       }
@@ -249,7 +250,7 @@ class ShellyWallDisplayApp extends Homey.App {
       if (url.pathname === '/api/settings' && req.method === 'POST') {
         const body = await this._readBody(req);
         const { key, value } = JSON.parse(body);
-        const allowed = ['port', 'enabledDevices'];
+        const allowed = ['port', 'enabledDevices', 'alarmPin'];
         if (!allowed.includes(key)) {
           res.writeHead(400);
           res.end(JSON.stringify({ error: 'Not allowed' }));

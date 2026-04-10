@@ -185,6 +185,16 @@
     <div class="status" id="port-status"></div>
   </div>
 
+  <!-- Alarm PIN -->
+  <div class="card">
+    <div class="card-title">Alarm PIN</div>
+    <label for="pin-input">PIN für Alarm-Kacheln (4 Ziffern, leer = kein PIN)</label>
+    <input type="password" id="pin-input" maxlength="4" pattern="[0-9]*" inputmode="numeric" placeholder="z.B. 1234" style="letter-spacing:6px;font-size:18px;width:120px;">
+    <p class="hint">Beim Scharfschalten/Entschärfen wird dieser PIN abgefragt.</p>
+    <button class="save-btn" onclick="savePin()">Speichern</button>
+    <div class="status" id="pin-status"></div>
+  </div>
+
   <!-- Geräteauswahl -->
   <div class="card">
     <div class="card-title">
@@ -297,6 +307,8 @@
       var enabledDevices = await hGet('enabledDevices');
 
       document.getElementById('port-input').value = port;
+      var savedPin = await hGet('alarmPin') || '';
+      document.getElementById('pin-input').value = savedPin;
 
       // 2) Dashboard-URL anzeigen
       if (storedUrl) {
@@ -449,6 +461,19 @@
         setTimeout(loadAll, 3000);
       } catch (e) {
         showStatus('port-status', 'Fehler: ' + e.message, false);
+      }
+    }
+
+    async function savePin() {
+      var pin = document.getElementById('pin-input').value.trim();
+      if (pin && !/^\d{4}$/.test(pin)) {
+        showStatus('pin-status', 'PIN muss genau 4 Ziffern haben', false); return;
+      }
+      try {
+        await hSet('alarmPin', pin);
+        showStatus('pin-status', pin ? 'PIN gespeichert' : 'PIN entfernt', true);
+      } catch (e) {
+        showStatus('pin-status', 'Fehler: ' + e.message, false);
       }
     }
 

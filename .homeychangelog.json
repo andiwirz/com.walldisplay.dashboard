@@ -7,5 +7,8 @@
   },
   "1.0.2": {
     "en": "dark and light mode, Homey icons"
+  },
+  "1.0.3": {
+    "en": "add PIN Code protection for homealarm device and fix cam"
   }
 }

@@ -82,6 +82,25 @@
     return CLASS_ICONS[cls] || CLASS_ICONS.other;
   }
 
+  // Erzeugt ein Icon-Element: Homey-SVG falls vorhanden, sonst Emoji-Fallback
+  function buildIconElement(d) {
+    var span = createElement('span', 'device-icon');
+    if (d.icon) {
+      var img = document.createElement('img');
+      img.className = 'device-icon-img';
+      img.alt = '';
+      img.src = '/api/icon-proxy?url=' + encodeURIComponent(d.icon);
+      img.onerror = function () {
+        span.removeChild(img);
+        span.textContent = getIcon(d.class);
+      };
+      span.appendChild(img);
+    } else {
+      span.textContent = getIcon(d.class);
+    }
+    return span;
+  }
+
   // ── Uhr ────────────────────────────────────────────
   function updateClock() {
     var now = new Date();
@@ -227,9 +246,7 @@
 
     // Header: Icon + Toggle
     var header = createElement('div', 'device-header');
-    var icon = createElement('span', 'device-icon');
-    icon.textContent = getIcon(d.class);
-    header.appendChild(icon);
+    header.appendChild(buildIconElement(d));
 
     if (hasOnOff) {
       var toggle = createElement('button', 'device-toggle');
@@ -354,6 +371,36 @@
       });
       slider.addEventListener('input', function () {
         this.style.setProperty('--val', this.value + '%');
+      });
+      container.appendChild(slider);
+      added++;
+    }
+
+    // Jalousie/Rollo-Slider (windowcoverings_set: 0=zu, 1=offen)
+    if (caps.windowcoverings_set) {
+      var val = caps.windowcoverings_set.value !== null ? caps.windowcoverings_set.value : 0;
+      var pct = Math.round(val * 100);
+      var label = createElement('div', 'device-value');
+      label.textContent = '🪟 ' + pct + ' %';
+      label.id = 'wc-label-' + d.id;
+      container.appendChild(label);
+      var slider = document.createElement('input');
+      slider.type = 'range';
+      slider.className = 'dim-slider';
+      slider.min = '0';
+      slider.max = '100';
+      slider.value = pct;
+      slider.style.setProperty('--val', pct + '%');
+      var deviceId = d.id;
+      slider.addEventListener('change', function () {
+        var newVal = parseInt(this.value, 10) / 100;
+        this.style.setProperty('--val', this.value + '%');
+        setCapability(deviceId, 'windowcoverings_set', newVal);
+      });
+      slider.addEventListener('input', function () {
+        this.style.setProperty('--val', this.value + '%');
+        var lbl = document.getElementById('wc-label-' + deviceId);
+        if (lbl) lbl.textContent = '🪟 ' + this.value + ' %';
       });
       container.appendChild(slider);
       added++;
@@ -491,11 +538,27 @@
     }
 
     // Dim-Slider
-    var slider = card.querySelector('.dim-slider');
-    if (slider && caps.dim) {
-      var pct = Math.round((caps.dim.value || 0) * 100);
-      slider.value = pct;
-      slider.style.setProperty('--val', pct + '%');
+    var sliders = card.querySelectorAll('.dim-slider');
+    sliders.forEach(function(slider) {
+      if (caps.dim && !caps.windowcoverings_set) {
+        var pct = Math.round((caps.dim.value || 0) * 100);
+        slider.value = pct;
+        slider.style.setProperty('--val', pct + '%');
+      }
+    });
+
+    // Jalousie-Slider
+    if (caps.windowcoverings_set) {
+      var wcSlider = card.querySelector('.dim-slider');
+      if (wcSlider) {
+        var pct = Math.round((caps.windowcoverings_set.value || 0) * 100);
+        wcSlider.value = pct;
+        wcSlider.style.setProperty('--val', pct + '%');
+      }
+      var wcLabel = document.getElementById('wc-label-' + deviceId);
+      if (wcLabel) {
+        wcLabel.textContent = '🪟 ' + Math.round((caps.windowcoverings_set.value || 0) * 100) + ' %';
+      }
     }
 
     // Alarme
@@ -695,5 +758,6 @@
 
   // Globale Funktion für den "Erneut versuchen"-Button
   window.loadData = loadData;
+
 
 })();

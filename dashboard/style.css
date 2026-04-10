@@ -208,6 +208,23 @@ html, body {
 .device-icon {
   font-size: 26px;
   line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+}
+
+.device-icon-img {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+  filter: brightness(0) opacity(0.65);
+}
+
+.device-card.on .device-icon-img {
+  filter: brightness(0) saturate(100%) invert(55%) sepia(80%) saturate(500%) hue-rotate(10deg) brightness(110%);
+  opacity: 1;
 }
 
 /* ── Toggle switch ────────────────────────────── */

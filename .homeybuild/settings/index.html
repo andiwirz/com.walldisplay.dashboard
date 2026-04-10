@@ -232,6 +232,22 @@
 
     function getIcon(cls) { return CLASS_ICONS[cls] || CLASS_ICONS.other; }
 
+    function buildIconEl(d) {
+      var span = document.createElement('span');
+      span.className = 'device-icon';
+      if (d.icon) {
+        var img = document.createElement('img');
+        img.src = _dashboardBase + '/api/icon-proxy?url=' + encodeURIComponent(d.icon);
+        img.width = 18; img.height = 18;
+        img.style.cssText = 'object-fit:contain;vertical-align:middle;filter:brightness(0) opacity(0.6)';
+        img.onerror = function() { span.removeChild(img); span.textContent = getIcon(d.class); };
+        span.appendChild(img);
+      } else {
+        span.textContent = getIcon(d.class);
+      }
+      return span;
+    }
+
     // ── Homey SDK Wrappers (Homey.get / Homey.set) ─────────────────────
     function hGet(key) {
       return new Promise(function(resolve) {
@@ -383,9 +399,7 @@
           cb.checked = isAll || enabledSet.has(d.id);
           cb.setAttribute('data-device-id', d.id);
 
-          var icon = document.createElement('span');
-          icon.className = 'device-icon';
-          icon.textContent = getIcon(d.class);
+          var icon = buildIconEl(d);
 
           var lbl = document.createElement('span');
           lbl.className = 'device-label';
@@ -443,7 +457,8 @@
       checkboxes.forEach(function(cb) {
         if (cb.checked) enabled.push(cb.getAttribute('data-device-id'));
       });
-      var value = (enabled.length === _allDevices.length) ? null : enabled;
+      // Homey.set() akzeptiert kein null → true als Sentinel für "alle Geräte"
+      var value = (enabled.length === _allDevices.length) ? true : enabled;
       try {
         await hSet('enabledDevices', value);
         showStatus('devices-status',

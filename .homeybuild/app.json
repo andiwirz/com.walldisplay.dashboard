@@ -1,6 +1,6 @@
 {
   "id": "com.walldisplay.dashboard",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "compatibility": ">=5.0.0",
   "sdk": 3,
   "brandColor": "#E8001D",
@@ -13,10 +13,20 @@
     "de": "Verwandle dein Touchscreen-Display in ein Smart-Home-Bedienpanel"
   },
   "tags": {
-    "en": ["shelly", "wall display", "dashboard"],
-    "de": ["shelly", "wanddisplay", "dashboard"]
+    "en": [
+      "shelly",
+      "wall display",
+      "dashboard"
+    ],
+    "de": [
+      "shelly",
+      "wanddisplay",
+      "dashboard"
+    ]
   },
-  "category": ["tools"],
+  "category": [
+    "tools"
+  ],
   "permissions": [
     "homey:manager:api"
   ],

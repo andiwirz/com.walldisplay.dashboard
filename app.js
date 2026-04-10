@@ -40,6 +40,7 @@ class ShellyWallDisplayApp extends Homey.App {
       // fehlt im Homey-Runtime-Environment.
       const HomeyAPI = require('homey-api/lib/HomeyAPI/HomeyAPI');
       this.homeyApi = await HomeyAPI.createAppAPI({ homey: this.homey });
+      this.homeyBaseUrl = await this.homey.api.getLocalUrl();
       this.log('Homey API verbunden');
 
       this.homeyApi.devices.on('device.update', (device) => {
@@ -270,11 +271,11 @@ class ShellyWallDisplayApp extends Homey.App {
             id: d.id,
             name: d.name,
             zone: d.zone,
-            class: d.class,
+            class: d.virtualClass || d.class,
             capabilities: d.capabilities,
             capabilitiesObj: d.capabilitiesObj,
             available: d.available,
-            icon: d.iconObj ? d.iconObj.url : null,
+            icon: this._buildIconUrl(d.iconObj ? d.iconObj.url : null),
           }));
         res.writeHead(200);
         res.end(JSON.stringify(result));
@@ -288,7 +289,8 @@ class ShellyWallDisplayApp extends Homey.App {
           id: d.id,
           name: d.name,
           zone: d.zone,
-          class: d.class,
+          class: d.virtualClass || d.class,
+          icon: this._buildIconUrl(d.iconObj ? d.iconObj.url : null),
         }));
         res.writeHead(200);
         res.end(JSON.stringify(result));
@@ -300,6 +302,24 @@ class ShellyWallDisplayApp extends Homey.App {
         const zones = await this.homeyApi.zones.getZones();
         res.writeHead(200);
         res.end(JSON.stringify(Object.values(zones)));
+        return;
+      }
+
+      // GET /api/icon-proxy?url=... — Homey-Icon mit Auth proxyen
+      if (url.pathname === '/api/icon-proxy' && req.method === 'GET') {
+        const iconUrl = url.searchParams.get('url');
+        if (!iconUrl || !iconUrl.startsWith('http')) {
+          res.writeHead(400); res.end(); return;
+        }
+        const iconMod = iconUrl.startsWith('https') ? require('https') : require('http');
+        const token = await this.homey.api.getOwnerApiToken().catch(() => null);
+        const headers = token ? { Authorization: `Bearer ${token}` } : {};
+        iconMod.get(iconUrl, { headers }, (iconRes) => {
+          res.setHeader('Content-Type', iconRes.headers['content-type'] || 'image/svg+xml');
+          res.setHeader('Cache-Control', 'public, max-age=86400');
+          res.writeHead(iconRes.statusCode);
+          iconRes.pipe(res);
+        }).on('error', () => { res.writeHead(502); res.end(); });
         return;
       }
 
@@ -472,6 +492,14 @@ class ShellyWallDisplayApp extends Homey.App {
     if (!allowed.includes(key)) throw new Error('Not allowed');
     this.homey.settings.set(key, value);
     return { ok: true };
+  }
+
+  // Baut eine absolute Icon-URL (relative Pfade werden mit der Homey-Base-URL versehen)
+  _buildIconUrl(iconUrl) {
+    if (!iconUrl) return null;
+    if (iconUrl.startsWith('http')) return iconUrl;
+    if (this.homeyBaseUrl) return this.homeyBaseUrl + iconUrl;
+    return null;
   }
 
   // Gibt die LAN-IP der Homey zurück (bevorzugt 10.x / 192.168.x, überspringt Loopback + Docker)

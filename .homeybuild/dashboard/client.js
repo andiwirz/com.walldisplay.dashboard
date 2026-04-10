@@ -9,6 +9,25 @@
   var eventSource = null;
   var pollTimer = null;
 
+  // ── Theme ('light' | 'dark') ───────────────────────
+  var theme = 'light';
+  try { theme = localStorage.getItem('theme') || 'light'; } catch (_) {}
+
+  function applyTheme(t) {
+    document.documentElement.setAttribute('data-theme', t === 'dark' ? 'dark' : '');
+    var btn = document.getElementById('theme-toggle');
+    if (btn) btn.textContent = t === 'dark' ? '🌙' : '☀️';
+  }
+
+  function toggleTheme() {
+    theme = theme === 'dark' ? 'light' : 'dark';
+    try { localStorage.setItem('theme', theme); } catch (_) {}
+    applyTheme(theme);
+  }
+
+  applyTheme(theme);
+  window.toggleTheme = toggleTheme;
+
   // ── View-Modus ('zones' | 'all') ───────────────────
   var viewMode = 'zones';
   try { viewMode = localStorage.getItem('viewMode') || 'zones'; } catch (_) {}
@@ -23,8 +42,8 @@
   function updateViewToggle() {
     var btn = document.getElementById('view-toggle');
     if (!btn) return;
-    btn.textContent = viewMode === 'zones' ? '⊞ Alle' : '⊟ Räume';
-    btn.setAttribute('aria-label', viewMode === 'zones' ? 'Alle Geräte anzeigen' : 'Nach Räumen gruppieren');
+    btn.textContent = viewMode === 'zones' ? '⊞ All' : '⊟ Rooms';
+    btn.setAttribute('aria-label', viewMode === 'zones' ? 'Show all devices' : 'Group by rooms');
   }
 
   window.toggleView = toggleView;
@@ -89,7 +108,8 @@
       var img = document.createElement('img');
       img.className = 'device-icon-img';
       img.alt = '';
-      img.src = '/api/icon-proxy?url=' + encodeURIComponent(d.icon);
+      // Lokale Pfade (/device-icons/...) direkt laden – kein Proxy nötig
+      img.src = d.icon.startsWith('/') ? d.icon : '/api/icon-proxy?url=' + encodeURIComponent(d.icon);
       img.onerror = function () {
         span.removeChild(img);
         span.textContent = getIcon(d.class);
@@ -172,7 +192,7 @@
     });
 
     if (noZone.length > 0) {
-      container.appendChild(buildZoneSection('Sonstige', noZone));
+      container.appendChild(buildZoneSection('Other', noZone));
     }
   }
 
@@ -221,6 +241,16 @@
 
     if (isOn || isArmed) card.classList.add('on');
 
+    // Kamera/Doorbell: Karte klickbar → Modal mit Snapshot
+    if (d.class === 'camera' || d.class === 'doorbell') {
+      card.classList.add('clickable');
+      (function (deviceId, deviceName) {
+        card.addEventListener('click', function () {
+          openCameraModal(deviceId, deviceName);
+        });
+      }(d.id, d.name));
+    }
+
     // Ganze Karte klickbar für onoff-only (kein Dim) und homealarm
     if (hasAlarm || (hasOnOff && !hasDim)) {
       card.classList.add('clickable');
@@ -251,7 +281,7 @@
     if (hasOnOff) {
       var toggle = createElement('button', 'device-toggle');
       if (isOn) toggle.classList.add('on');
-      toggle.setAttribute('aria-label', isOn ? 'Ausschalten' : 'Einschalten');
+      toggle.setAttribute('aria-label', isOn ? 'Turn off' : 'Turn on');
       toggle.addEventListener('click', function () {
         var newVal = !toggle.classList.contains('on');
         setCapability(d.id, 'onoff', newVal);
@@ -304,18 +334,18 @@
     if (hasAlarm) {
       var ac = getAlarmCapability(d);
       if (ac) {
-        if (ac.isBoolean) return alarmIsArmed(ac.value) ? 'Scharf' : 'Unscharf';
-        return ac.value === 'armed' ? 'Scharf' : ac.value === 'partially_armed' ? 'Teilscharf' : 'Unscharf';
+        if (ac.isBoolean) return alarmIsArmed(ac.value) ? 'Armed' : 'Disarmed';
+        return ac.value === 'armed' ? 'Armed' : ac.value === 'partially_armed' ? 'Partly armed' : 'Disarmed';
       }
     }
     if (hasOnOff) {
       var isOn = caps.onoff && caps.onoff.value === true;
       if (caps.dim && isOn) {
-        return 'An · ' + Math.round((caps.dim.value || 0) * 100) + ' %';
+        return 'On · ' + Math.round((caps.dim.value || 0) * 100) + ' %';
       }
-      return isOn ? 'An' : 'Aus';
+      return isOn ? 'On' : 'Off';
     }
-    if (!d.available) return 'Nicht verfügbar';
+    if (!d.available) return 'Unavailable';
     return '';
   }
 
@@ -325,7 +355,8 @@
     var added = 0;
 
     // Primärwert: Temperatur (nicht bei Steckdosen)
-    if (d.class !== 'socket' && caps.measure_temperature) {
+    var _noTemp = ['socket', 'light', 'windowcoverings', 'shutterblinds', 'blinds', 'curtain'];
+    if (_noTemp.indexOf(d.class) === -1 && caps.measure_temperature) {
       var el = createElement('div', 'device-value primary');
       var val = caps.measure_temperature.value;
       el.innerHTML = (val !== null && val !== undefined ? val.toFixed(1) : '--') +
@@ -406,23 +437,6 @@
       added++;
     }
 
-    // Heimalarm-Status
-    var alarmCapForValues = (d.class === 'homealarm') ? getAlarmCapability(d) : null;
-    if (alarmCapForValues) {
-      var el = createElement('div', 'device-value alarm-status');
-      var armed = alarmIsArmed(alarmCapForValues.value);
-      var label;
-      if (alarmCapForValues.isBoolean) {
-        label = armed ? '🔐 Scharf' : '🔓 Unscharf';
-      } else {
-        label = alarmCapForValues.value === 'armed' ? '🔐 Scharf' :
-                alarmCapForValues.value === 'partially_armed' ? '🔐 Teilscharf' : '🔓 Unscharf';
-      }
-      el.textContent = label;
-      if (armed) el.classList.add('alarm-active');
-      container.appendChild(el);
-      added++;
-    }
 
     // Bewegungsalarm
     if (caps.alarm_motion) {
@@ -430,7 +444,7 @@
       var dot = createElement('span', 'alarm-dot');
       if (caps.alarm_motion.value) dot.classList.add('active');
       el.appendChild(dot);
-      var txt = document.createTextNode(' Bewegung');
+      var txt = document.createTextNode(' Motion');
       el.appendChild(txt);
       container.appendChild(el);
       added++;
@@ -442,7 +456,7 @@
       var dot = createElement('span', 'alarm-dot');
       if (caps.alarm_contact.value) dot.classList.add('active');
       el.appendChild(dot);
-      var txt = document.createTextNode(caps.alarm_contact.value ? ' Offen' : ' Geschlossen');
+      var txt = document.createTextNode(caps.alarm_contact.value ? ' Open' : ' Closed');
       el.appendChild(txt);
       container.appendChild(el);
       added++;
@@ -509,20 +523,6 @@
     if (alarmToggle) {
       if (isArmed) alarmToggle.classList.add('on');
       else alarmToggle.classList.remove('on');
-    }
-
-    var alarmStatus = card.querySelector('.alarm-status');
-    if (alarmStatus && alarmCapUpdate) {
-      var label;
-      if (alarmCapUpdate.isBoolean) {
-        label = isArmed ? '🔐 Scharf' : '🔓 Unscharf';
-      } else {
-        label = alarmCapUpdate.value === 'armed' ? '🔐 Scharf' :
-                alarmCapUpdate.value === 'partially_armed' ? '🔐 Teilscharf' : '🔓 Unscharf';
-      }
-      alarmStatus.textContent = label;
-      if (isArmed) alarmStatus.classList.add('alarm-active');
-      else alarmStatus.classList.remove('alarm-active');
     }
 
     // Status-Zeile
@@ -685,60 +685,9 @@
         flashRefresh();
       });
     }
-    initPullToRefresh();
   });
 
-  // 3) Pull-to-Refresh (Wischen nach unten vom oberen Rand)
-  function initPullToRefresh() {
-    var touchStartY = 0;
-    var pulling = false;
-    var indicator = null;
-    var THRESHOLD = 70; // px zum Auslösen
-
-    function getIndicator() {
-      if (!indicator) {
-        indicator = document.createElement('div');
-        indicator.id = 'pull-indicator';
-        document.body.appendChild(indicator);
-      }
-      return indicator;
-    }
-
-    document.addEventListener('touchstart', function (e) {
-      if (window.scrollY === 0) {
-        touchStartY = e.touches[0].clientY;
-        pulling = true;
-      }
-    }, { passive: true });
-
-    document.addEventListener('touchmove', function (e) {
-      if (!pulling) return;
-      var dy = e.touches[0].clientY - touchStartY;
-      if (dy <= 0) { pulling = false; return; }
-      var progress = Math.min(dy / THRESHOLD, 1);
-      var ind = getIndicator();
-      ind.style.transform = 'translateX(-50%) translateY(' + (Math.min(dy * 0.5, 50)) + 'px)';
-      ind.style.opacity = progress;
-      ind.textContent = progress >= 1 ? '↻' : '↓';
-      ind.className = progress >= 1 ? 'pull-ready' : '';
-    }, { passive: true });
-
-    document.addEventListener('touchend', function (e) {
-      if (!pulling) return;
-      pulling = false;
-      var dy = e.changedTouches[0].clientY - touchStartY;
-      var ind = getIndicator();
-      ind.style.transform = 'translateX(-50%) translateY(-40px)';
-      ind.style.opacity = '0';
-      ind.className = '';
-      if (dy >= THRESHOLD) {
-        loadData();
-        flashRefresh();
-      }
-    }, { passive: true });
-  }
-
-  function flashRefresh() {
+function flashRefresh() {
     var logo = document.querySelector('.logo');
     if (!logo) return;
     logo.style.transition = 'transform 0.4s ease';
@@ -758,6 +707,47 @@
 
   // Globale Funktion für den "Erneut versuchen"-Button
   window.loadData = loadData;
+
+  // ── Kamera-Modal ────────────────────────────────────
+  var _cameraRefreshTimer = null;
+
+  function openCameraModal(deviceId, deviceName) {
+    var modal = document.getElementById('camera-modal');
+    var title = document.getElementById('camera-modal-title');
+    var img   = document.getElementById('camera-modal-img');
+    var err   = document.getElementById('camera-modal-error');
+
+    title.textContent = deviceName;
+    err.style.display = 'none';
+    img.style.display = 'block';
+    modal.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+
+    function refresh() {
+      img.src = '/api/camera/' + deviceId + '?t=' + Date.now();
+    }
+
+    img.onerror = function () {
+      img.style.display = 'none';
+      err.style.display = 'flex';
+    };
+
+    refresh();
+    clearInterval(_cameraRefreshTimer);
+    _cameraRefreshTimer = setInterval(refresh, 3000);
+  }
+
+  function closeCameraModal() {
+    clearInterval(_cameraRefreshTimer);
+    _cameraRefreshTimer = null;
+    var modal = document.getElementById('camera-modal');
+    modal.style.display = 'none';
+    document.getElementById('camera-modal-img').src = '';
+    document.body.style.overflow = '';
+  }
+
+  window.openCameraModal  = openCameraModal;
+  window.closeCameraModal = closeCameraModal;
 
 
 })();

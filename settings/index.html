@@ -237,7 +237,8 @@
       span.className = 'device-icon';
       if (d.icon) {
         var img = document.createElement('img');
-        img.src = _dashboardBase + '/api/icon-proxy?url=' + encodeURIComponent(d.icon);
+        // Lokale Icons (/device-icons/...) direkt laden, externe via Proxy
+        img.src = d.icon.startsWith('/') ? (_dashboardBase + d.icon) : (_dashboardBase + '/api/icon-proxy?url=' + encodeURIComponent(d.icon));
         img.width = 18; img.height = 18;
         img.style.cssText = 'object-fit:contain;vertical-align:middle;filter:brightness(0) opacity(0.6)';
         img.onerror = function() { span.removeChild(img); span.textContent = getIcon(d.class); };

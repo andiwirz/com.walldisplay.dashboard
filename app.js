@@ -275,7 +275,7 @@ class ShellyWallDisplayApp extends Homey.App {
             capabilities: d.capabilities,
             capabilitiesObj: d.capabilitiesObj,
             available: d.available,
-            icon: this._buildIconUrl(d.iconObj ? d.iconObj.url : null),
+            icon: this._buildIconUrl(d.iconOverride || (d.iconObj ? d.iconObj.url : null)),
           }));
         res.writeHead(200);
         res.end(JSON.stringify(result));
@@ -290,7 +290,7 @@ class ShellyWallDisplayApp extends Homey.App {
           name: d.name,
           zone: d.zone,
           class: d.virtualClass || d.class,
-          icon: this._buildIconUrl(d.iconObj ? d.iconObj.url : null),
+          icon: this._buildIconUrl(d.iconOverride || (d.iconObj ? d.iconObj.url : null)),
         }));
         res.writeHead(200);
         res.end(JSON.stringify(result));
@@ -319,6 +319,65 @@ class ShellyWallDisplayApp extends Homey.App {
           res.setHeader('Cache-Control', 'public, max-age=86400');
           res.writeHead(iconRes.statusCode);
           iconRes.pipe(res);
+        }).on('error', () => { res.writeHead(502); res.end(); });
+        return;
+      }
+
+      // GET /api/debug/images — alle registrierten Homey-Images + camera device.images
+      if (url.pathname === '/api/debug/images' && req.method === 'GET') {
+        const allImages = await this.homeyApi.images.getImages();
+        const allDevices = await this.homeyApi.devices.getDevices();
+        const cameras = Object.values(allDevices)
+          .filter(d => (d.virtualClass || d.class) === 'camera')
+          .map(d => ({ id: d.id, name: d.name, images: d.images }));
+        res.writeHead(200);
+        res.end(JSON.stringify({
+          images: Object.values(allImages).map(img => ({
+            id: img.id, ownerUri: img.ownerUri, url: img.url,
+          })),
+          cameras,
+        }, null, 2));
+        return;
+      }
+
+      // GET /api/camera/:deviceId — aktuelles Kamerabild (Snapshot) proxyen
+      const cameraMatch = url.pathname.match(/^\/api\/camera\/([^/]+)$/);
+      if (cameraMatch && req.method === 'GET') {
+        const deviceId = cameraMatch[1];
+        // Image-ID direkt aus der device.images-Property lesen.
+        // device.images ist ein Array von Image-Objekten mit {id, ownerUri, url, ...}.
+        // Der ownerUri zeigt auf die App (nicht das Gerät), daher können wir nicht
+        // über images.getImages() filtern — stattdessen das Gerät direkt abfragen.
+        let imageId = null;
+        try {
+          const device = await this.homeyApi.devices.getDevice({ id: deviceId });
+          const imgs = device.images;
+          if (Array.isArray(imgs) && imgs.length > 0) {
+            const first = imgs[0];
+            if (typeof first === 'object' && first !== null) {
+              // imageObj.id ist die echte UUID; first.id ist nur der Slot-Name ("main")
+              imageId = (first.imageObj && first.imageObj.id) ? first.imageObj.id : first.id;
+            } else {
+              imageId = first;
+            }
+          }
+        } catch (e) {
+          this.log('Camera device error:', e.message);
+        }
+        if (!imageId) {
+          res.writeHead(404);
+          res.end(JSON.stringify({ error: 'Keine Kamerabilder verfügbar' }));
+          return;
+        }
+        const token = await this.homey.api.getOwnerApiToken().catch(() => null);
+        const imageUrl = `${this.homeyBaseUrl}/api/image/${imageId}`;
+        const imgMod = imageUrl.startsWith('https') ? require('https') : require('http');
+        const headers = token ? { Authorization: `Bearer ${token}` } : {};
+        imgMod.get(imageUrl, { headers }, (imgRes) => {
+          res.setHeader('Content-Type', imgRes.headers['content-type'] || 'image/jpeg');
+          res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+          res.writeHead(imgRes.statusCode);
+          imgRes.pipe(res);
         }).on('error', () => { res.writeHead(502); res.end(); });
         return;
       }
@@ -494,12 +553,16 @@ class ShellyWallDisplayApp extends Homey.App {
     return { ok: true };
   }
 
-  // Baut eine absolute Icon-URL (relative Pfade werden mit der Homey-Base-URL versehen)
+  // Baut eine absolute Icon-URL aus verschiedenen Homey-Formaten:
+  // - Absolute URL ("http...")           → unverändert (via icon-proxy)
+  // - Relativer Pfad ("/api/icon/...")   → homeyBaseUrl + Pfad (via icon-proxy)
+  // - Interne Icon-Name ("garage-door")  → /device-icons/{name}.svg (eigener Server, kein Proxy)
   _buildIconUrl(iconUrl) {
     if (!iconUrl) return null;
     if (iconUrl.startsWith('http')) return iconUrl;
-    if (this.homeyBaseUrl) return this.homeyBaseUrl + iconUrl;
-    return null;
+    if (iconUrl.startsWith('/') && this.homeyBaseUrl) return this.homeyBaseUrl + iconUrl;
+    // Interner Homey-Icon-Name → wird vom eigenen Dashboard-Server ausgeliefert
+    return `/device-icons/${iconUrl}.svg`;
   }
 
   // Gibt die LAN-IP der Homey zurück (bevorzugt 10.x / 192.168.x, überspringt Loopback + Docker)

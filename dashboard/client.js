@@ -12,6 +12,178 @@
   var _pinEntry = '';
   var _pinCallback = null;
 
+  // ── Energy Modal ───────────────────────────────────
+  var _energyTimer = null;
+
+  function openEnergyModal() {
+    document.getElementById('energy-modal').style.display = 'flex';
+    _fetchEnergy();
+    _energyTimer = setInterval(_fetchEnergy, 5000);
+  }
+  window.openEnergyModal = openEnergyModal;
+
+  function closeEnergyModal() {
+    document.getElementById('energy-modal').style.display = 'none';
+    if (_energyTimer) { clearInterval(_energyTimer); _energyTimer = null; }
+  }
+  window.closeEnergyModal = closeEnergyModal;
+
+  function _fetchEnergy() {
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', '/api/energy', true);
+    xhr.onload = function () {
+      if (xhr.status === 200) {
+        try { _renderEnergy(JSON.parse(xhr.responseText)); } catch (_) {}
+      }
+    };
+    xhr.send();
+  }
+
+  function _fmtW(w) {
+    if (w === null || w === undefined) return '—';
+    var abs = Math.abs(w);
+    if (abs >= 1000) return (abs / 1000).toFixed(1) + ' kW';
+    return abs + ' W';
+  }
+
+  function _fmtKwh(v) {
+    if (v === null || v === undefined) return null;
+    return v.toFixed(1) + ' kWh';
+  }
+
+  function _energyColor(type, power) {
+    if (type === 'solar')   return power > 0  ? '#34C759' : '#8E8E93';
+    if (type === 'battery') return power < 0  ? '#34C759' : (power > 0 ? '#007AFF' : '#8E8E93');
+    if (type === 'grid')    return power < 0  ? '#34C759' : (power > 0 ? '#FF9500' : '#8E8E93');
+    return '#8E8E93';
+  }
+
+  function _energyStatus(type, power, soc) {
+    if (type === 'solar')    return power > 0  ? ['Generating',   'solar']    : ['Idle', 'idle'];
+    if (type === 'battery')  return power < 0  ? ['Discharging',  'discharging'] : (power > 0 ? ['Charging', 'charging'] : ['Idle', 'idle']);
+    if (type === 'grid')     return power < 0  ? ['Exporting',    'exporting'] : (power > 0 ? ['Importing', 'importing'] : ['Idle', 'idle']);
+    if (type === 'ev')       return power > 0  ? ['Charging',     'charging']  : ['Idle', 'idle'];
+    return ['Consuming', 'consuming'];
+  }
+
+  var _ENERGY_FALLBACK_ICONS = { solar: '☀️', battery: '🔋', grid: '⚡', ev: '🚗', consumer: '🔌' };
+
+  function _energyIconHtml(d) {
+    if (d.icon) {
+      var src = d.icon.startsWith('/') ? d.icon : '/api/icon-proxy?url=' + encodeURIComponent(d.icon);
+      return '<img src="' + src + '" class="energy-device-icon-img" alt="">';
+    }
+    return '<span class="energy-device-icon-emoji">' + (_ENERGY_FALLBACK_ICONS[d.type] || '⚡') + '</span>';
+  }
+
+  function _renderEnergyFlowSVG(s, hasBattery) {
+    var svgH     = hasBattery ? 230 : 155;
+    var solarC   = _energyColor('solar',   s.solarW);
+    var gridC    = _energyColor('grid',    s.gridW);
+    var batC     = _energyColor('battery', s.batteryW);
+    var homeC    = '#F5A623';
+
+    // Node rects (x, y, w=130, h=52)
+    // Solar: (10,10)  Grid: (180,10)
+    // Home: (95,88)   Battery: (95,162) — only if hasBattery
+    // Connection points:
+    //   Solar bottom-right: ~(90, 62) → Home top-left: ~(125, 88)
+    //   Grid  bottom-left:  ~(230,62) → Home top-right: ~(195, 88)
+    //   Home bottom-center: (160,140) → Battery top:    (160,162)
+
+    var lineW = function (w) { return Math.max(2, Math.min(7, 2 + Math.abs(w) / 250)); };
+
+    var solarLine = s.solarW > 0
+      ? '<line x1="90" y1="62" x2="125" y2="88" stroke="' + solarC + '" stroke-width="' + lineW(s.solarW) + '" class="energy-flow-line"/>'
+      : '<line x1="90" y1="62" x2="125" y2="88" stroke="' + solarC + '" stroke-width="2" stroke-dasharray="4 4" opacity="0.4"/>';
+
+    var gridCls  = s.gridW > 0 ? 'energy-flow-line' : (s.gridW < 0 ? 'energy-flow-line-rev' : '');
+    var gridDash = s.gridW === 0 ? 'stroke-dasharray="4 4" opacity="0.4"' : '';
+    var gridLine = '<line x1="230" y1="62" x2="195" y2="88" stroke="' + gridC + '" stroke-width="' + lineW(s.gridW) + '" ' + (gridCls ? 'class="' + gridCls + '"' : gridDash) + '/>';
+
+    var batLine = '';
+    if (hasBattery) {
+      var batCls  = s.batteryW > 0 ? 'energy-flow-line' : (s.batteryW < 0 ? 'energy-flow-line-rev' : '');
+      var batDash = s.batteryW === 0 ? 'stroke-dasharray="4 4" opacity="0.4"' : '';
+      batLine = '<line x1="160" y1="140" x2="160" y2="162" stroke="' + batC + '" stroke-width="' + lineW(s.batteryW) + '" ' + (batCls ? 'class="' + batCls + '"' : batDash) + '/>';
+    }
+
+    var node = function (x, y, color, label, value, sub) {
+      var bg = color === '#8E8E93' ? 'rgba(142,142,147,0.08)' : color.replace(')', ',0.10)').replace('rgb', 'rgba').replace('#', 'rgba(').replace('rgba(', 'rgba(').replace(/rgba\(([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2}),/, function (m, r, g, b) {
+        return 'rgba(' + parseInt(r,16) + ',' + parseInt(g,16) + ',' + parseInt(b,16) + ',';
+      });
+      // simpler bg calc
+      var hex = color;
+      var r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
+      var bgFill = 'rgba(' + r + ',' + g + ',' + b + ',0.10)';
+      var borderColor = color;
+      var out = '';
+      out += '<rect x="' + x + '" y="' + y + '" width="130" height="52" rx="10"';
+      out += ' fill="' + bgFill + '" stroke="' + borderColor + '" stroke-width="1.5"/>';
+      out += '<text x="' + (x+65) + '" y="' + (y+20) + '" text-anchor="middle" font-size="9" fill="' + color + '" opacity="0.8" font-weight="600" letter-spacing="0.5">' + label + '</text>';
+      out += '<text x="' + (x+65) + '" y="' + (y+37) + '" text-anchor="middle" font-size="15" font-weight="600" fill="' + color + '">' + value + '</text>';
+      if (sub) out += '<text x="' + (x+65) + '" y="' + (y+50) + '" text-anchor="middle" font-size="9" fill="' + color + '" opacity="0.75">' + sub + '</text>';
+      return out;
+    };
+
+    var gridLabel = s.gridW < 0 ? 'GRID · EXPORT' : 'GRID · IMPORT';
+    var batLabel  = s.batteryW < 0 ? 'BATTERY · OUT' : (s.batteryW > 0 ? 'BATTERY · IN' : 'BATTERY');
+    var batSub    = s.batterySoc !== null ? s.batterySoc + '% SoC' : null;
+
+    var svg = '<svg class="energy-flow-svg" viewBox="0 0 320 ' + svgH + '" xmlns="http://www.w3.org/2000/svg">';
+    svg += solarLine + gridLine + batLine;
+    svg += node(10,  10, solarC, 'SOLAR',          _fmtW(s.solarW), null);
+    svg += node(180, 10, gridC,  gridLabel,         _fmtW(s.gridW),  null);
+    svg += node(85,  88, homeC,  'HOME',            _fmtW(s.homeW),  null);
+    if (hasBattery) svg += node(85, 162, batC, batLabel, _fmtW(s.batteryW), batSub);
+    svg += '</svg>';
+    return svg;
+  }
+
+  function _renderEnergy(data) {
+    var s       = data.summary;
+    var devices = data.devices;
+    var hasBat  = devices.some(function (d) { return d.type === 'battery'; });
+
+    // Update timestamp
+    var now = new Date();
+    var ts  = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0') + ':' + now.getSeconds().toString().padStart(2,'0');
+    document.getElementById('energy-update-time').textContent = ts;
+
+    var html = _renderEnergyFlowSVG(s, hasBat);
+
+    // Device cards — only show energy-relevant types, never generic consumers
+    var shown = devices.filter(function (d) {
+      return d.type === 'solar' || d.type === 'battery' || d.type === 'grid' || d.type === 'ev';
+    });
+
+    if (shown.length === 0) {
+      html += '<p style="color:var(--text-muted);font-size:13px;text-align:center;padding:24px 0">No energy devices found.<br>Add solar panels, batteries or power meters in Homey.</p>';
+    } else {
+      html += '<div class="energy-devices">';
+      shown.forEach(function (d) {
+        var st    = _energyStatus(d.type, d.power, d.soc);
+        var sub    = '';
+        if (d.type === 'battery' && d.soc !== null) sub = d.soc + '% SoC';
+        if (d.meterImported !== null && d.meterExported !== null)
+          sub = _fmtKwh(d.meterImported) + ' in · ' + _fmtKwh(d.meterExported) + ' out';
+        else if (d.meterImported !== null)
+          sub = _fmtKwh(d.meterImported) + ' total';
+
+        html += '<div class="energy-device-card">';
+        html += '<div class="energy-device-icon">' + _energyIconHtml(d) + '</div>';
+        html += '<div class="energy-device-name">' + d.name + '</div>';
+        html += '<div class="energy-device-power">' + _fmtW(d.power) + ' <span>W</span></div>';
+        if (sub) html += '<div class="energy-device-sub">' + sub + '</div>';
+        html += '<div class="energy-device-status energy-status-' + st[1] + '">' + st[0] + '</div>';
+        html += '</div>';
+      });
+      html += '</div>';
+    }
+
+    document.getElementById('energy-body').innerHTML = html;
+  }
+
   // ── Theme ('light' | 'dark') ───────────────────────
   var theme = 'light';
   try { theme = localStorage.getItem('theme') || 'light'; } catch (_) {}
@@ -140,9 +312,13 @@
   function loadData() {
     showLoading();
 
-    // PIN aus Settings laden
+    // Settings laden (PIN + Energy-Sichtbarkeit)
     xhr('GET', '/api/settings', null, function (err, cfg) {
-      if (!err && cfg) _alarmPin = cfg.alarmPin || '';
+      if (!err && cfg) {
+        _alarmPin = cfg.alarmPin || '';
+        var btn = document.getElementById('energy-btn');
+        if (btn) btn.style.display = cfg.energyEnabled === false ? 'none' : '';
+      }
     });
 
     xhr('GET', '/api/zones', null, function (err, zonesData) {

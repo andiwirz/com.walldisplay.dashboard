@@ -237,11 +237,13 @@ class ShellyWallDisplayApp extends Homey.App {
     try {
       // GET /api/settings
       if (url.pathname === '/api/settings' && req.method === 'GET') {
+        const energyEnabled = this.homey.settings.get('energyEnabled');
         res.writeHead(200);
         res.end(JSON.stringify({
           port: this.homey.settings.get('port') || DEFAULT_PORT,
           enabledDevices: this.homey.settings.get('enabledDevices') || null,
           alarmPin: this.homey.settings.get('alarmPin') || '',
+          energyEnabled: energyEnabled === false ? false : true,
         }));
         return;
       }
@@ -250,7 +252,7 @@ class ShellyWallDisplayApp extends Homey.App {
       if (url.pathname === '/api/settings' && req.method === 'POST') {
         const body = await this._readBody(req);
         const { key, value } = JSON.parse(body);
-        const allowed = ['port', 'enabledDevices', 'alarmPin'];
+        const allowed = ['port', 'enabledDevices', 'alarmPin', 'energyEnabled'];
         if (!allowed.includes(key)) {
           res.writeHead(400);
           res.end(JSON.stringify({ error: 'Not allowed' }));
@@ -380,6 +382,111 @@ class ShellyWallDisplayApp extends Homey.App {
           res.writeHead(imgRes.statusCode);
           imgRes.pipe(res);
         }).on('error', () => { res.writeHead(502); res.end(); });
+        return;
+      }
+
+      // GET /api/debug/energy — raw energy device data for classification debugging
+      if (url.pathname === '/api/debug/energy' && req.method === 'GET') {
+        const devices = await this.homeyApi.devices.getDevices();
+        const result = Object.values(devices)
+          .filter(d => d.capabilitiesObj && (
+            d.capabilitiesObj.measure_power !== undefined ||
+            d.capabilitiesObj.meter_power !== undefined ||
+            d.capabilitiesObj['meter_power.imported'] !== undefined ||
+            d.capabilitiesObj['meter_power.exported'] !== undefined ||
+            d.capabilitiesObj.measure_battery !== undefined
+          ))
+          .map(d => ({
+            id: d.id,
+            name: d.name,
+            class: d.class,
+            virtualClass: d.virtualClass,
+            energy: d.energy || null,
+            capabilities: d.capabilities,
+            capValues: Object.fromEntries(
+              Object.entries(d.capabilitiesObj || {})
+                .filter(([k]) => k.startsWith('measure_') || k.startsWith('meter_') || k.startsWith('ev'))
+                .map(([k, v]) => [k, v ? v.value : null])
+            ),
+          }));
+        res.writeHead(200);
+        res.end(JSON.stringify(result, null, 2));
+        return;
+      }
+
+      // GET /api/energy
+      if (url.pathname === '/api/energy' && req.method === 'GET') {
+        const devices = await this.homeyApi.devices.getDevices();
+        const result = [];
+
+        for (const d of Object.values(devices)) {
+          const cls  = d.virtualClass || d.class;
+          const caps = d.capabilitiesObj || {};
+          const en   = d.energy || {};
+
+          // Skip devices excluded from energy reporting (Homey "Exclude from Energy" setting)
+          if (en.excluded === true) continue;
+
+          // Detect energy type — check class first, then energy config, then capabilities
+          // meter_power.exported (not .returned) is specific to real grid/energy meters
+          const hasExportedCap = !!(caps['meter_power.exported']);
+          const hasImportedCap = !!(caps['meter_power.imported'] || caps['meter_power.consumed']
+                                    || (caps['meter_power'] && hasExportedCap));
+
+          let type = null;
+          if (cls === 'solarpanel' || en.meterPowerExportedCapability && !en.homeBattery)
+            type = 'solar';
+          else if (en.homeBattery === true || cls === 'battery')
+            type = 'battery';
+          else if (en.cumulative === true || (hasImportedCap && hasExportedCap))
+            type = 'grid';
+          else if (cls === 'evcharger' || en.evCharger === true)
+            type = 'ev';
+          else if (caps.measure_power !== undefined)
+            type = 'consumer';
+
+          if (!type) continue;
+
+          const power = caps.measure_power
+            ? Math.round(caps.measure_power.value || 0) : null;
+          const soc = caps.measure_battery
+            ? Math.round(caps.measure_battery.value || 0) : null;
+
+          const impCap = en.meterPowerImportedCapability || 'meter_power.imported';
+          const expCap = en.meterPowerExportedCapability || 'meter_power.exported';
+          const meterImported = caps[impCap]
+            ? parseFloat((caps[impCap].value || 0).toFixed(2))
+            : (caps.meter_power ? parseFloat((caps.meter_power.value || 0).toFixed(2)) : null);
+          const meterExported = caps[expCap]
+            ? parseFloat((caps[expCap].value || 0).toFixed(2)) : null;
+
+          result.push({
+            id: d.id, name: d.name, type, power, soc,
+            meterImported, meterExported, available: d.available,
+            icon: this._buildIconUrl(d.iconOverride || (d.iconObj ? d.iconObj.url : null)),
+          });
+        }
+
+        const byType = (t) => result.filter((d) => d.type === t);
+        const sum    = (arr) => arr.reduce((s, d) => s + (d.power || 0), 0);
+        const solarW   = Math.round(sum(byType('solar')));
+        const batteryW = Math.round(sum(byType('battery')));
+        const gridW    = Math.round(sum(byType('grid')));
+        const bats     = byType('battery').filter((d) => d.soc !== null);
+
+        res.writeHead(200);
+        res.end(JSON.stringify({
+          devices: result,
+          summary: {
+            solarW,
+            batteryW,
+            gridW,
+            homeW: Math.round(solarW + gridW - batteryW),
+            batterySoc: bats.length
+              ? Math.round(bats.reduce((s, d) => s + d.soc, 0) / bats.length)
+              : null,
+          },
+        }));
         return;
       }
 

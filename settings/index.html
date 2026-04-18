@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="de">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -162,72 +162,211 @@
       display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px;
     }
     .step-text { font-size: 13px; line-height: 1.5; color: #333; }
+
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 4px 0;
+    }
+    .toggle-label { font-size: 14px; color: #222; }
+    .toggle-hint  { font-size: 12px; color: #888; margin-top: 4px; }
+
+    /* iOS-style toggle switch */
+    .toggle-switch { position: relative; width: 44px; height: 26px; flex-shrink: 0; }
+    .toggle-switch input { opacity: 0; width: 0; height: 0; }
+    .toggle-track {
+      position: absolute; inset: 0;
+      background: #ccc; border-radius: 13px;
+      cursor: pointer; transition: background 0.2s;
+    }
+    .toggle-track::before {
+      content: ''; position: absolute;
+      width: 20px; height: 20px; border-radius: 50%;
+      background: #fff; top: 3px; left: 3px;
+      transition: transform 0.2s;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+    }
+    .toggle-switch input:checked + .toggle-track { background: #F5A623; }
+    .toggle-switch input:checked + .toggle-track::before { transform: translateX(18px); }
   </style>
 </head>
 <body>
-  <h2>Shelly Wall Display</h2>
-  <p class="subtitle">Homey als Dashboard-Server konfigurieren</p>
+  <h2 data-i18n="title">Shelly Wall Display</h2>
+  <p class="subtitle" data-i18n="subtitle">Configure Homey as a dashboard server</p>
 
-  <!-- Dashboard-URL -->
+  <!-- Dashboard URL -->
   <div class="card">
-    <div class="card-title">Dashboard-URL</div>
-    <div class="url-box" id="url-display">Lade…</div>
-    <p class="hint">Diese URL im Shelly Wall Display unter <strong>Einstellungen → Netzwerk → Home Assistant</strong> eintragen.</p>
+    <div class="card-title" data-i18n="urlTitle">Dashboard URL</div>
+    <div class="url-box" id="url-display" data-i18n-placeholder="loading">…</div>
+    <p class="hint" data-i18n="urlHint">Enter this URL on the Shelly Wall Display under <strong>Settings → Network → Home Assistant</strong>.</p>
   </div>
 
   <!-- Port -->
   <div class="card">
-    <div class="card-title">Port</div>
-    <label for="port-input">Port-Nummer (Standard: 7575)</label>
+    <div class="card-title" data-i18n="portTitle">Port</div>
+    <label for="port-input" data-i18n="portLabel">Port number (default: 7575)</label>
     <input type="number" id="port-input" min="1024" max="65535" value="7575">
-    <p class="hint">Nach Änderung startet der Server automatisch neu.</p>
-    <button class="save-btn" onclick="savePort()">Speichern</button>
+    <p class="hint" data-i18n="portHint">The server restarts automatically after saving.</p>
+    <button class="save-btn" onclick="savePort()" data-i18n="save">Save</button>
     <div class="status" id="port-status"></div>
+  </div>
+
+  <!-- Energy Dashboard -->
+  <div class="card">
+    <div class="card-title" data-i18n="energyTitle">Energy Dashboard</div>
+    <div class="toggle-row">
+      <span class="toggle-label" data-i18n="energyLabel">Show Energy button in header</span>
+      <label class="toggle-switch">
+        <input type="checkbox" id="energy-toggle" checked onchange="saveEnergy()">
+        <span class="toggle-track"></span>
+      </label>
+    </div>
+    <p class="toggle-hint" data-i18n="energyHint">When disabled, the ⚡ button is hidden on the dashboard.</p>
+    <div class="status" id="energy-status"></div>
   </div>
 
   <!-- Alarm PIN -->
   <div class="card">
-    <div class="card-title">Alarm PIN</div>
-    <label for="pin-input">PIN für Alarm-Kacheln (4 Ziffern, leer = kein PIN)</label>
-    <input type="password" id="pin-input" maxlength="4" pattern="[0-9]*" inputmode="numeric" placeholder="z.B. 1234" style="letter-spacing:6px;font-size:18px;width:120px;">
-    <p class="hint">Beim Scharfschalten/Entschärfen wird dieser PIN abgefragt.</p>
-    <button class="save-btn" onclick="savePin()">Speichern</button>
+    <div class="card-title" data-i18n="pinTitle">Alarm PIN</div>
+    <label for="pin-input" data-i18n="pinLabel">PIN for alarm tiles (4 digits, empty = disabled)</label>
+    <input type="password" id="pin-input" maxlength="4" pattern="[0-9]*" inputmode="numeric" placeholder="e.g. 1234" style="letter-spacing:6px;font-size:18px;width:120px;">
+    <p class="hint" data-i18n="pinHint">This PIN is required when arming or disarming the alarm.</p>
+    <button class="save-btn" onclick="savePin()" data-i18n="save">Save</button>
     <div class="status" id="pin-status"></div>
   </div>
 
-  <!-- Geräteauswahl -->
+  <!-- Device selection -->
   <div class="card">
     <div class="card-title">
-      <span>Geräte auf Dashboard</span>
+      <span data-i18n="devicesTitle">Devices on Dashboard</span>
       <div class="card-title-actions">
-        <button class="btn-small" onclick="selectAllDevices(true)">Alle</button>
-        <button class="btn-small" onclick="selectAllDevices(false)">Keine</button>
+        <button class="btn-small" onclick="selectAllDevices(true)" data-i18n="all">All</button>
+        <button class="btn-small" onclick="selectAllDevices(false)" data-i18n="none">None</button>
       </div>
     </div>
-    <div id="devices-loading" class="devices-loading">Lade Geräte…</div>
+    <div id="devices-loading" class="devices-loading" data-i18n="devicesLoading">Loading devices…</div>
     <div id="devices-list" style="display:none"></div>
     <div class="status" id="devices-status"></div>
-    <button class="save-devices-btn" id="save-devices-btn" onclick="saveDevices()" disabled>Auswahl speichern</button>
+    <button class="save-devices-btn" id="save-devices-btn" onclick="saveDevices()" disabled data-i18n="saveSelection">Save selection</button>
   </div>
 
-  <!-- Einrichtung -->
+  <!-- Setup -->
   <div class="card">
-    <div class="card-title">Einrichtung</div>
+    <div class="card-title" data-i18n="setupTitle">Setup</div>
     <div class="step">
       <div class="step-num">1</div>
-      <div class="step-text">Die obige Dashboard-URL wird automatisch ermittelt und angezeigt.</div>
+      <div class="step-text" data-i18n="step1">The dashboard URL above is detected and displayed automatically.</div>
     </div>
     <div class="step">
       <div class="step-num">2</div>
-      <div class="step-text">Am Shelly Wall Display: <strong>Einstellungen → Netzwerk → Home Assistant → URL hinzufügen</strong> und die obige URL eintragen.</div>
+      <div class="step-text" data-i18n="step2">On the Shelly Wall Display: <strong>Settings → Network → Home Assistant → Add URL</strong> and enter the URL above.</div>
     </div>
     <div class="step">
       <div class="step-num">3</div>
-      <div class="step-text">Geräteauswahl und Port nach Bedarf anpassen und speichern.</div>
+      <div class="step-text" data-i18n="step3">Adjust the device selection and port as needed, then save.</div>
     </div>
   </div>
 
   <script>
+    // ── i18n ───────────────────────────────────────────────────────────
+    var STRINGS = {
+      en: {
+        title:          'Shelly Wall Display',
+        subtitle:       'Configure Homey as a dashboard server',
+        urlTitle:       'Dashboard URL',
+        loading:        'Loading…',
+        urlHint:        'Enter this URL on the Shelly Wall Display under <strong>Settings → Network → Home Assistant</strong>.',
+        portTitle:      'Port',
+        portLabel:      'Port number (default: 7575)',
+        portHint:       'The server restarts automatically after saving.',
+        save:           'Save',
+        pinTitle:       'Alarm PIN',
+        pinLabel:       'PIN for alarm tiles (4 digits, empty = disabled)',
+        pinHint:        'This PIN is required when arming or disarming the alarm.',
+        devicesTitle:   'Devices on Dashboard',
+        all:            'All',
+        none:           'None',
+        devicesLoading: 'Loading devices…',
+        saveSelection:  'Save selection',
+        setupTitle:     'Setup',
+        step1:          'The dashboard URL above is detected and displayed automatically.',
+        step2:          'On the Shelly Wall Display: <strong>Settings → Network → Home Assistant → Add URL</strong> and enter the URL above.',
+        step3:          'Adjust the device selection and port as needed, then save.',
+        noDevices:      'No devices found — restart the app.',
+        devicesError:   'Could not load devices: $1. Make sure the dashboard is running.',
+        urlUnknown:     '(unknown — restart app or open dashboard)',
+        invalidPort:    'Invalid port (1024–65535)',
+        portSaved:      'Saved. Server is restarting…',
+        pinSaved:       'PIN saved',
+        pinRemoved:     'PIN removed',
+        pinInvalid:     'PIN must be exactly 4 digits',
+        selectionSaved: 'Selection saved ($1 of $2 devices)',
+        errorPrefix:    'Error: ',
+        other:          'Other',
+        zoneAll:        'All',
+        zoneNone:       'None',
+        energyTitle:    'Energy Dashboard',
+        energyLabel:    'Show Energy button in header',
+        energyHint:     'When disabled, the ⚡ button is hidden on the dashboard.',
+        energySaved:    'Setting saved',
+      },
+      de: {
+        title:          'Shelly Wall Display',
+        subtitle:       'Homey als Dashboard-Server konfigurieren',
+        urlTitle:       'Dashboard-URL',
+        loading:        'Lade…',
+        urlHint:        'Diese URL im Shelly Wall Display unter <strong>Einstellungen → Netzwerk → Home Assistant</strong> eintragen.',
+        portTitle:      'Port',
+        portLabel:      'Port-Nummer (Standard: 7575)',
+        portHint:       'Nach Änderung startet der Server automatisch neu.',
+        save:           'Speichern',
+        pinTitle:       'Alarm-PIN',
+        pinLabel:       'PIN für Alarm-Kacheln (4 Ziffern, leer = kein PIN)',
+        pinHint:        'Beim Scharfschalten/Entschärfen wird dieser PIN abgefragt.',
+        devicesTitle:   'Geräte auf Dashboard',
+        all:            'Alle',
+        none:           'Keine',
+        devicesLoading: 'Lade Geräte…',
+        saveSelection:  'Auswahl speichern',
+        setupTitle:     'Einrichtung',
+        step1:          'Die obige Dashboard-URL wird automatisch ermittelt und angezeigt.',
+        step2:          'Am Shelly Wall Display: <strong>Einstellungen → Netzwerk → Home Assistant → URL hinzufügen</strong> und die obige URL eintragen.',
+        step3:          'Geräteauswahl und Port nach Bedarf anpassen und speichern.',
+        noDevices:      'Keine Geräte gefunden – App neu starten.',
+        devicesError:   'Geräte konnten nicht geladen werden: $1. Stelle sicher, dass das Dashboard läuft.',
+        urlUnknown:     '(unbekannt — App neu starten oder Dashboard öffnen)',
+        invalidPort:    'Ungültiger Port (1024–65535)',
+        portSaved:      'Gespeichert. Server wird neu gestartet…',
+        pinSaved:       'PIN gespeichert',
+        pinRemoved:     'PIN entfernt',
+        pinInvalid:     'PIN muss genau 4 Ziffern haben',
+        selectionSaved: 'Auswahl gespeichert ($1 von $2 Geräten)',
+        errorPrefix:    'Fehler: ',
+        other:          'Sonstige',
+        zoneAll:        'Alle',
+        zoneNone:       'Keine',
+        energyTitle:    'Energy-Dashboard',
+        energyLabel:    '⚡-Schaltfläche in der Kopfzeile anzeigen',
+        energyHint:     'Wenn deaktiviert, wird der ⚡-Button im Dashboard ausgeblendet.',
+        energySaved:    'Einstellung gespeichert',
+      }
+    };
+
+    var lang = (navigator.language || 'en').toLowerCase().startsWith('de') ? 'de' : 'en';
+    var T = STRINGS[lang];
+
+    function applyI18n() {
+      document.documentElement.lang = lang;
+      document.querySelectorAll('[data-i18n]').forEach(function(el) {
+        var key = el.getAttribute('data-i18n');
+        if (T[key] !== undefined) el.innerHTML = T[key];
+      });
+      var pinEl = document.getElementById('pin-input');
+      if (pinEl) pinEl.placeholder = lang === 'de' ? 'z.B. 1234' : 'e.g. 1234';
+    }
+
+    // ── App state ──────────────────────────────────────────────────────
     var _Homey;
     var _allDevices = [];
     var _allZones = {};
@@ -283,12 +422,12 @@
           if (req.readyState !== 4) return;
           if (req.status >= 200 && req.status < 300) {
             try { resolve(JSON.parse(req.responseText)); }
-            catch (e) { reject(new Error('JSON-Parse-Fehler')); }
+            catch (e) { reject(new Error('JSON parse error')); }
           } else {
             reject(new Error('HTTP ' + req.status));
           }
         };
-        req.onerror = function() { reject(new Error('Netzwerkfehler')); };
+        req.onerror = function() { reject(new Error('Network error')); };
         req.send(null);
       });
     }
@@ -297,31 +436,30 @@
     function onHomeyReady(Homey) {
       _Homey = Homey;
       Homey.ready();
+      applyI18n();
       loadAll();
     }
 
     async function loadAll() {
-      // 1) Gespeicherte Werte aus Homey-Settings lesen (Homey.get – immer verfügbar)
       var port = await hGet('port') || 7575;
       var storedUrl = await hGet('currentUrl');
       var enabledDevices = await hGet('enabledDevices');
+      var energyEnabled = await hGet('energyEnabled');
 
       document.getElementById('port-input').value = port;
       var savedPin = await hGet('alarmPin') || '';
       document.getElementById('pin-input').value = savedPin;
+      // energyEnabled: null/undefined → default true; explicit false → unchecked
+      document.getElementById('energy-toggle').checked = energyEnabled !== false;
 
-      // 2) Dashboard-URL anzeigen
       if (storedUrl) {
         _dashboardBase = storedUrl;
         document.getElementById('url-display').textContent = storedUrl;
       } else {
-        // Fallback: Hostname der Homey-Settings-Seite + Port
         _dashboardBase = 'http://' + window.location.hostname + ':' + port;
-        document.getElementById('url-display').textContent =
-          '(unbekannt — App neu starten oder Dashboard öffnen)';
+        document.getElementById('url-display').textContent = T.urlUnknown;
       }
 
-      // 3) Geräte & Zonen direkt vom Dashboard-Server abrufen
       try {
         var devices = await dashboardGet('/api/alldevices');
         var zones   = await dashboardGet('/api/zones');
@@ -333,13 +471,11 @@
           renderDeviceList(enabledDevices);
           document.getElementById('save-devices-btn').disabled = false;
         } else {
-          document.getElementById('devices-loading').textContent =
-            'Keine Geräte gefunden – App neu starten.';
+          document.getElementById('devices-loading').textContent = T.noDevices;
         }
       } catch (e) {
         document.getElementById('devices-loading').textContent =
-          'Geräte konnten nicht geladen werden: ' + e.message +
-          '. Stelle sicher, dass das Dashboard läuft.';
+          T.devicesError.replace('$1', e.message);
       }
     }
 
@@ -368,7 +504,7 @@
       listEl.innerHTML = '';
 
       sortedZoneIds.forEach(function(zoneId) {
-        var zoneName = zoneId === '__nozone__' ? 'Sonstige' : _allZones[zoneId].name;
+        var zoneName = zoneId === '__nozone__' ? T.other : _allZones[zoneId].name;
         var zoneDevices = byZone[zoneId];
         if (!zoneDevices || !zoneDevices.length) return;
 
@@ -387,11 +523,11 @@
         actions.className = 'zone-actions';
 
         var btnAll = document.createElement('button');
-        btnAll.className = 'btn-small'; btnAll.textContent = 'Alle';
+        btnAll.className = 'btn-small'; btnAll.textContent = T.zoneAll;
         btnAll.onclick = function() { selectZone(zoneId, true); };
 
         var btnNone = document.createElement('button');
-        btnNone.className = 'btn-small'; btnNone.textContent = 'Keine';
+        btnNone.className = 'btn-small'; btnNone.textContent = T.zoneNone;
         btnNone.onclick = function() { selectZone(zoneId, false); };
 
         actions.appendChild(btnAll);
@@ -453,27 +589,37 @@
     async function savePort() {
       var port = parseInt(document.getElementById('port-input').value, 10);
       if (isNaN(port) || port < 1024 || port > 65535) {
-        showStatus('port-status', 'Ungültiger Port (1024–65535)', false); return;
+        showStatus('port-status', T.invalidPort, false); return;
       }
       try {
         await hSet('port', port);
-        showStatus('port-status', 'Gespeichert. Server wird neu gestartet…', true);
+        showStatus('port-status', T.portSaved, true);
         setTimeout(loadAll, 3000);
       } catch (e) {
-        showStatus('port-status', 'Fehler: ' + e.message, false);
+        showStatus('port-status', T.errorPrefix + e.message, false);
       }
     }
 
     async function savePin() {
       var pin = document.getElementById('pin-input').value.trim();
       if (pin && !/^\d{4}$/.test(pin)) {
-        showStatus('pin-status', 'PIN muss genau 4 Ziffern haben', false); return;
+        showStatus('pin-status', T.pinInvalid, false); return;
       }
       try {
         await hSet('alarmPin', pin);
-        showStatus('pin-status', pin ? 'PIN gespeichert' : 'PIN entfernt', true);
+        showStatus('pin-status', pin ? T.pinSaved : T.pinRemoved, true);
       } catch (e) {
-        showStatus('pin-status', 'Fehler: ' + e.message, false);
+        showStatus('pin-status', T.errorPrefix + e.message, false);
+      }
+    }
+
+    async function saveEnergy() {
+      var enabled = document.getElementById('energy-toggle').checked;
+      try {
+        await hSet('energyEnabled', enabled);
+        showStatus('energy-status', T.energySaved, true);
+      } catch (e) {
+        showStatus('energy-status', T.errorPrefix + e.message, false);
       }
     }
 
@@ -483,14 +629,13 @@
       checkboxes.forEach(function(cb) {
         if (cb.checked) enabled.push(cb.getAttribute('data-device-id'));
       });
-      // Homey.set() akzeptiert kein null → true als Sentinel für "alle Geräte"
       var value = (enabled.length === _allDevices.length) ? true : enabled;
       try {
         await hSet('enabledDevices', value);
         showStatus('devices-status',
-          'Auswahl gespeichert (' + enabled.length + ' von ' + _allDevices.length + ' Geräten)', true);
+          T.selectionSaved.replace('$1', enabled.length).replace('$2', _allDevices.length), true);
       } catch (e) {
-        showStatus('devices-status', 'Fehler: ' + e.message, false);
+        showStatus('devices-status', T.errorPrefix + e.message, false);
       }
     }
 

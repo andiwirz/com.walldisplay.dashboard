@@ -18,6 +18,7 @@
     </div>
     <div class="header-right">
       <button id="view-toggle" class="view-toggle-btn" onclick="toggleView()">⊞ All</button>
+      <button id="energy-btn" class="energy-btn" onclick="openEnergyModal()" aria-label="Energy dashboard" title="Energy">⚡</button>
       <button id="theme-toggle" class="theme-toggle-btn" onclick="toggleTheme()" aria-label="Toggle dark mode">☀️</button>
       <span id="clock" class="clock"></span>
     </div>
@@ -56,6 +57,20 @@
         <button onclick="pinCancel()" class="pin-cancel">✕</button>
         <button onclick="pinKey('0')">0</button>
         <button onclick="pinBackspace()" class="pin-back">⌫</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Energy Modal -->
+  <div id="energy-modal" class="energy-modal" style="display:none">
+    <div class="energy-modal-inner">
+      <div class="energy-modal-hdr">
+        <span class="energy-modal-title">⚡ Energy</span>
+        <span class="energy-update-time" id="energy-update-time"></span>
+        <button class="energy-close-btn" onclick="closeEnergyModal()">✕</button>
+      </div>
+      <div id="energy-body" class="energy-body">
+        <div class="energy-spinner"><div class="spinner"></div></div>
       </div>
     </div>
   </div>

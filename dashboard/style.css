@@ -499,6 +499,188 @@ html, body {
 }
 .pin-modal-inner.shake { animation: pinShake 0.4s ease; }
 
+/* ── Energy Button ────────────────────────────── */
+.energy-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+  padding: 4px;
+  border-radius: 6px;
+  color: var(--text-muted);
+  transition: color 0.15s;
+}
+.energy-btn:hover { color: var(--accent); }
+
+/* ── Energy Modal ─────────────────────────────── */
+.energy-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.55);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  z-index: 1050;
+}
+
+.energy-modal-inner {
+  background: var(--surface);
+  border-radius: 20px 20px 0 0;
+  width: 100%;
+  max-width: 560px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 -8px 32px rgba(0,0,0,0.2);
+}
+
+.energy-modal-hdr {
+  display: flex;
+  align-items: center;
+  padding: 14px 18px 12px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.energy-modal-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text);
+  flex: 1;
+}
+
+.energy-update-time {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-right: 12px;
+}
+
+.energy-close-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 18px;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 6px;
+  line-height: 1;
+}
+.energy-close-btn:hover { color: var(--text); background: var(--border); }
+
+.energy-body {
+  overflow-y: auto;
+  flex: 1;
+  padding: 16px;
+}
+
+.energy-spinner {
+  display: flex;
+  justify-content: center;
+  padding: 32px 0;
+}
+
+/* ── Energy Flow SVG ──────────────────────────── */
+.energy-flow-svg {
+  width: 100%;
+  height: auto;
+  display: block;
+  margin-bottom: 16px;
+}
+
+@keyframes flowForward {
+  to { stroke-dashoffset: -24; }
+}
+@keyframes flowReverse {
+  to { stroke-dashoffset: 24; }
+}
+
+.energy-flow-line {
+  stroke-dasharray: 8 4;
+  animation: flowForward 0.9s linear infinite;
+}
+.energy-flow-line-rev {
+  stroke-dasharray: 8 4;
+  animation: flowReverse 0.9s linear infinite;
+}
+
+/* ── Energy Device Cards ──────────────────────── */
+.energy-devices {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.energy-device-card {
+  background: var(--bg);
+  border-radius: 12px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  border: 1px solid var(--border);
+}
+
+.energy-device-icon { font-size: 22px; line-height: 1; width: 28px; height: 28px; display: flex; align-items: center; }
+
+.energy-device-icon-img {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+  filter: brightness(0) opacity(0.65);
+}
+
+.energy-device-icon-emoji { font-size: 22px; line-height: 1; }
+
+[data-theme="dark"] .energy-device-icon-img {
+  filter: brightness(0) invert(1) opacity(0.6);
+}
+
+.energy-device-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  margin-top: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.energy-device-power {
+  font-size: 18px;
+  font-weight: 300;
+  color: var(--text);
+  letter-spacing: -0.5px;
+  line-height: 1.2;
+}
+
+.energy-device-power span {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
+.energy-device-sub { font-size: 11px; color: var(--text-muted); }
+
+.energy-device-status {
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 4px;
+  padding: 1px 6px;
+  display: inline-block;
+  align-self: flex-start;
+  margin-top: 2px;
+}
+.energy-status-solar      { color: #34C759; background: rgba(52,199,89,0.12); }
+.energy-status-charging   { color: #007AFF; background: rgba(0,122,255,0.12); }
+.energy-status-discharging{ color: #34C759; background: rgba(52,199,89,0.12); }
+.energy-status-importing  { color: #FF9500; background: rgba(255,149,0,0.12); }
+.energy-status-exporting  { color: #34C759; background: rgba(52,199,89,0.12); }
+.energy-status-idle       { color: #8E8E93; background: rgba(142,142,147,0.1); }
+.energy-status-consuming  { color: var(--text-muted); background: var(--border); }
+
 /* ── Kamera-Modal ─────────────────────────────── */
 .camera-modal {
   position: fixed;

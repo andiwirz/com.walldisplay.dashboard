@@ -10,5 +10,8 @@
   },
   "1.0.3": {
     "en": "add PIN Code protection for homealarm device and fix cam"
+  },
+  "1.0.4": {
+    "en": "fixed languages (EN/DE) / add Energy Dashboard"
   }
 }

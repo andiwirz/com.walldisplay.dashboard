@@ -77,65 +77,111 @@
   }
 
   function _renderEnergyFlowSVG(s, hasBattery) {
-    var svgH     = hasBattery ? 230 : 155;
-    var solarC   = _energyColor('solar',   s.solarW);
-    var gridC    = _energyColor('grid',    s.gridW);
-    var batC     = _energyColor('battery', s.batteryW);
-    var homeC    = '#F5A623';
+    var W    = 320;
+    var R    = 38;
+    var svgH = hasBattery ? 253 : 157;
 
-    // Node rects (x, y, w=130, h=52)
-    // Solar: (10,10)  Grid: (180,10)
-    // Home: (95,88)   Battery: (95,162) — only if hasBattery
-    // Connection points:
-    //   Solar bottom-right: ~(90, 62) → Home top-left: ~(125, 88)
-    //   Grid  bottom-left:  ~(230,62) → Home top-right: ~(195, 88)
-    //   Home bottom-center: (160,140) → Battery top:    (160,162)
+    var solarC = _energyColor('solar',   s.solarW);
+    var gridC  = _energyColor('grid',    s.gridW);
+    var batC   = _energyColor('battery', s.batteryW);
+    var homeC  = '#F5A623';
 
-    var lineW = function (w) { return Math.max(2, Math.min(7, 2 + Math.abs(w) / 250)); };
+    // Solar/Grid vollständig sichtbar (cy=42), Home hochgezogen (cy=110) — keine Überlappung da x-versetzt
+    var sx=75, sy=42, gx=245, gy=42, hx=160, hy=110, bx=160, by=210;
 
-    var solarLine = s.solarW > 0
-      ? '<line x1="90" y1="62" x2="125" y2="88" stroke="' + solarC + '" stroke-width="' + lineW(s.solarW) + '" class="energy-flow-line"/>'
-      : '<line x1="90" y1="62" x2="125" y2="88" stroke="' + solarC + '" stroke-width="2" stroke-dasharray="4 4" opacity="0.4"/>';
-
-    var gridCls  = s.gridW > 0 ? 'energy-flow-line' : (s.gridW < 0 ? 'energy-flow-line-rev' : '');
-    var gridDash = s.gridW === 0 ? 'stroke-dasharray="4 4" opacity="0.4"' : '';
-    var gridLine = '<line x1="230" y1="62" x2="195" y2="88" stroke="' + gridC + '" stroke-width="' + lineW(s.gridW) + '" ' + (gridCls ? 'class="' + gridCls + '"' : gridDash) + '/>';
-
-    var batLine = '';
-    if (hasBattery) {
-      var batCls  = s.batteryW > 0 ? 'energy-flow-line' : (s.batteryW < 0 ? 'energy-flow-line-rev' : '');
-      var batDash = s.batteryW === 0 ? 'stroke-dasharray="4 4" opacity="0.4"' : '';
-      batLine = '<line x1="160" y1="140" x2="160" y2="162" stroke="' + batC + '" stroke-width="' + lineW(s.batteryW) + '" ' + (batCls ? 'class="' + batCls + '"' : batDash) + '/>';
+    function hexAlpha(hex, a) {
+      var r=parseInt(hex.slice(1,3),16), g=parseInt(hex.slice(3,5),16), b=parseInt(hex.slice(5,7),16);
+      return 'rgba('+r+','+g+','+b+','+a+')';
     }
 
-    var node = function (x, y, color, label, value, sub) {
-      var bg = color === '#8E8E93' ? 'rgba(142,142,147,0.08)' : color.replace(')', ',0.10)').replace('rgb', 'rgba').replace('#', 'rgba(').replace('rgba(', 'rgba(').replace(/rgba\(([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2}),/, function (m, r, g, b) {
-        return 'rgba(' + parseInt(r,16) + ',' + parseInt(g,16) + ',' + parseInt(b,16) + ',';
-      });
-      // simpler bg calc
-      var hex = color;
-      var r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
-      var bgFill = 'rgba(' + r + ',' + g + ',' + b + ',0.10)';
-      var borderColor = color;
-      var out = '';
-      out += '<rect x="' + x + '" y="' + y + '" width="130" height="52" rx="10"';
-      out += ' fill="' + bgFill + '" stroke="' + borderColor + '" stroke-width="1.5"/>';
-      out += '<text x="' + (x+65) + '" y="' + (y+20) + '" text-anchor="middle" font-size="9" fill="' + color + '" opacity="0.8" font-weight="600" letter-spacing="0.5">' + label + '</text>';
-      out += '<text x="' + (x+65) + '" y="' + (y+37) + '" text-anchor="middle" font-size="15" font-weight="600" fill="' + color + '">' + value + '</text>';
-      if (sub) out += '<text x="' + (x+65) + '" y="' + (y+50) + '" text-anchor="middle" font-size="9" fill="' + color + '" opacity="0.75">' + sub + '</text>';
-      return out;
-    };
+    // Point on circle edge from (cx1,cy1) toward (cx2,cy2)
+    function edgePt(cx1, cy1, cx2, cy2) {
+      var dx=cx2-cx1, dy=cy2-cy1, d=Math.sqrt(dx*dx+dy*dy);
+      return { x: Math.round(cx1+dx/d*R), y: Math.round(cy1+dy/d*R) };
+    }
 
-    var gridLabel = s.gridW < 0 ? 'GRID · EXPORT' : 'GRID · IMPORT';
-    var batLabel  = s.batteryW < 0 ? 'BATTERY · OUT' : (s.batteryW > 0 ? 'BATTERY · IN' : 'BATTERY');
-    var batSub    = s.batterySoc !== null ? s.batterySoc + '% SoC' : null;
+    function lineW(w) { return Math.max(1.5, Math.min(5, 1.5+Math.abs(w||0)/400)); }
 
-    var svg = '<svg class="energy-flow-svg" viewBox="0 0 320 ' + svgH + '" xmlns="http://www.w3.org/2000/svg">';
-    svg += solarLine + gridLine + batLine;
-    svg += node(10,  10, solarC, 'SOLAR',          _fmtW(s.solarW), null);
-    svg += node(180, 10, gridC,  gridLabel,         _fmtW(s.gridW),  null);
-    svg += node(85,  88, homeC,  'HOME',            _fmtW(s.homeW),  null);
-    if (hasBattery) svg += node(85, 162, batC, batLabel, _fmtW(s.batteryW), batSub);
+    // Animated flow line with two travelling dots
+    function flowLine(x1, y1, x2, y2, color, watt, reverse) {
+      if (Math.abs(watt||0) <= 5) {
+        return '<line x1="'+x1+'" y1="'+y1+'" x2="'+x2+'" y2="'+y2+'" stroke="#ADADB8" stroke-width="1.5" stroke-dasharray="5 4" opacity="0.3"/>';
+      }
+      var lw  = lineW(watt);
+      var pd  = reverse ? 'M '+x2+','+y2+' L '+x1+','+y1 : 'M '+x1+','+y1+' L '+x2+','+y2;
+      var dist = Math.sqrt(Math.pow(x2-x1,2)+Math.pow(y2-y1,2));
+      var dur  = (dist/65).toFixed(2)+'s';
+      var half = (parseFloat(dur)/2).toFixed(2)+'s';
+      return '<line x1="'+x1+'" y1="'+y1+'" x2="'+x2+'" y2="'+y2+'" stroke="'+color+'" stroke-width="'+lw+'" opacity="0.4"/>'+
+        '<circle r="5" fill="'+color+'"><animateMotion dur="'+dur+'" repeatCount="indefinite" path="'+pd+'"/></circle>'+
+        '<circle r="3.5" fill="'+color+'" opacity="0.55"><animateMotion dur="'+dur+'" begin="-'+half+'" repeatCount="indefinite" path="'+pd+'"/></circle>';
+    }
+
+    // Circle node: label (top inside) + icon + value + optional sub
+    function node(cx, cy, color, iconSvg, label, value, sub) {
+      var bg = hexAlpha(color, 0.11);
+      return (
+        '<circle cx="'+cx+'" cy="'+cy+'" r="'+R+'" fill="'+bg+'" stroke="'+color+'" stroke-width="2"/>'+
+        '<text x="'+cx+'" y="'+(cy-27)+'" text-anchor="middle" font-size="8" fill="'+color+'" font-weight="700" letter-spacing="0.8" opacity="0.85">'+label+'</text>'+
+        '<g transform="translate('+cx+','+(cy-8)+')" fill="'+color+'" stroke="'+color+'">'+iconSvg+'</g>'+
+        '<text x="'+cx+'" y="'+(cy+20)+'" text-anchor="middle" font-size="13" font-weight="700" fill="'+color+'" letter-spacing="-0.2">'+value+'</text>'+
+        (sub ? '<text x="'+cx+'" y="'+(cy+33)+'" text-anchor="middle" font-size="9" fill="'+color+'" opacity="0.7">'+sub+'</text>' : '')
+      );
+    }
+
+    // ── SVG Icons (centred at 0,0, ~±13 px) ─────────────
+    // Solar – circle + 8 rays
+    var iSolar =
+      '<circle r="5.5" stroke="none"/>'+
+      '<g fill="none" stroke-width="2" stroke-linecap="round">'+
+      '<line x1="0" y1="-9" x2="0" y2="-12"/>'+
+      '<line x1="0" y1="9" x2="0" y2="12"/>'+
+      '<line x1="9" y1="0" x2="12" y2="0"/>'+
+      '<line x1="-9" y1="0" x2="-12" y2="0"/>'+
+      '<line x1="6.4" y1="-6.4" x2="8.5" y2="-8.5"/>'+
+      '<line x1="-6.4" y1="-6.4" x2="-8.5" y2="-8.5"/>'+
+      '<line x1="6.4" y1="6.4" x2="8.5" y2="8.5"/>'+
+      '<line x1="-6.4" y1="6.4" x2="-8.5" y2="8.5"/>'+
+      '</g>';
+
+    // Grid – lightning bolt
+    var iGrid = '<path d="M4,-12 L-2,1 L2,1 L-4,12 L10,0 L5,0 L8,-12 Z" stroke="none"/>';
+
+    // Home – roof triangle + body rect + door
+    var iHome =
+      '<polygon points="0,-12 -10,-1 10,-1" stroke="none"/>'+
+      '<rect x="-8" y="-2" width="16" height="12" rx="1" fill="none" stroke-width="1.8"/>'+
+      '<rect x="-3.5" y="3" width="7" height="7" rx="1" stroke="none" opacity="0.55"/>';
+
+    // Battery – outline + terminal + level fill
+    var bLvl   = s.batterySoc !== null ? Math.max(0, Math.min(1, s.batterySoc/100)) : 0.45;
+    var bBodyH = 17, bFillH = Math.max(1, Math.round(bLvl*bBodyH)), bFillY = -8+bBodyH-bFillH;
+    var iBat =
+      '<rect x="-7" y="-8" width="14" height="17" rx="2" fill="none" stroke-width="1.8"/>'+
+      '<rect x="-4" y="-11" width="8" height="4" rx="1.5" stroke="none" opacity="0.85"/>'+
+      '<rect x="-5.5" y="'+bFillY+'" width="11" height="'+bFillH+'" rx="1.5" stroke="none" opacity="0.45"/>';
+
+    // ── Build SVG ────────────────────────────────────────
+    var svg = '<svg class="energy-flow-svg" viewBox="0 0 '+W+' '+svgH+'" xmlns="http://www.w3.org/2000/svg" style="font-family:system-ui,-apple-system,sans-serif">';
+
+    // Lines first (behind circles)
+    var sc=edgePt(sx,sy,hx,hy), hsc=edgePt(hx,hy,sx,sy);
+    svg += flowLine(sc.x,sc.y,hsc.x,hsc.y, solarC, s.solarW, false);
+
+    var gc=edgePt(gx,gy,hx,hy), hgc=edgePt(hx,hy,gx,gy);
+    svg += flowLine(gc.x,gc.y,hgc.x,hgc.y, gridC, s.gridW, s.gridW < 0);
+
+    if (hasBattery) {
+      var hbc=edgePt(hx,hy,bx,by), bhc=edgePt(bx,by,hx,hy);
+      svg += flowLine(hbc.x,hbc.y,bhc.x,bhc.y, batC, s.batteryW, s.batteryW < 0);
+    }
+
+    // Nodes on top
+    svg += node(sx, sy, solarC, iSolar, 'SOLAR',  _fmtW(s.solarW), null);
+    svg += node(gx, gy, gridC,  iGrid,  s.gridW < 0 ? 'EXPORT' : 'IMPORT', _fmtW(s.gridW), null);
+    svg += node(hx, hy, homeC,  iHome,  'HOME',   _fmtW(s.homeW),  null);
+    if (hasBattery) svg += node(bx, by, batC, iBat, 'BATTERY', _fmtW(s.batteryW), s.batterySoc !== null ? s.batterySoc+'% SoC' : null);
+
     svg += '</svg>';
     return svg;
   }
@@ -150,7 +196,9 @@
     var ts  = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0') + ':' + now.getSeconds().toString().padStart(2,'0');
     document.getElementById('energy-update-time').textContent = ts;
 
-    var html = _renderEnergyFlowSVG(s, hasBat);
+    // SVG in eigenem nicht-scrollbaren Container → Scrollbar beeinflusst Breite nicht
+    var html = '<div class="energy-flow-container">' + _renderEnergyFlowSVG(s, hasBat) + '</div>';
+    html += '<div class="energy-scroll-body">';
 
     // Device cards — only show energy-relevant types, never generic consumers
     var shown = devices.filter(function (d) {
@@ -181,6 +229,7 @@
       html += '</div>';
     }
 
+    html += '</div>'; // energy-scroll-body
     document.getElementById('energy-body').innerHTML = html;
   }
 
@@ -335,6 +384,7 @@
 
         render();
         connectSSE();
+        startPolling(); // Parallel-Poll als Ergänzung zu SSE (holt Capabilities die Homey nicht via Realtime pusht)
       });
     });
   }
@@ -544,6 +594,7 @@
     var isArmed = alarmCap ? alarmIsArmed(alarmCap.value) : false;
 
     if (isOn || isArmed) card.classList.add('on');
+    if (caps['input_external_1'] && caps['input_external_1'].value === true) card.classList.add('open');
 
     // Kamera/Doorbell: Karte klickbar → Modal mit Snapshot
     if (d.class === 'camera' || d.class === 'doorbell') {
@@ -766,6 +817,18 @@
       added++;
     }
 
+    // Externer Eingang (z.B. Reed-Kontakt am Garagentor)
+    if (caps['input_external_1']) {
+      var el = createElement('div', 'device-value');
+      var dot = createElement('span', 'alarm-dot');
+      if (caps['input_external_1'].value) dot.classList.add('active');
+      el.appendChild(dot);
+      var txt = document.createTextNode(caps['input_external_1'].value ? ' Open' : ' Closed');
+      el.appendChild(txt);
+      container.appendChild(el);
+      added++;
+    }
+
     // CO2
     if (caps.measure_co2) {
       var el = createElement('div', 'device-value');
@@ -816,6 +879,9 @@
 
     if (isOn || isArmed) card.classList.add('on');
     else card.classList.remove('on');
+
+    if (caps['input_external_1'] && caps['input_external_1'].value === true) card.classList.add('open');
+    else card.classList.remove('open');
 
     var toggle = card.querySelector('.device-toggle:not([data-alarm])');
     if (toggle) {
@@ -879,6 +945,17 @@
       if (dots[i]) {
         if (caps.alarm_contact.value) dots[i].classList.add('active');
         else dots[i].classList.remove('active');
+        var statusEl2 = dots[i] ? dots[i].nextSibling : null;
+        if (statusEl2) statusEl2.textContent = caps.alarm_contact.value ? ' Open' : ' Closed';
+      }
+      i++;
+    }
+    if (caps['input_external_1']) {
+      if (dots[i]) {
+        if (caps['input_external_1'].value) dots[i].classList.add('active');
+        else dots[i].classList.remove('active');
+        var statusEl3 = dots[i] ? dots[i].nextSibling : null;
+        if (statusEl3) statusEl3.textContent = caps['input_external_1'].value ? ' Open' : ' Closed';
       }
     }
   }

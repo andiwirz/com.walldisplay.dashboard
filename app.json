@@ -40,5 +40,12 @@
   },
   "homepage": "https://github.com/andiwirz/com.walldisplay.dashboard",
   "support": "https://github.com/andiwirz/com.walldisplay.dashboard/issues",
-  "source": "https://github.com/andiwirz/com.walldisplay.dashboard"
+  "source": "https://github.com/andiwirz/com.walldisplay.dashboard",
+  "contributing": {
+    "donate": {
+      "paypal": {
+        "username": "AndiWirz"
+      }
+    }
+  }
 }

@@ -8,34 +8,50 @@ The app runs a local HTTP/WebSocket server on your Homey that emulates the Home 
 
 ## Features
 
-- **Live dashboard** — displays all your Homey devices on the touchscreen with real-time state updates via Server-Sent Events (SSE)
+### Device Control
+- **Live dashboard** — all Homey devices as touch tiles, real-time state updates via Server-Sent Events (SSE) with adaptive fallback polling
 - **Device control** — toggle lights, sockets, locks, fans, blinds, heaters, TVs, and more directly from the wall
-- **Dimmer support** — adjust brightness or position with a slider for dimmable lights and covers
+- **Dimmer support** — adjust brightness or blind position with a slider
 - **Alarm control** — arm, disarm, or partially arm your home alarm; view motion and contact alerts
 - **PIN protection** — optional 4-digit PIN for the home alarm, configurable in the settings page
-- **Camera & doorbell images** — tap a camera or doorbell tile to view the latest snapshot
-- **Sensor readings** — temperature, humidity, CO₂, power consumption, and more shown inline
-- **Room grouping** — devices organized by Homey zones with a toggle to view all devices flat
-- **Device filtering** — choose exactly which devices appear on the display via the settings page
-- **Custom device icons** — respects user-set custom icons from the Homey app; 226 named icons served locally
+- **Camera & doorbell snapshots** — tap a camera or doorbell tile to view the latest image with auto-refresh
+- **External sensors** — reed contacts and similar sensors (e.g. garage door) shown as Open / Closed; tile turns red when open
+- **Sensor readings** — temperature, humidity, CO₂, and power consumption shown inline on each tile
+
+### Navigation & Layout
+- **Room grouping** — devices organised by Homey zones, with a toggle to view all devices in a flat list
 - **Drag & drop reordering** — long-press a tile to drag it to a new position; order is saved across reloads
-- **Dark / light mode** — toggle between themes via the header button; preference is saved in localStorage
-- **Auto-refresh** — SSE stream for instant updates, fallback polling every 10 seconds, full refresh every 5 minutes
+- **Adjustable tile size** — choose from XS / S / M (default) / L / XL via the settings page
+- **Dark / light mode** — toggle between themes via the header button; preference is saved per browser
+- **Clock** — live clock in the header, drift-corrected
+
+### Energy Dashboard
+- **Flow diagram** — animated SVG showing real-time energy flows between solar panels, the power grid, your home, and battery storage
+- **Animated flow lines** — travelling dots indicate direction and magnitude of each energy flow
+- **Device cards** — individual power readings for each solar, grid, battery, and EV-charger device
+- **Exclude support** — devices marked as "Exclude from Energy" in Homey are automatically hidden
+- **Enable / disable** — the ⚡ Energy button can be hidden via the settings page
+
+### Reliability
+- **SSE + polling** — Server-Sent Events for instant updates; polling every 10 s (30 s when SSE is active) as a safety net for capabilities Homey does not push via realtime events
+- **SSE reconnect backoff** — exponential backoff (1 s → 2 s → 4 s → … → 30 s) after connection loss
+- **Auto-refresh** — full data reload every 5 minutes and on header logo tap
+- **XHR timeout** — all requests time out after 10 seconds to prevent a frozen UI
 
 ---
 
 ## How It Works
 
 ```
-Shelly Wall Display
-        │
-        │  HTTP + WebSocket (Home Assistant protocol)
-        ▼
+Shelly Wall Display  /  any browser
+          │
+          │  HTTP + WebSocket (Home Assistant protocol)
+          ▼
 Homey App (com.walldisplay.dashboard)
-        │
-        │  Homey Web API
-        ▼
-   Your Homey Devices
+          │
+          │  Homey Web API
+          ▼
+     Your Homey Devices
 ```
 
 1. The Homey app starts an HTTP/WebSocket server (default port **7575**) on your local network.
@@ -44,6 +60,8 @@ Homey App (com.walldisplay.dashboard)
 4. The dashboard UI loads and fetches your devices and zones from Homey.
 5. An SSE stream delivers live device state changes to the display as they happen.
 6. Tapping a device card sends a control command back to Homey via the REST API.
+
+> **Tip:** The dashboard URL also works in any regular browser (Chrome, Safari, Firefox) — just open it on any device on your local network.
 
 ---
 
@@ -56,7 +74,7 @@ Homey App (com.walldisplay.dashboard)
 | Thermostat | 🌡️ | — | Temperature, Humidity |
 | Sensor | 📡 | — | Temperature, Humidity, CO₂ |
 | Lock | 🔒 | On/Off | — |
-| Blinds / Curtain / Shutterblind / Window Coverings | 🪟 | On/Off, Position | — |
+| Blinds / Curtain / Window Coverings | 🪟 | On/Off, Position | — |
 | Fan | 💨 | On/Off | — |
 | Heater | 🔥 | On/Off | Temperature |
 | Home Alarm | 🔐 | Armed / Disarmed / Partial | Motion, Contact |
@@ -74,9 +92,9 @@ Homey App (com.walldisplay.dashboard)
 
 1. Install the app on your Homey via the Homey App Store or by sideloading with the Homey CLI.
 2. Open the app settings in the Homey app.
-3. Note the displayed dashboard URL (e.g., `http://192.168.1.x:7575`).
-4. On your Shelly Wall Display, configure the Home Assistant server URL to match.
-5. The display will connect automatically and load the dashboard.
+3. Note the displayed dashboard URL (e.g. `http://192.168.1.x:7575`).
+4. On your Shelly Wall Display: **Settings → Network → Home Assistant → Add URL** and enter the URL.
+5. The display connects automatically and loads the dashboard.
 
 ---
 
@@ -86,10 +104,12 @@ Open the app settings in the Homey app to configure:
 
 | Setting | Description | Default |
 |---|---|---|
-| **Dashboard URL** | The address to enter on your Shelly Wall Display | Auto-detected |
-| **Port** | HTTP server port (1024–65535). The server restarts automatically when changed. | `7575` |
-| **Device Selection** | Choose which devices are visible on the dashboard. Devices are listed by room. Select all, clear all, or pick individually. | All devices |
-| **Alarm PIN** | Optional 4-digit PIN required to arm/disarm the home alarm from the dashboard. Leave empty to disable. | — |
+| **Dashboard URL** | Clickable link to the dashboard — also works in any browser | Auto-detected |
+| **Port** | HTTP server port (1024–65535). Server restarts automatically when changed. | `7575` |
+| **Tile Size** | Size of device tiles on the dashboard: XS / S / M / L / XL | M (130 px) |
+| **Energy Dashboard** | Show or hide the ⚡ Energy button in the dashboard header | Enabled |
+| **Alarm PIN** | Optional 4-digit PIN to arm/disarm the alarm from the dashboard. Leave empty to disable. | — |
+| **Device Selection** | Choose which devices appear on the dashboard, filtered by room. | All devices |
 
 ---
 
@@ -98,24 +118,26 @@ Open the app settings in the Homey app to configure:
 | Interaction | Action |
 |---|---|
 | Tap tile | Toggle device on/off (where supported) |
+| Tap dimmer / blind tile | Adjust slider |
 | Long-press tile (400 ms) | Start drag & drop to reorder |
 | Tap camera / doorbell tile | Open live snapshot |
-| ⊞ All / ⊟ Rooms button | Switch between flat and grouped view |
+| ⊞ All / ⊟ Rooms button | Switch between flat list and room-grouped view |
 | ☀️ / 🌙 button | Toggle dark / light mode |
+| ⚡ button | Open Energy Dashboard |
+| Tap header logo | Manual refresh |
 
 ---
 
 ## API Endpoints
 
-The app exposes the following HTTP endpoints (primarily for internal use by the dashboard and the display):
-
 | Endpoint | Method | Description |
 |---|---|---|
 | `/` | GET | Dashboard UI |
 | `/ping` | GET | Health check |
-| `/api/devices` | GET | Enabled devices list |
-| `/api/alldevices` | GET | All devices (used by settings) |
+| `/api/devices` | GET | Enabled devices list (cached 3 s) |
+| `/api/alldevices` | GET | All devices (used by settings, cached 3 s) |
 | `/api/zones` | GET | Homey zones / rooms |
+| `/api/energy` | GET | Energy device data and summary |
 | `/api/settings` | GET / POST | Read or update app settings |
 | `/api/device/:id/capability/:cap` | POST | Set a device capability value |
 | `/api/camera/:id` | GET | Latest camera snapshot (proxied from Homey) |
@@ -133,8 +155,7 @@ The app exposes the following HTTP endpoints (primarily for internal use by the 
 
 - **Homey** with Homey Web API (`homey:manager:api` permission)
 - **Homey SDK** v3, compatibility `>=5.0.0`
-- **Node.js** `>=16`
-- A **Shelly Wall Display** or any other device/browser that can connect to a local HTTP server
+- A **Shelly Wall Display** or any device / browser that can connect to a local HTTP server
 
 ---
 
@@ -145,14 +166,16 @@ com.walldisplay.dashboard/
 ├── app.js                  # Homey app entry point — HTTP/WebSocket server, Homey API integration
 ├── app.json                # App manifest (id, permissions, metadata)
 ├── package.json            # Node.js dependencies
-├── .gitignore              # Excludes node_modules, .claude/, build artefacts
+├── assets/
+│   ├── icon.svg            # App icon
+│   └── images/             # App store images (small / large / xlarge)
 ├── dashboard/
 │   ├── index.html          # Dashboard HTML shell
-│   ├── client.js           # Frontend logic (device rendering, SSE, controls, drag & drop, PIN)
-│   ├── style.css           # Dashboard styles (touch-optimized, dark/light mode)
-│   └── device-icons/       # 226 SVG device icons (copied from homey-lib)
+│   ├── client.js           # Frontend logic (rendering, SSE, controls, energy, drag & drop, PIN)
+│   ├── style.css           # Touch-optimised styles (dark/light mode, tile sizes)
+│   └── device-icons/       # SVG device icons served locally
 └── settings/
-    └── index.html          # Settings UI (port, device filter, alarm PIN)
+    └── index.html          # Settings UI (URL, port, tile size, energy, PIN, device filter)
 ```
 
 ---

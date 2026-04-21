@@ -120,16 +120,22 @@ html, body {
   border-color: var(--accent);
 }
 
+/* #7 Mindest-Touch-Target 44 × 44 px (Apple HIG) */
 .theme-toggle-btn {
   background: none;
   border: none;
   cursor: pointer;
   font-size: 18px;
   line-height: 1;
+  min-width: 44px;
+  min-height: 44px;
   padding: 4px;
   border-radius: 6px;
   color: var(--text-muted);
   transition: color 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 .theme-toggle-btn:hover { color: var(--accent); }
 
@@ -199,7 +205,7 @@ html, body {
 
 .device-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(var(--tile-min, 130px), 1fr));
   gap: 10px;
 }
 
@@ -525,10 +531,15 @@ html, body {
   cursor: pointer;
   font-size: 18px;
   line-height: 1;
+  min-width: 44px;
+  min-height: 44px;
   padding: 4px;
   border-radius: 6px;
   color: var(--text-muted);
   transition: color 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 .energy-btn:hover { color: var(--accent); }
 
@@ -765,7 +776,8 @@ html, body {
 }
 
 @media (min-width: 600px) {
+  /* Bei grossen Screens: mindestens 10px mehr als die User-Einstellung */
   .device-grid {
-    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(max(var(--tile-min, 130px), 140px), 1fr));
   }
 }

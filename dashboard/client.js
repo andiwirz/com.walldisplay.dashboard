@@ -4,6 +4,23 @@
 (function () {
   'use strict';
 
+  // ── #15 Capability-Konstanten ──────────────────────
+  var CAP = {
+    ONOFF:           'onoff',
+    DIM:             'dim',
+    ALARM_MOTION:    'alarm_motion',
+    ALARM_CONTACT:   'alarm_contact',
+    INPUT_EXT_1:     'input_external_1',
+    MEASURE_TEMP:    'measure_temperature',
+    MEASURE_HUMIDITY:'measure_humidity',
+    MEASURE_POWER:   'measure_power',
+    MEASURE_CO2:     'measure_co2',
+    MEASURE_BATTERY: 'measure_battery',
+    WC_SET:          'windowcoverings_set',
+    HOMEALARM_STATE: 'homealarm_state',
+    HOMEALARM:       'homealarm',
+  };
+
   var zones = {};
   var devices = {};
   var eventSource = null;
@@ -11,6 +28,14 @@
   var _alarmPin = '';
   var _pinEntry = '';
   var _pinCallback = null;
+
+  // #4 SVG-Cache – Vollneuaufbau nur wenn sich Summary ändert
+  var _lastEnergySummaryKey = null;
+
+  // #12 SSE-Backoff
+  var _sseBackoff = 1000;
+  // #2 SSE-Aktivitäts-Flag (für adaptives Polling)
+  var _sseActive = false;
 
   // ── Energy Modal ───────────────────────────────────
   var _energyTimer = null;
@@ -25,18 +50,30 @@
   function closeEnergyModal() {
     document.getElementById('energy-modal').style.display = 'none';
     if (_energyTimer) { clearInterval(_energyTimer); _energyTimer = null; }
+    _lastEnergySummaryKey = null; // #4 Cache zurücksetzen
   }
   window.closeEnergyModal = closeEnergyModal;
 
+  // #3 Energy Error Handling
   function _fetchEnergy() {
-    var xhr = new XMLHttpRequest();
-    xhr.open('GET', '/api/energy', true);
-    xhr.onload = function () {
-      if (xhr.status === 200) {
-        try { _renderEnergy(JSON.parse(xhr.responseText)); } catch (_) {}
+    var req = new XMLHttpRequest();
+    req.open('GET', '/api/energy', true);
+    req.timeout = 10000; // #11 Timeout
+    req.onload = function () {
+      if (req.status === 200) {
+        try { _renderEnergy(JSON.parse(req.responseText)); } catch (_) {}
+      } else {
+        _showEnergyError('HTTP ' + req.status);
       }
     };
-    xhr.send();
+    req.onerror   = function () { _showEnergyError('Network error'); };
+    req.ontimeout = function () { _showEnergyError('Request timed out'); };
+    req.send();
+  }
+
+  function _showEnergyError(msg) {
+    var body = document.getElementById('energy-body');
+    if (body) body.innerHTML = '<p style="color:var(--danger);font-size:13px;text-align:center;padding:32px 16px">⚠️ ' + msg + '</p>';
   }
 
   function _fmtW(w) {
@@ -59,10 +96,10 @@
   }
 
   function _energyStatus(type, power, soc) {
-    if (type === 'solar')    return power > 0  ? ['Generating',   'solar']    : ['Idle', 'idle'];
+    if (type === 'solar')    return power > 0  ? ['Generating',   'solar']       : ['Idle', 'idle'];
     if (type === 'battery')  return power < 0  ? ['Discharging',  'discharging'] : (power > 0 ? ['Charging', 'charging'] : ['Idle', 'idle']);
-    if (type === 'grid')     return power < 0  ? ['Exporting',    'exporting'] : (power > 0 ? ['Importing', 'importing'] : ['Idle', 'idle']);
-    if (type === 'ev')       return power > 0  ? ['Charging',     'charging']  : ['Idle', 'idle'];
+    if (type === 'grid')     return power < 0  ? ['Exporting',    'exporting']   : (power > 0 ? ['Importing', 'importing'] : ['Idle', 'idle']);
+    if (type === 'ev')       return power > 0  ? ['Charging',     'charging']    : ['Idle', 'idle'];
     return ['Consuming', 'consuming'];
   }
 
@@ -86,7 +123,6 @@
     var batC   = _energyColor('battery', s.batteryW);
     var homeC  = '#F5A623';
 
-    // Solar/Grid vollständig sichtbar (cy=42), Home hochgezogen (cy=110) — keine Überlappung da x-versetzt
     var sx=75, sy=42, gx=245, gy=42, hx=160, hy=110, bx=160, by=210;
 
     function hexAlpha(hex, a) {
@@ -94,7 +130,6 @@
       return 'rgba('+r+','+g+','+b+','+a+')';
     }
 
-    // Point on circle edge from (cx1,cy1) toward (cx2,cy2)
     function edgePt(cx1, cy1, cx2, cy2) {
       var dx=cx2-cx1, dy=cy2-cy1, d=Math.sqrt(dx*dx+dy*dy);
       return { x: Math.round(cx1+dx/d*R), y: Math.round(cy1+dy/d*R) };
@@ -102,7 +137,6 @@
 
     function lineW(w) { return Math.max(1.5, Math.min(5, 1.5+Math.abs(w||0)/400)); }
 
-    // Animated flow line with two travelling dots
     function flowLine(x1, y1, x2, y2, color, watt, reverse) {
       if (Math.abs(watt||0) <= 5) {
         return '<line x1="'+x1+'" y1="'+y1+'" x2="'+x2+'" y2="'+y2+'" stroke="#ADADB8" stroke-width="1.5" stroke-dasharray="5 4" opacity="0.3"/>';
@@ -117,7 +151,6 @@
         '<circle r="3.5" fill="'+color+'" opacity="0.55"><animateMotion dur="'+dur+'" begin="-'+half+'" repeatCount="indefinite" path="'+pd+'"/></circle>';
     }
 
-    // Circle node: label (top inside) + icon + value + optional sub
     function node(cx, cy, color, iconSvg, label, value, sub) {
       var bg = hexAlpha(color, 0.11);
       return (
@@ -129,8 +162,6 @@
       );
     }
 
-    // ── SVG Icons (centred at 0,0, ~±13 px) ─────────────
-    // Solar – circle + 8 rays
     var iSolar =
       '<circle r="5.5" stroke="none"/>'+
       '<g fill="none" stroke-width="2" stroke-linecap="round">'+
@@ -144,16 +175,13 @@
       '<line x1="-6.4" y1="6.4" x2="-8.5" y2="8.5"/>'+
       '</g>';
 
-    // Grid – lightning bolt
     var iGrid = '<path d="M4,-12 L-2,1 L2,1 L-4,12 L10,0 L5,0 L8,-12 Z" stroke="none"/>';
 
-    // Home – roof triangle + body rect + door
     var iHome =
       '<polygon points="0,-12 -10,-1 10,-1" stroke="none"/>'+
       '<rect x="-8" y="-2" width="16" height="12" rx="1" fill="none" stroke-width="1.8"/>'+
       '<rect x="-3.5" y="3" width="7" height="7" rx="1" stroke="none" opacity="0.55"/>';
 
-    // Battery – outline + terminal + level fill
     var bLvl   = s.batterySoc !== null ? Math.max(0, Math.min(1, s.batterySoc/100)) : 0.45;
     var bBodyH = 17, bFillH = Math.max(1, Math.round(bLvl*bBodyH)), bFillY = -8+bBodyH-bFillH;
     var iBat =
@@ -161,10 +189,8 @@
       '<rect x="-4" y="-11" width="8" height="4" rx="1.5" stroke="none" opacity="0.85"/>'+
       '<rect x="-5.5" y="'+bFillY+'" width="11" height="'+bFillH+'" rx="1.5" stroke="none" opacity="0.45"/>';
 
-    // ── Build SVG ────────────────────────────────────────
     var svg = '<svg class="energy-flow-svg" viewBox="0 0 '+W+' '+svgH+'" xmlns="http://www.w3.org/2000/svg" style="font-family:system-ui,-apple-system,sans-serif">';
 
-    // Lines first (behind circles)
     var sc=edgePt(sx,sy,hx,hy), hsc=edgePt(hx,hy,sx,sy);
     svg += flowLine(sc.x,sc.y,hsc.x,hsc.y, solarC, s.solarW, false);
 
@@ -176,7 +202,6 @@
       svg += flowLine(hbc.x,hbc.y,bhc.x,bhc.y, batC, s.batteryW, s.batteryW < 0);
     }
 
-    // Nodes on top
     svg += node(sx, sy, solarC, iSolar, 'SOLAR',  _fmtW(s.solarW), null);
     svg += node(gx, gy, gridC,  iGrid,  s.gridW < 0 ? 'EXPORT' : 'IMPORT', _fmtW(s.gridW), null);
     svg += node(hx, hy, homeC,  iHome,  'HOME',   _fmtW(s.homeW),  null);
@@ -186,51 +211,59 @@
     return svg;
   }
 
+  // #4 Device-Card-HTML in eigene Funktion ausgelagert (für SVG-Caching)
+  function _buildEnergyDeviceCardsHtml(devList) {
+    var shown = devList.filter(function (d) {
+      return d.type === 'solar' || d.type === 'battery' || d.type === 'grid' || d.type === 'ev';
+    });
+    if (shown.length === 0) {
+      return '<p style="color:var(--text-muted);font-size:13px;text-align:center;padding:24px 0">No energy devices found.<br>Add solar panels, batteries or power meters in Homey.</p>';
+    }
+    var html = '<div class="energy-devices">';
+    shown.forEach(function (d) {
+      var st  = _energyStatus(d.type, d.power, d.soc);
+      var sub = '';
+      if (d.type === 'battery' && d.soc !== null) sub = d.soc + '% SoC';
+      if (d.meterImported !== null && d.meterExported !== null)
+        sub = _fmtKwh(d.meterImported) + ' in · ' + _fmtKwh(d.meterExported) + ' out';
+      else if (d.meterImported !== null)
+        sub = _fmtKwh(d.meterImported) + ' total';
+
+      html += '<div class="energy-device-card">';
+      html += '<div class="energy-device-icon">' + _energyIconHtml(d) + '</div>';
+      html += '<div class="energy-device-name">' + d.name + '</div>';
+      html += '<div class="energy-device-power">' + _fmtW(d.power) + ' <span>W</span></div>';
+      if (sub) html += '<div class="energy-device-sub">' + sub + '</div>';
+      html += '<div class="energy-device-status energy-status-' + st[1] + '">' + st[0] + '</div>';
+      html += '</div>';
+    });
+    html += '</div>';
+    return html;
+  }
+
   function _renderEnergy(data) {
     var s       = data.summary;
-    var devices = data.devices;
-    var hasBat  = devices.some(function (d) { return d.type === 'battery'; });
+    var devList = data.devices;
+    var hasBat  = devList.some(function (d) { return d.type === 'battery'; });
 
-    // Update timestamp
     var now = new Date();
     var ts  = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0') + ':' + now.getSeconds().toString().padStart(2,'0');
     document.getElementById('energy-update-time').textContent = ts;
 
-    // SVG in eigenem nicht-scrollbaren Container → Scrollbar beeinflusst Breite nicht
-    var html = '<div class="energy-flow-container">' + _renderEnergyFlowSVG(s, hasBat) + '</div>';
-    html += '<div class="energy-scroll-body">';
+    var body   = document.getElementById('energy-body');
+    var svgKey = JSON.stringify(s) + (hasBat ? '1' : '0');
 
-    // Device cards — only show energy-relevant types, never generic consumers
-    var shown = devices.filter(function (d) {
-      return d.type === 'solar' || d.type === 'battery' || d.type === 'grid' || d.type === 'ev';
-    });
-
-    if (shown.length === 0) {
-      html += '<p style="color:var(--text-muted);font-size:13px;text-align:center;padding:24px 0">No energy devices found.<br>Add solar panels, batteries or power meters in Homey.</p>';
+    // #4 SVG nur neu aufbauen wenn sich Werte geändert haben
+    if (svgKey !== _lastEnergySummaryKey) {
+      _lastEnergySummaryKey = svgKey;
+      var html = '<div class="energy-flow-container">' + _renderEnergyFlowSVG(s, hasBat) + '</div>';
+      html    += '<div class="energy-scroll-body">' + _buildEnergyDeviceCardsHtml(devList) + '</div>';
+      body.innerHTML = html;
     } else {
-      html += '<div class="energy-devices">';
-      shown.forEach(function (d) {
-        var st    = _energyStatus(d.type, d.power, d.soc);
-        var sub    = '';
-        if (d.type === 'battery' && d.soc !== null) sub = d.soc + '% SoC';
-        if (d.meterImported !== null && d.meterExported !== null)
-          sub = _fmtKwh(d.meterImported) + ' in · ' + _fmtKwh(d.meterExported) + ' out';
-        else if (d.meterImported !== null)
-          sub = _fmtKwh(d.meterImported) + ' total';
-
-        html += '<div class="energy-device-card">';
-        html += '<div class="energy-device-icon">' + _energyIconHtml(d) + '</div>';
-        html += '<div class="energy-device-name">' + d.name + '</div>';
-        html += '<div class="energy-device-power">' + _fmtW(d.power) + ' <span>W</span></div>';
-        if (sub) html += '<div class="energy-device-sub">' + sub + '</div>';
-        html += '<div class="energy-device-status energy-status-' + st[1] + '">' + st[0] + '</div>';
-        html += '</div>';
-      });
-      html += '</div>';
+      // SVG unverändert – nur Device-Cards aktualisieren
+      var scrollBody = body.querySelector('.energy-scroll-body');
+      if (scrollBody) scrollBody.innerHTML = _buildEnergyDeviceCardsHtml(devList);
     }
-
-    html += '</div>'; // energy-scroll-body
-    document.getElementById('energy-body').innerHTML = html;
   }
 
   // ── Theme ('light' | 'dark') ───────────────────────
@@ -304,13 +337,11 @@
     return value === 'armed' || value === 'partially_armed';
   }
 
-  // Gibt die steuerbare Alarm-Capability zurück oder null.
-  // Unterstützt Standard homealarm_state sowie custom boolean Capabilities.
+  // #15 Gibt die steuerbare Alarm-Capability zurück oder null.
   function getAlarmCapability(d) {
     var caps = d.capabilitiesObj || {};
-    if (caps.homealarm_state) return { capId: 'homealarm_state', isBoolean: false, value: caps.homealarm_state.value };
-    if (caps.homealarm)       return { capId: 'homealarm',       isBoolean: false, value: caps.homealarm.value };
-    // Custom boolean mit setable: true (z.B. Shelly Wall Display Alarm)
+    if (caps[CAP.HOMEALARM_STATE]) return { capId: CAP.HOMEALARM_STATE, isBoolean: false, value: caps[CAP.HOMEALARM_STATE].value };
+    if (caps[CAP.HOMEALARM])       return { capId: CAP.HOMEALARM,       isBoolean: false, value: caps[CAP.HOMEALARM].value };
     var capIds = d.capabilities || [];
     for (var i = 0; i < capIds.length; i++) {
       var cap = caps[capIds[i]];
@@ -325,14 +356,12 @@
     return CLASS_ICONS[cls] || CLASS_ICONS.other;
   }
 
-  // Erzeugt ein Icon-Element: Homey-SVG falls vorhanden, sonst Emoji-Fallback
   function buildIconElement(d) {
     var span = createElement('span', 'device-icon');
     if (d.icon) {
       var img = document.createElement('img');
       img.className = 'device-icon-img';
       img.alt = '';
-      // Lokale Pfade (/device-icons/...) direkt laden – kein Proxy nötig
       img.src = d.icon.startsWith('/') ? d.icon : '/api/icon-proxy?url=' + encodeURIComponent(d.icon);
       img.onerror = function () {
         span.removeChild(img);
@@ -345,7 +374,7 @@
     return span;
   }
 
-  // ── Uhr ────────────────────────────────────────────
+  // ── #6 Uhr (drift-korrigiert mit setTimeout) ────────
   function updateClock() {
     var now = new Date();
     var h = now.getHours().toString().padStart(2, '0');
@@ -354,19 +383,27 @@
     if (el) el.textContent = h + ':' + m;
   }
 
-  setInterval(updateClock, 1000);
+  function scheduleClock() {
+    var delay = 1000 - (Date.now() % 1000);
+    setTimeout(function () { updateClock(); scheduleClock(); }, delay);
+  }
+
   updateClock();
+  scheduleClock();
 
   // ── Daten laden ─────────────────────────────────────
   function loadData() {
     showLoading();
 
-    // Settings laden (PIN + Energy-Sichtbarkeit)
     xhr('GET', '/api/settings', null, function (err, cfg) {
       if (!err && cfg) {
         _alarmPin = cfg.alarmPin || '';
         var btn = document.getElementById('energy-btn');
         if (btn) btn.style.display = cfg.energyEnabled === false ? 'none' : '';
+        // Kachelgrösse: 1=90px 2=110px 3=130px(default) 4=165px 5=210px
+        var tilePx = [90, 110, 130, 165, 210];
+        var ts = (cfg.tileSize >= 1 && cfg.tileSize <= 5) ? cfg.tileSize : 3;
+        document.documentElement.style.setProperty('--tile-min', tilePx[ts - 1] + 'px');
       }
     });
 
@@ -384,7 +421,7 @@
 
         render();
         connectSSE();
-        startPolling(); // Parallel-Poll als Ergänzung zu SSE (holt Capabilities die Homey nicht via Realtime pusht)
+        startPolling(); // Parallel-Poll für Capabilities die Homey nicht via SSE pusht (z.B. input_external_1)
       });
     });
   }
@@ -407,7 +444,6 @@
   function saveOrderFromGrid(grid) {
     var ids = Array.from(grid.querySelectorAll('.device-card'))
       .map(function (c) { return c.id.replace('card-', ''); });
-    // Remove these IDs from _order, then reinsert at their old block position
     var first = ids.find(function (id) { return _order.indexOf(id) !== -1; });
     var insertAt = first ? _order.indexOf(first) : _order.length;
     ids.forEach(function (id) {
@@ -470,7 +506,6 @@
       Array.from(grid.querySelectorAll('.device-card.drag-over'))
         .forEach(function (c) { c.classList.remove('drag-over'); });
       if (_drag.over) {
-        // Reorder in DOM: move card before or after target
         var cards = Array.from(grid.querySelectorAll('.device-card'));
         var fi = cards.indexOf(card);
         var ti = cards.indexOf(_drag.over);
@@ -584,19 +619,18 @@
     card.id = 'card-' + d.id;
     if (!d.available) card.classList.add('unavailable');
 
-    var caps = d.capabilitiesObj || {};
-    var hasOnOff = d.capabilities && d.capabilities.indexOf('onoff') !== -1;
-    var hasAlarm = d.class === 'homealarm' ||
-                  !!(d.capabilities && d.capabilities.indexOf('homealarm') !== -1);
-    var hasDim   = d.capabilities && d.capabilities.indexOf('dim') !== -1;
-    var isOn = hasOnOff && caps.onoff && caps.onoff.value === true;
+    var caps     = d.capabilitiesObj || {};
+    var capIds   = d.capabilities || [];
+    var hasOnOff = capIds.indexOf(CAP.ONOFF) !== -1;
+    var hasAlarm = d.class === 'homealarm' || capIds.indexOf(CAP.HOMEALARM) !== -1;
+    var hasDim   = capIds.indexOf(CAP.DIM) !== -1;
+    var isOn     = hasOnOff && caps[CAP.ONOFF] && caps[CAP.ONOFF].value === true;
     var alarmCap = hasAlarm ? getAlarmCapability(d) : null;
-    var isArmed = alarmCap ? alarmIsArmed(alarmCap.value) : false;
+    var isArmed  = alarmCap ? alarmIsArmed(alarmCap.value) : false;
 
     if (isOn || isArmed) card.classList.add('on');
-    if (caps['input_external_1'] && caps['input_external_1'].value === true) card.classList.add('open');
+    if (caps[CAP.INPUT_EXT_1] && caps[CAP.INPUT_EXT_1].value === true) card.classList.add('open');
 
-    // Kamera/Doorbell: Karte klickbar → Modal mit Snapshot
     if (d.class === 'camera' || d.class === 'doorbell') {
       card.classList.add('clickable');
       (function (deviceId, deviceName) {
@@ -606,16 +640,14 @@
       }(d.id, d.name));
     }
 
-    // Ganze Karte klickbar für onoff-only (kein Dim) und homealarm
     if (hasAlarm || (hasOnOff && !hasDim)) {
       card.classList.add('clickable');
       (function (deviceId) {
         card.addEventListener('click', function (e) {
-          // Toggle-Button selbst löst seinen eigenen Handler aus – nicht doppelt
           if (e.target.classList.contains('device-toggle')) return;
-          var d = devices[deviceId];
-          if (!d) return;
-          var c = d.capabilitiesObj || {};
+          var dv = devices[deviceId];
+          if (!dv) return;
+          var cv = dv.capabilitiesObj || {};
           if (hasAlarm) {
             var ac = getAlarmCapability(devices[deviceId]);
             if (ac) {
@@ -623,13 +655,12 @@
               requirePin(function () { setCapability(deviceId, ac.capId, newVal); });
             }
           } else {
-            setCapability(deviceId, 'onoff', !(c.onoff && c.onoff.value));
+            setCapability(deviceId, CAP.ONOFF, !(cv[CAP.ONOFF] && cv[CAP.ONOFF].value));
           }
         });
       }(d.id));
     }
 
-    // Header: Icon + Toggle
     var header = createElement('div', 'device-header');
     header.appendChild(buildIconElement(d));
 
@@ -639,7 +670,7 @@
       toggle.setAttribute('aria-label', isOn ? 'Turn off' : 'Turn on');
       toggle.addEventListener('click', function () {
         var newVal = !toggle.classList.contains('on');
-        setCapability(d.id, 'onoff', newVal);
+        setCapability(d.id, CAP.ONOFF, newVal);
       });
       header.appendChild(toggle);
     }
@@ -661,30 +692,27 @@
 
     card.appendChild(header);
 
-    // Name
     var name = createElement('div', 'device-name');
     name.textContent = d.name;
     card.appendChild(name);
 
-    // Status-Zeile (An/Aus oder Sensorwert)
     var statusEl = createElement('div', 'device-status');
     statusEl.id = 'status-' + d.id;
     statusEl.textContent = buildStatusText(d);
     card.appendChild(statusEl);
 
-    // Werte (Sensor-Details, Slider)
     var values = buildValueElements(d);
     if (values) card.appendChild(values);
 
     return card;
   }
 
-  // ── Statustext für die Karte ────────────────────
+  // ── #15 Statustext für die Karte ────────────────────
   function buildStatusText(d) {
-    var caps = d.capabilitiesObj || {};
-    var hasOnOff = d.capabilities && d.capabilities.indexOf('onoff') !== -1;
-    var hasAlarm = d.class === 'homealarm' ||
-                  !!(d.capabilities && d.capabilities.indexOf('homealarm') !== -1);
+    var caps     = d.capabilitiesObj || {};
+    var capIds   = d.capabilities || [];
+    var hasOnOff = capIds.indexOf(CAP.ONOFF) !== -1;
+    var hasAlarm = d.class === 'homealarm' || capIds.indexOf(CAP.HOMEALARM) !== -1;
 
     if (hasAlarm) {
       var ac = getAlarmCapability(d);
@@ -694,9 +722,9 @@
       }
     }
     if (hasOnOff) {
-      var isOn = caps.onoff && caps.onoff.value === true;
-      if (caps.dim && isOn) {
-        return 'On · ' + Math.round((caps.dim.value || 0) * 100) + ' %';
+      var isOn = caps[CAP.ONOFF] && caps[CAP.ONOFF].value === true;
+      if (caps[CAP.DIM] && isOn) {
+        return 'On · ' + Math.round((caps[CAP.DIM].value || 0) * 100) + ' %';
       }
       return isOn ? 'On' : 'Off';
     }
@@ -705,15 +733,15 @@
   }
 
   function buildValueElements(d) {
-    var caps = d.capabilitiesObj || {};
+    var caps      = d.capabilitiesObj || {};
     var container = createElement('div', 'device-values');
-    var added = 0;
+    var added     = 0;
 
-    // Primärwert: Temperatur (nicht bei Steckdosen)
+    // Primärwert: Temperatur
     var _noTemp = ['socket', 'light', 'windowcoverings', 'shutterblinds', 'blinds', 'curtain'];
-    if (_noTemp.indexOf(d.class) === -1 && caps.measure_temperature) {
+    if (_noTemp.indexOf(d.class) === -1 && caps[CAP.MEASURE_TEMP]) {
       var el = createElement('div', 'device-value primary');
-      var val = caps.measure_temperature.value;
+      var val = caps[CAP.MEASURE_TEMP].value;
       el.innerHTML = (val !== null && val !== undefined ? val.toFixed(1) : '--') +
         '<span class="value-unit"> °C</span>';
       container.appendChild(el);
@@ -721,26 +749,26 @@
     }
 
     // Luftfeuchtigkeit
-    if (caps.measure_humidity) {
+    if (caps[CAP.MEASURE_HUMIDITY]) {
       var el = createElement('div', 'device-value');
-      var val = caps.measure_humidity.value;
+      var val = caps[CAP.MEASURE_HUMIDITY].value;
       el.textContent = '💧 ' + (val !== null && val !== undefined ? Math.round(val) + ' %' : '--');
       container.appendChild(el);
       added++;
     }
 
     // Leistung
-    if (caps.measure_power) {
+    if (caps[CAP.MEASURE_POWER]) {
       var el = createElement('div', 'device-value');
-      var val = caps.measure_power.value;
+      var val = caps[CAP.MEASURE_POWER].value;
       el.textContent = '⚡ ' + (val !== null && val !== undefined ? Math.round(val) + ' W' : '--');
       container.appendChild(el);
       added++;
     }
 
     // Helligkeit (Dim-Slider)
-    if (caps.dim) {
-      var val = caps.dim.value !== null ? caps.dim.value : 0;
+    if (caps[CAP.DIM]) {
+      var val = caps[CAP.DIM].value !== null ? caps[CAP.DIM].value : 0;
       var pct = Math.round(val * 100);
       var slider = document.createElement('input');
       slider.type = 'range';
@@ -753,7 +781,7 @@
       slider.addEventListener('change', function () {
         var newVal = parseInt(this.value, 10) / 100;
         this.style.setProperty('--val', this.value + '%');
-        setCapability(deviceId, 'dim', newVal);
+        setCapability(deviceId, CAP.DIM, newVal);
       });
       slider.addEventListener('input', function () {
         this.style.setProperty('--val', this.value + '%');
@@ -762,9 +790,9 @@
       added++;
     }
 
-    // Jalousie/Rollo-Slider (windowcoverings_set: 0=zu, 1=offen)
-    if (caps.windowcoverings_set) {
-      var val = caps.windowcoverings_set.value !== null ? caps.windowcoverings_set.value : 0;
+    // Jalousie/Rollo-Slider
+    if (caps[CAP.WC_SET]) {
+      var val = caps[CAP.WC_SET].value !== null ? caps[CAP.WC_SET].value : 0;
       var pct = Math.round(val * 100);
       var label = createElement('div', 'device-value');
       label.textContent = '🪟 ' + pct + ' %';
@@ -781,7 +809,7 @@
       slider.addEventListener('change', function () {
         var newVal = parseInt(this.value, 10) / 100;
         this.style.setProperty('--val', this.value + '%');
-        setCapability(deviceId, 'windowcoverings_set', newVal);
+        setCapability(deviceId, CAP.WC_SET, newVal);
       });
       slider.addEventListener('input', function () {
         this.style.setProperty('--val', this.value + '%');
@@ -792,47 +820,43 @@
       added++;
     }
 
-
     // Bewegungsalarm
-    if (caps.alarm_motion) {
+    if (caps[CAP.ALARM_MOTION]) {
       var el = createElement('div', 'device-value');
       var dot = createElement('span', 'alarm-dot');
-      if (caps.alarm_motion.value) dot.classList.add('active');
+      if (caps[CAP.ALARM_MOTION].value) dot.classList.add('active');
       el.appendChild(dot);
-      var txt = document.createTextNode(' Motion');
-      el.appendChild(txt);
+      el.appendChild(document.createTextNode(' Motion'));
       container.appendChild(el);
       added++;
     }
 
     // Kontaktalarm (Türen/Fenster)
-    if (caps.alarm_contact) {
+    if (caps[CAP.ALARM_CONTACT]) {
       var el = createElement('div', 'device-value');
       var dot = createElement('span', 'alarm-dot');
-      if (caps.alarm_contact.value) dot.classList.add('active');
+      if (caps[CAP.ALARM_CONTACT].value) dot.classList.add('active');
       el.appendChild(dot);
-      var txt = document.createTextNode(caps.alarm_contact.value ? ' Open' : ' Closed');
-      el.appendChild(txt);
+      el.appendChild(document.createTextNode(caps[CAP.ALARM_CONTACT].value ? ' Open' : ' Closed'));
       container.appendChild(el);
       added++;
     }
 
     // Externer Eingang (z.B. Reed-Kontakt am Garagentor)
-    if (caps['input_external_1']) {
+    if (caps[CAP.INPUT_EXT_1]) {
       var el = createElement('div', 'device-value');
       var dot = createElement('span', 'alarm-dot');
-      if (caps['input_external_1'].value) dot.classList.add('active');
+      if (caps[CAP.INPUT_EXT_1].value) dot.classList.add('active');
       el.appendChild(dot);
-      var txt = document.createTextNode(caps['input_external_1'].value ? ' Open' : ' Closed');
-      el.appendChild(txt);
+      el.appendChild(document.createTextNode(caps[CAP.INPUT_EXT_1].value ? ' Open' : ' Closed'));
       container.appendChild(el);
       added++;
     }
 
     // CO2
-    if (caps.measure_co2) {
+    if (caps[CAP.MEASURE_CO2]) {
       var el = createElement('div', 'device-value');
-      var val = caps.measure_co2.value;
+      var val = caps[CAP.MEASURE_CO2].value;
       el.textContent = '💨 ' + (val !== null && val !== undefined ? Math.round(val) + ' ppm' : '--');
       container.appendChild(el);
       added++;
@@ -844,12 +868,10 @@
   // ── Capability setzen ───────────────────────────────
   function setCapability(deviceId, capability, value) {
     var body = JSON.stringify({ value: value });
-    var url = '/api/device/' + deviceId + '/capability/' + capability;
+    var url  = '/api/device/' + deviceId + '/capability/' + capability;
 
     xhr('POST', url, body, function (err) {
-      if (err) {
-        console.error('Fehler beim Setzen von ' + capability + ':', err);
-      }
+      if (err) console.error('Fehler beim Setzen von ' + capability + ':', err);
     });
 
     // Optimistisches UI-Update
@@ -869,18 +891,18 @@
     var card = document.getElementById('card-' + deviceId);
     if (!card) return;
 
-    var caps = d.capabilitiesObj || {};
-    var hasOnOff = d.capabilities && d.capabilities.indexOf('onoff') !== -1;
-    var hasAlarm = d.class === 'homealarm' ||
-                  !!(d.capabilities && d.capabilities.indexOf('homealarm') !== -1);
-    var isOn = hasOnOff && caps.onoff && caps.onoff.value === true;
-    var alarmCapUpdate = hasAlarm ? getAlarmCapability(d) : null;
-    var isArmed = alarmCapUpdate ? alarmIsArmed(alarmCapUpdate.value) : false;
+    var caps     = d.capabilitiesObj || {};
+    var capIds   = d.capabilities || [];
+    var hasOnOff = capIds.indexOf(CAP.ONOFF) !== -1;
+    var hasAlarm = d.class === 'homealarm' || capIds.indexOf(CAP.HOMEALARM) !== -1;
+    var isOn     = hasOnOff && caps[CAP.ONOFF] && caps[CAP.ONOFF].value === true;
+    var alarmCapU = hasAlarm ? getAlarmCapability(d) : null;
+    var isArmed  = alarmCapU ? alarmIsArmed(alarmCapU.value) : false;
 
     if (isOn || isArmed) card.classList.add('on');
     else card.classList.remove('on');
 
-    if (caps['input_external_1'] && caps['input_external_1'].value === true) card.classList.add('open');
+    if (caps[CAP.INPUT_EXT_1] && caps[CAP.INPUT_EXT_1].value === true) card.classList.add('open');
     else card.classList.remove('open');
 
     var toggle = card.querySelector('.device-toggle:not([data-alarm])');
@@ -895,72 +917,68 @@
       else alarmToggle.classList.remove('on');
     }
 
-    // Status-Zeile
     var statusEl = document.getElementById('status-' + deviceId);
     if (statusEl) statusEl.textContent = buildStatusText(d);
 
-    // Temperatur
     var prim = card.querySelector('.device-value.primary');
-    if (prim && caps.measure_temperature) {
-      var val = caps.measure_temperature.value;
+    if (prim && caps[CAP.MEASURE_TEMP]) {
+      var val = caps[CAP.MEASURE_TEMP].value;
       prim.innerHTML = (val !== null && val !== undefined ? val.toFixed(1) : '--') +
         '<span class="value-unit"> °C</span>';
     }
 
-    // Dim-Slider
     var sliders = card.querySelectorAll('.dim-slider');
-    sliders.forEach(function(slider) {
-      if (caps.dim && !caps.windowcoverings_set) {
-        var pct = Math.round((caps.dim.value || 0) * 100);
+    sliders.forEach(function (slider) {
+      if (caps[CAP.DIM] && !caps[CAP.WC_SET]) {
+        var pct = Math.round((caps[CAP.DIM].value || 0) * 100);
         slider.value = pct;
         slider.style.setProperty('--val', pct + '%');
       }
     });
 
-    // Jalousie-Slider
-    if (caps.windowcoverings_set) {
+    if (caps[CAP.WC_SET]) {
       var wcSlider = card.querySelector('.dim-slider');
       if (wcSlider) {
-        var pct = Math.round((caps.windowcoverings_set.value || 0) * 100);
+        var pct = Math.round((caps[CAP.WC_SET].value || 0) * 100);
         wcSlider.value = pct;
         wcSlider.style.setProperty('--val', pct + '%');
       }
       var wcLabel = document.getElementById('wc-label-' + deviceId);
       if (wcLabel) {
-        wcLabel.textContent = '🪟 ' + Math.round((caps.windowcoverings_set.value || 0) * 100) + ' %';
+        wcLabel.textContent = '🪟 ' + Math.round((caps[CAP.WC_SET].value || 0) * 100) + ' %';
       }
     }
 
-    // Alarme
+    // Alarme (dot-Index muss mit buildValueElements übereinstimmen)
     var dots = card.querySelectorAll('.alarm-dot');
     var i = 0;
-    if (caps.alarm_motion) {
+    if (caps[CAP.ALARM_MOTION]) {
       if (dots[i]) {
-        if (caps.alarm_motion.value) dots[i].classList.add('active');
+        if (caps[CAP.ALARM_MOTION].value) dots[i].classList.add('active');
         else dots[i].classList.remove('active');
       }
       i++;
     }
-    if (caps.alarm_contact) {
+    if (caps[CAP.ALARM_CONTACT]) {
       if (dots[i]) {
-        if (caps.alarm_contact.value) dots[i].classList.add('active');
+        if (caps[CAP.ALARM_CONTACT].value) dots[i].classList.add('active');
         else dots[i].classList.remove('active');
-        var statusEl2 = dots[i] ? dots[i].nextSibling : null;
-        if (statusEl2) statusEl2.textContent = caps.alarm_contact.value ? ' Open' : ' Closed';
+        var sib2 = dots[i] ? dots[i].nextSibling : null;
+        if (sib2) sib2.textContent = caps[CAP.ALARM_CONTACT].value ? ' Open' : ' Closed';
       }
       i++;
     }
-    if (caps['input_external_1']) {
+    if (caps[CAP.INPUT_EXT_1]) {
       if (dots[i]) {
-        if (caps['input_external_1'].value) dots[i].classList.add('active');
+        if (caps[CAP.INPUT_EXT_1].value) dots[i].classList.add('active');
         else dots[i].classList.remove('active');
-        var statusEl3 = dots[i] ? dots[i].nextSibling : null;
-        if (statusEl3) statusEl3.textContent = caps['input_external_1'].value ? ' Open' : ' Closed';
+        var sib3 = dots[i] ? dots[i].nextSibling : null;
+        if (sib3) sib3.textContent = caps[CAP.INPUT_EXT_1].value ? ' Open' : ' Closed';
       }
     }
   }
 
-  // ── Server-Sent Events ──────────────────────────────
+  // ── #12 Server-Sent Events mit Exponential Backoff ──
   function connectSSE() {
     if (eventSource) {
       try { eventSource.close(); } catch (_) {}
@@ -974,6 +992,8 @@
     eventSource = new EventSource('/events');
 
     eventSource.onmessage = function (e) {
+      _sseActive  = true;
+      _sseBackoff = 1000; // Backoff zurücksetzen bei erfolgreicher Nachricht
       try {
         var data = JSON.parse(e.data);
         if (data.type === 'device.update' && data.device) {
@@ -990,27 +1010,40 @@
     };
 
     eventSource.onerror = function () {
+      _sseActive = false;
       eventSource.close();
       eventSource = null;
-      // Fallback: alle 10 Sekunden neu laden
-      startPolling();
+      // Exponential Backoff: 1 s → 2 s → 4 s → … max 30 s
+      setTimeout(function () {
+        _sseBackoff = Math.min(_sseBackoff * 2, 30000);
+        connectSSE();
+      }, _sseBackoff);
     };
   }
 
+  // ── #2 Adaptives Polling (30 s mit SSE, 10 s ohne) ──
   function startPolling() {
     if (pollTimer) return;
-    pollTimer = setInterval(function () {
+    _schedulePoll(10000);
+  }
+
+  function _schedulePoll(delay) {
+    pollTimer = setTimeout(function () {
+      pollTimer = null;
       xhr('GET', '/api/devices', null, function (err, devicesData) {
-        if (err || !devicesData) return;
-        devicesData.forEach(function (d) {
-          if (devices[d.id]) {
-            devices[d.id].capabilitiesObj = d.capabilitiesObj;
-            devices[d.id].available = d.available;
-            updateCard(d.id);
-          }
-        });
+        if (!err && devicesData) {
+          devicesData.forEach(function (d) {
+            if (devices[d.id]) {
+              devices[d.id].capabilitiesObj = d.capabilitiesObj;
+              devices[d.id].available = d.available;
+              updateCard(d.id);
+            }
+          });
+        }
+        // Längeres Intervall wenn SSE aktiv und Daten liefert
+        _schedulePoll(_sseActive ? 30000 : 10000);
       });
-    }, 10000);
+    }, delay);
   }
 
   // ── UI-Hilfsfunktionen ──────────────────────────────
@@ -1032,10 +1065,11 @@
     return el;
   }
 
-  // ── XHR-Wrapper ─────────────────────────────────────
+  // ── #11 XHR-Wrapper mit Timeout ─────────────────────
   function xhr(method, url, body, callback) {
     var req = new XMLHttpRequest();
     req.open(method, url, true);
+    req.timeout = 10000; // 10 s Timeout
     if (body) req.setRequestHeader('Content-Type', 'application/json');
     req.onreadystatechange = function () {
       if (req.readyState !== 4) return;
@@ -1047,16 +1081,14 @@
         callback(new Error('HTTP ' + req.status));
       }
     };
-    req.onerror = function () { callback(new Error('Netzwerkfehler')); };
+    req.onerror   = function () { callback(new Error('Netzwerkfehler')); };
+    req.ontimeout = function () { callback(new Error('Timeout')); };
     req.send(body || null);
   }
 
   // ── Refresh ─────────────────────────────────────────
-
-  // 1) Auto-Refresh alle 5 Minuten (Sicherheitsnetz)
   setInterval(loadData, 5 * 60 * 1000);
 
-  // 2) Tap auf Logo/Header-Titel → Refresh
   document.addEventListener('DOMContentLoaded', function () {
     var headerLeft = document.querySelector('.header-left');
     if (headerLeft) {
@@ -1068,7 +1100,7 @@
     }
   });
 
-function flashRefresh() {
+  function flashRefresh() {
     var logo = document.querySelector('.logo');
     if (!logo) return;
     logo.style.transition = 'transform 0.4s ease';
@@ -1086,7 +1118,6 @@ function flashRefresh() {
     loadData();
   }
 
-  // Globale Funktion für den "Erneut versuchen"-Button
   window.loadData = loadData;
 
   // ── PIN-Modal ────────────────────────────────────────
@@ -1103,6 +1134,8 @@ function flashRefresh() {
     if (_pinEntry.length >= 4) return;
     _pinEntry += digit;
     updatePinDots();
+    // #5 Haptisches Feedback (Android WebView)
+    if (navigator.vibrate) navigator.vibrate(25);
     if (_pinEntry.length === 4) {
       setTimeout(checkPin, 80);
     }
@@ -1127,9 +1160,11 @@ function flashRefresh() {
       _pinCallback = null;
       if (cb) cb();
     } else {
+      // #5 Haptisches Feedback bei falschem PIN (doppelter Buzz)
+      if (navigator.vibrate) navigator.vibrate([60, 80, 60]);
       var inner = document.querySelector('.pin-modal-inner');
       inner.classList.remove('shake');
-      void inner.offsetWidth; // reflow
+      void inner.offsetWidth;
       inner.classList.add('shake');
       document.getElementById('pin-error').textContent = 'Wrong PIN';
       _pinEntry = '';
@@ -1149,8 +1184,9 @@ function flashRefresh() {
   window.pinBackspace = pinBackspace;
   window.pinCancel    = pinCancel;
 
-  // ── Kamera-Modal ────────────────────────────────────
+  // ── #13 Kamera-Modal mit Lade-Timeout ───────────────
   var _cameraRefreshTimer = null;
+  var _cameraLoadTimer    = null;
 
   function openCameraModal(deviceId, deviceName) {
     var modal = document.getElementById('camera-modal');
@@ -1165,10 +1201,23 @@ function flashRefresh() {
     document.body.style.overflow = 'hidden';
 
     function refresh() {
+      // #13 Timeout: wenn Bild nach 8 s nicht geladen → Fehlermeldung
+      if (_cameraLoadTimer) clearTimeout(_cameraLoadTimer);
+      _cameraLoadTimer = setTimeout(function () {
+        img.style.display = 'none';
+        err.style.display = 'flex';
+      }, 8000);
       img.src = '/api/camera/' + deviceId + '?t=' + Date.now();
     }
 
+    img.onload = function () {
+      if (_cameraLoadTimer) { clearTimeout(_cameraLoadTimer); _cameraLoadTimer = null; }
+      img.style.display = 'block';
+      err.style.display = 'none';
+    };
+
     img.onerror = function () {
+      if (_cameraLoadTimer) { clearTimeout(_cameraLoadTimer); _cameraLoadTimer = null; }
       img.style.display = 'none';
       err.style.display = 'flex';
     };
@@ -1180,6 +1229,7 @@ function flashRefresh() {
 
   function closeCameraModal() {
     clearInterval(_cameraRefreshTimer);
+    if (_cameraLoadTimer) { clearTimeout(_cameraLoadTimer); _cameraLoadTimer = null; }
     _cameraRefreshTimer = null;
     var modal = document.getElementById('camera-modal');
     modal.style.display = 'none';
@@ -1189,6 +1239,5 @@ function flashRefresh() {
 
   window.openCameraModal  = openCameraModal;
   window.closeCameraModal = closeCameraModal;
-
 
 })();

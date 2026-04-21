@@ -14,6 +14,9 @@ class ShellyWallDisplayApp extends Homey.App {
   async onInit() {
     this.log('Shelly Wall Display App gestartet');
     this.sseClients = new Set();
+    // #17 Device-Cache (3 s TTL) – vermeidet Doppel-Fetch bei eng aufeinanderfolgenden Requests
+    this._deviceCache  = null;
+    this._deviceCacheTs = 0;
 
     await this._initHomeyApi();
 
@@ -44,6 +47,7 @@ class ShellyWallDisplayApp extends Homey.App {
       this.log('Homey API verbunden');
 
       this.homeyApi.devices.on('device.update', (device) => {
+        this._deviceCache = null; // #17 Cache invalidieren bei Gerätezustand-Änderung
         this._broadcastSSE({
           type: 'device.update',
           device: {
@@ -87,6 +91,9 @@ class ShellyWallDisplayApp extends Homey.App {
     const url = new URL(req.url, 'http://localhost');
 
     // HA-kompatible Security-Header
+    // CORS offen lassen: Homey Settings-Seite wird von my.homey.app geladen und
+    // benötigt Cross-Origin-Zugriff auf die lokale API. Auf einem lokalen Heimserver
+    // ist '*' vertretbar, da der Port nicht aus dem Internet erreichbar ist.
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
@@ -238,12 +245,14 @@ class ShellyWallDisplayApp extends Homey.App {
       // GET /api/settings
       if (url.pathname === '/api/settings' && req.method === 'GET') {
         const energyEnabled = this.homey.settings.get('energyEnabled');
+        const tileSize     = this.homey.settings.get('tileSize');
         res.writeHead(200);
         res.end(JSON.stringify({
           port: this.homey.settings.get('port') || DEFAULT_PORT,
           enabledDevices: this.homey.settings.get('enabledDevices') || null,
           alarmPin: this.homey.settings.get('alarmPin') || '',
           energyEnabled: energyEnabled === false ? false : true,
+          tileSize: (tileSize >= 1 && tileSize <= 5) ? tileSize : 3,
         }));
         return;
       }
@@ -252,11 +261,33 @@ class ShellyWallDisplayApp extends Homey.App {
       if (url.pathname === '/api/settings' && req.method === 'POST') {
         const body = await this._readBody(req);
         const { key, value } = JSON.parse(body);
-        const allowed = ['port', 'enabledDevices', 'alarmPin', 'energyEnabled'];
+        const allowed = ['port', 'enabledDevices', 'alarmPin', 'energyEnabled', 'tileSize'];
         if (!allowed.includes(key)) {
           res.writeHead(400);
           res.end(JSON.stringify({ error: 'Not allowed' }));
           return;
+        }
+        // #16 Server-seitige Validierung
+        if (key === 'port') {
+          const p = Number(value);
+          if (!Number.isInteger(p) || p < 1024 || p > 65535) {
+            res.writeHead(400);
+            res.end(JSON.stringify({ error: 'Invalid port (1024–65535)' }));
+            return;
+          }
+        }
+        if (key === 'alarmPin' && value !== '' && !/^\d{4}$/.test(String(value))) {
+          res.writeHead(400);
+          res.end(JSON.stringify({ error: 'PIN must be 4 digits' }));
+          return;
+        }
+        if (key === 'tileSize') {
+          const ts = Number(value);
+          if (!Number.isInteger(ts) || ts < 1 || ts > 5) {
+            res.writeHead(400);
+            res.end(JSON.stringify({ error: 'tileSize must be 1–5' }));
+            return;
+          }
         }
         this.homey.settings.set(key, value);
         res.writeHead(200);
@@ -266,7 +297,7 @@ class ShellyWallDisplayApp extends Homey.App {
 
       // GET /api/devices
       if (url.pathname === '/api/devices' && req.method === 'GET') {
-        const devices = await this.homeyApi.devices.getDevices();
+        const devices = await this._getDevicesCache(); // #17
         const enabledDevices = this.homey.settings.get('enabledDevices'); // string[] | null
         const result = Object.values(devices)
           .filter((d) => !Array.isArray(enabledDevices) || enabledDevices.includes(d.id))
@@ -287,7 +318,7 @@ class ShellyWallDisplayApp extends Homey.App {
 
       // GET /api/alldevices — ungefiltert, nur für die Settings-Seite
       if (url.pathname === '/api/alldevices' && req.method === 'GET') {
-        const devices = await this.homeyApi.devices.getDevices();
+        const devices = await this._getDevicesCache(); // #17
         const result = Object.values(devices).map((d) => ({
           id: d.id,
           name: d.name,
@@ -311,13 +342,21 @@ class ShellyWallDisplayApp extends Homey.App {
       // GET /api/icon-proxy?url=... — Homey-Icon mit Auth proxyen
       if (url.pathname === '/api/icon-proxy' && req.method === 'GET') {
         const iconUrl = url.searchParams.get('url');
-        if (!iconUrl || !iconUrl.startsWith('http')) {
+        // #10 SSRF-Schutz: nur http/https, keine Loopback/Link-Local-Adressen
+        let iconParsed;
+        try { iconParsed = new URL(iconUrl || ''); } catch (_) { res.writeHead(400); res.end(); return; }
+        if (iconParsed.protocol !== 'http:' && iconParsed.protocol !== 'https:') {
           res.writeHead(400); res.end(); return;
         }
-        const iconMod = iconUrl.startsWith('https') ? require('https') : require('http');
+        const h = iconParsed.hostname;
+        if (h === 'localhost' || h === '127.0.0.1' || h === '::1' ||
+            h.startsWith('169.254.') || h.startsWith('0.')) {
+          res.writeHead(403); res.end(); return;
+        }
+        const iconMod = iconParsed.protocol === 'https:' ? require('https') : require('http');
         const token = await this.homey.api.getOwnerApiToken().catch(() => null);
         const headers = token ? { Authorization: `Bearer ${token}` } : {};
-        iconMod.get(iconUrl, { headers }, (iconRes) => {
+        iconMod.get(iconParsed.href, { headers }, (iconRes) => {
           res.setHeader('Content-Type', iconRes.headers['content-type'] || 'image/svg+xml');
           res.setHeader('Cache-Control', 'public, max-age=86400');
           res.writeHead(iconRes.statusCode);
@@ -416,7 +455,7 @@ class ShellyWallDisplayApp extends Homey.App {
 
       // GET /api/energy
       if (url.pathname === '/api/energy' && req.method === 'GET') {
-        const devices = await this.homeyApi.devices.getDevices();
+        const devices = await this._getDevicesCache(); // #17
         const result = [];
 
         for (const d of Object.values(devices)) {
@@ -569,10 +608,20 @@ class ShellyWallDisplayApp extends Homey.App {
     });
   }
 
-  _readBody(req) {
+  // #14 Body-Limit (10 KB) verhindert Speicher-DoS durch riesige POST-Bodies
+  _readBody(req, maxBytes = 10240) {
     return new Promise((resolve, reject) => {
       let body = '';
-      req.on('data', (chunk) => { body += chunk; });
+      let size = 0;
+      req.on('data', (chunk) => {
+        size += chunk.length;
+        if (size > maxBytes) {
+          reject(new Error('Request body too large'));
+          req.destroy();
+          return;
+        }
+        body += chunk;
+      });
       req.on('end', () => resolve(body));
       req.on('error', reject);
     });
@@ -671,6 +720,28 @@ class ShellyWallDisplayApp extends Homey.App {
     if (iconUrl.startsWith('/') && this.homeyBaseUrl) return this.homeyBaseUrl + iconUrl;
     // Interner Homey-Icon-Name → wird vom eigenen Dashboard-Server ausgeliefert
     return `/device-icons/${iconUrl}.svg`;
+  }
+
+  // #8 Prüft ob ein Origin-Header von einem lokalen Netzwerk stammt
+  _isLocalOrigin(origin) {
+    try {
+      const host = new URL(origin).hostname;
+      return host === 'localhost' || host === '127.0.0.1' || host === '::1' ||
+        /^10\./.test(host) || /^192\.168\./.test(host) ||
+        /^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(host);
+    } catch (_) { return false; }
+  }
+
+  // #17 Device-Cache mit 3 s TTL – verhindert Doppel-Fetch bei /api/devices + /api/alldevices
+  async _getDevicesCache() {
+    const now = Date.now();
+    if (this._deviceCache && now - this._deviceCacheTs < 3000) {
+      return this._deviceCache;
+    }
+    const devices = await this.homeyApi.devices.getDevices();
+    this._deviceCache  = devices;
+    this._deviceCacheTs = now;
+    return devices;
   }
 
   // Gibt die LAN-IP der Homey zurück (bevorzugt 10.x / 192.168.x, überspringt Loopback + Docker)

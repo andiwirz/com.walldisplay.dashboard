@@ -56,6 +56,7 @@
     .btn-small:hover { background: #e0e0e0; }
 
     .url-box {
+      display: block;
       background: #f0f0f0;
       border-radius: 6px;
       padding: 10px 12px;
@@ -63,7 +64,10 @@
       font-family: monospace;
       word-break: break-all;
       color: #1a73e8;
+      text-decoration: none;
+      cursor: pointer;
     }
+    .url-box[href]:hover { text-decoration: underline; background: #e8e8e8; }
 
     .hint { font-size: 12px; color: #888; margin-top: 6px; }
 
@@ -189,17 +193,73 @@
     }
     .toggle-switch input:checked + .toggle-track { background: #F5A623; }
     .toggle-switch input:checked + .toggle-track::before { transform: translateX(18px); }
+
+    /* Tile-Size Slider */
+    .tile-slider-wrap { padding: 4px 0 2px; }
+
+    input[type="range"]#tile-size-input {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 4px;
+      border-radius: 2px;
+      background: linear-gradient(to right, #F5A623 var(--pct,50%), #ddd var(--pct,50%));
+      outline: none;
+      cursor: pointer;
+      margin-bottom: 6px;
+    }
+    input[type="range"]#tile-size-input::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 22px; height: 22px;
+      border-radius: 50%;
+      background: #F5A623;
+      cursor: pointer;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+      border: 2px solid #fff;
+    }
+    input[type="range"]#tile-size-input::-moz-range-thumb {
+      width: 20px; height: 20px;
+      border-radius: 50%;
+      background: #F5A623;
+      cursor: pointer;
+      border: 2px solid #fff;
+    }
+    .tile-size-steps {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      color: #aaa;
+      padding: 0 2px;
+    }
+    .tile-size-steps span.active { color: #F5A623; font-weight: 700; }
   </style>
 </head>
 <body>
   <h2 data-i18n="title">Shelly Wall Display</h2>
   <p class="subtitle" data-i18n="subtitle">Configure Homey as a dashboard server</p>
 
+  <!-- Setup -->
+  <div class="card">
+    <div class="card-title" data-i18n="setupTitle">Setup</div>
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-text" data-i18n="step1">The dashboard URL above is detected and displayed automatically.</div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-text" data-i18n="step2">On the Shelly Wall Display: <strong>Settings → Network → Home Assistant → Add URL</strong> and enter the URL above.</div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-text" data-i18n="step3">Adjust the device selection and port as needed, then save.</div>
+    </div>
+  </div>
+
   <!-- Dashboard URL -->
   <div class="card">
     <div class="card-title" data-i18n="urlTitle">Dashboard URL</div>
-    <div class="url-box" id="url-display" data-i18n-placeholder="loading">…</div>
-    <p class="hint" data-i18n="urlHint">Enter this URL on the Shelly Wall Display under <strong>Settings → Network → Home Assistant</strong>.</p>
+    <a class="url-box" id="url-display" target="_blank" rel="noopener noreferrer">…</a>
+    <p class="hint" data-i18n="urlHint"></p>
   </div>
 
   <!-- Port -->
@@ -210,6 +270,20 @@
     <p class="hint" data-i18n="portHint">The server restarts automatically after saving.</p>
     <button class="save-btn" onclick="savePort()" data-i18n="save">Save</button>
     <div class="status" id="port-status"></div>
+  </div>
+
+  <!-- Tile Size -->
+  <div class="card">
+    <div class="card-title" data-i18n="tileSizeTitle">Tile Size</div>
+    <div class="tile-slider-wrap">
+      <input type="range" id="tile-size-input" min="1" max="5" step="1" value="3"
+             oninput="updateTileLabel(this.value)" onchange="saveTileSize(this.value)">
+      <div class="tile-size-steps">
+        <span>XS</span><span>S</span><span>M</span><span>L</span><span>XL</span>
+      </div>
+    </div>
+    <p class="hint" data-i18n="tileSizeHint">Adjusts the size of device tiles on the dashboard. Default: M</p>
+    <div class="status" id="tile-size-status"></div>
   </div>
 
   <!-- Energy Dashboard -->
@@ -251,23 +325,6 @@
     <button class="save-devices-btn" id="save-devices-btn" onclick="saveDevices()" disabled data-i18n="saveSelection">Save selection</button>
   </div>
 
-  <!-- Setup -->
-  <div class="card">
-    <div class="card-title" data-i18n="setupTitle">Setup</div>
-    <div class="step">
-      <div class="step-num">1</div>
-      <div class="step-text" data-i18n="step1">The dashboard URL above is detected and displayed automatically.</div>
-    </div>
-    <div class="step">
-      <div class="step-num">2</div>
-      <div class="step-text" data-i18n="step2">On the Shelly Wall Display: <strong>Settings → Network → Home Assistant → Add URL</strong> and enter the URL above.</div>
-    </div>
-    <div class="step">
-      <div class="step-num">3</div>
-      <div class="step-text" data-i18n="step3">Adjust the device selection and port as needed, then save.</div>
-    </div>
-  </div>
-
   <script>
     // ── i18n ───────────────────────────────────────────────────────────
     var STRINGS = {
@@ -276,7 +333,7 @@
         subtitle:       'Configure Homey as a dashboard server',
         urlTitle:       'Dashboard URL',
         loading:        'Loading…',
-        urlHint:        'Enter this URL on the Shelly Wall Display under <strong>Settings → Network → Home Assistant</strong>.',
+        urlHint:        '💡 Also works in any browser — click the URL to open the dashboard directly.',
         portTitle:      'Port',
         portLabel:      'Port number (default: 7575)',
         portHint:       'The server restarts automatically after saving.',
@@ -290,9 +347,9 @@
         devicesLoading: 'Loading devices…',
         saveSelection:  'Save selection',
         setupTitle:     'Setup',
-        step1:          'The dashboard URL above is detected and displayed automatically.',
-        step2:          'On the Shelly Wall Display: <strong>Settings → Network → Home Assistant → Add URL</strong> and enter the URL above.',
-        step3:          'Adjust the device selection and port as needed, then save.',
+        step1:          'The dashboard URL below is detected and displayed automatically.',
+        step2:          'On the Shelly Wall Display: <strong>Settings → Network → Home Assistant → Add URL</strong> and enter the URL below.',
+        step3:          'Adjust the device selection, port, Energy Dashboard and Alarm PIN as needed, then save.',
         noDevices:      'No devices found — restart the app.',
         devicesError:   'Could not load devices: $1. Make sure the dashboard is running.',
         urlUnknown:     '(unknown — restart app or open dashboard)',
@@ -310,13 +367,16 @@
         energyLabel:    'Show Energy button in header',
         energyHint:     'When disabled, the ⚡ button is hidden on the dashboard.',
         energySaved:    'Setting saved',
+        tileSizeTitle:  'Tile Size',
+        tileSizeHint:   'Adjusts the size of device tiles on the dashboard. Default: M',
+        tileSizeSaved:  'Size saved',
       },
       de: {
         title:          'Shelly Wall Display',
         subtitle:       'Homey als Dashboard-Server konfigurieren',
         urlTitle:       'Dashboard-URL',
         loading:        'Lade…',
-        urlHint:        'Diese URL im Shelly Wall Display unter <strong>Einstellungen → Netzwerk → Home Assistant</strong> eintragen.',
+        urlHint:        '💡 Funktioniert auch in jedem Browser – URL anklicken, um das Dashboard direkt zu öffnen.',
         portTitle:      'Port',
         portLabel:      'Port-Nummer (Standard: 7575)',
         portHint:       'Nach Änderung startet der Server automatisch neu.',
@@ -330,9 +390,9 @@
         devicesLoading: 'Lade Geräte…',
         saveSelection:  'Auswahl speichern',
         setupTitle:     'Einrichtung',
-        step1:          'Die obige Dashboard-URL wird automatisch ermittelt und angezeigt.',
-        step2:          'Am Shelly Wall Display: <strong>Einstellungen → Netzwerk → Home Assistant → URL hinzufügen</strong> und die obige URL eintragen.',
-        step3:          'Geräteauswahl und Port nach Bedarf anpassen und speichern.',
+        step1:          'Die Dashboard-URL unten wird automatisch ermittelt und angezeigt.',
+        step2:          'Am Shelly Wall Display: <strong>Einstellungen → Netzwerk → Home Assistant → URL hinzufügen</strong> und die URL unten eintragen.',
+        step3:          'Geräteauswahl, Port, Energy-Dashboard und Alarm-PIN nach Bedarf anpassen und speichern.',
         noDevices:      'Keine Geräte gefunden – App neu starten.',
         devicesError:   'Geräte konnten nicht geladen werden: $1. Stelle sicher, dass das Dashboard läuft.',
         urlUnknown:     '(unbekannt — App neu starten oder Dashboard öffnen)',
@@ -350,6 +410,9 @@
         energyLabel:    '⚡-Schaltfläche in der Kopfzeile anzeigen',
         energyHint:     'Wenn deaktiviert, wird der ⚡-Button im Dashboard ausgeblendet.',
         energySaved:    'Einstellung gespeichert',
+        tileSizeTitle:  'Kachelgrösse',
+        tileSizeHint:   'Passt die Grösse der Gerätekacheln im Dashboard an. Standard: M',
+        tileSizeSaved:  'Grösse gespeichert',
       }
     };
 
@@ -445,19 +508,25 @@
       var storedUrl = await hGet('currentUrl');
       var enabledDevices = await hGet('enabledDevices');
       var energyEnabled = await hGet('energyEnabled');
+      var tileSize = await hGet('tileSize') || 3;
 
       document.getElementById('port-input').value = port;
       var savedPin = await hGet('alarmPin') || '';
       document.getElementById('pin-input').value = savedPin;
       // energyEnabled: null/undefined → default true; explicit false → unchecked
       document.getElementById('energy-toggle').checked = energyEnabled !== false;
+      updateTileLabel(tileSize);
 
       if (storedUrl) {
         _dashboardBase = storedUrl;
-        document.getElementById('url-display').textContent = storedUrl;
+        var urlEl = document.getElementById('url-display');
+        urlEl.textContent = storedUrl;
+        urlEl.href = storedUrl;
       } else {
         _dashboardBase = 'http://' + window.location.hostname + ':' + port;
-        document.getElementById('url-display').textContent = T.urlUnknown;
+        var urlEl = document.getElementById('url-display');
+        urlEl.textContent = T.urlUnknown;
+        urlEl.removeAttribute('href');
       }
 
       try {
@@ -610,6 +679,32 @@
         showStatus('pin-status', pin ? T.pinSaved : T.pinRemoved, true);
       } catch (e) {
         showStatus('pin-status', T.errorPrefix + e.message, false);
+      }
+    }
+
+    function updateTileLabel(val) {
+      val = parseInt(val, 10);
+      var slider = document.getElementById('tile-size-input');
+      if (slider) {
+        slider.value = val;
+        // Fill gradient: (val-1)/4 * 100%
+        slider.style.setProperty('--pct', Math.round((val - 1) / 4 * 100) + '%');
+      }
+      var steps = document.querySelectorAll('.tile-size-steps span');
+      steps.forEach(function(s, i) {
+        if (i === val - 1) s.classList.add('active');
+        else s.classList.remove('active');
+      });
+    }
+
+    async function saveTileSize(val) {
+      val = parseInt(val, 10);
+      if (val < 1 || val > 5 || isNaN(val)) return;
+      try {
+        await hSet('tileSize', val);
+        showStatus('tile-size-status', T.tileSizeSaved, true);
+      } catch (e) {
+        showStatus('tile-size-status', T.errorPrefix + e.message, false);
       }
     }
 

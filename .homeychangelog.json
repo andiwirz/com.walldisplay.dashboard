@@ -1,20 +1,29 @@
 {
   "1.0.0": {
-    "en": "initial release"
+    "en": "Initial release",
+    "de": "Erstveroeffentlichung"
   },
   "1.0.1": {
-    "en": "change icons"
+    "en": "Updated icons",
+    "de": "Icons aktualisiert"
   },
   "1.0.2": {
-    "en": "dark and light mode, Homey icons"
+    "en": "Dark and light mode, Homey device icons",
+    "de": "Dark und Light Mode, Homey Geraete-Icons"
   },
   "1.0.3": {
-    "en": "add PIN Code protection for homealarm device and fix cam"
+    "en": "PIN protection for alarm tiles, camera fix",
+    "de": "PIN-Schutz fuer Alarmkacheln, Kamera-Fix"
   },
   "1.0.4": {
-    "en": "fixed languages (EN/DE) / add Energy Dashboard"
+    "en": "Language fixes (EN/DE), Energy Dashboard added",
+    "de": "Sprachkorrekturen (EN/DE), Energie-Dashboard hinzugefuegt"
   },
   "1.0.5": {
-    "en": "optimize Energy Dashboard"
+    "en": "Energy Dashboard improvements",
+    "de": "Energie-Dashboard verbessert"
+  },
+  "1.0.6": {
+    "en": "publish version to production"
   }
 }

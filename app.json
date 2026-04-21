@@ -1,6 +1,6 @@
 {
   "id": "com.walldisplay.dashboard",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "compatibility": ">=5.0.0",
   "sdk": 3,
   "brandColor": "#E8001D",
@@ -9,8 +9,8 @@
     "de": "Shelly Wall Display Dashboard"
   },
   "description": {
-    "en": "Turn your touch screen into a smart home control panel",
-    "de": "Verwandle dein Touchscreen-Display in ein Smart-Home-Bedienpanel"
+    "en": "Your smart home, always in view",
+    "de": "Dein Smart Home, immer im Blick"
   },
   "tags": {
     "en": [

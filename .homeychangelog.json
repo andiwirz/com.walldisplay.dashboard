@@ -25,5 +25,8 @@
   },
   "1.0.6": {
     "en": "publish version to production"
+  },
+  "1.0.7": {
+    "en": "fix icons"
   }
 }

@@ -349,8 +349,9 @@ class ShellyWallDisplayApp extends Homey.App {
           res.writeHead(400); res.end(); return;
         }
         const h = iconParsed.hostname;
-        if (h === 'localhost' || h === '127.0.0.1' || h === '::1' ||
-            h.startsWith('169.254.') || h.startsWith('0.')) {
+        // Nur Cloud-Metadata-Service blockieren (SSRF-Schutz)
+        // localhost/127.0.0.1 erlauben: homeyBaseUrl zeigt intern auf 127.0.0.1
+        if (h.startsWith('169.254.')) {
           res.writeHead(403); res.end(); return;
         }
         const iconMod = iconParsed.protocol === 'https:' ? require('https') : require('http');

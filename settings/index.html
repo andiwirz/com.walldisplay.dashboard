@@ -351,7 +351,7 @@
         step2:          'On the Shelly Wall Display: <strong>Settings → Network → Home Assistant → Add URL</strong> and enter the URL below.',
         step3:          'Adjust the device selection, port, Energy Dashboard and Alarm PIN as needed, then save.',
         noDevices:      'No devices found — restart the app.',
-        devicesError:   'Could not load devices: $1. Make sure the dashboard is running.',
+        devicesError:   'Could not load devices ($1). Make sure the Homey app is running.',
         urlUnknown:     '(unknown — restart app or open dashboard)',
         invalidPort:    'Invalid port (1024–65535)',
         portSaved:      'Saved. Server is restarting…',
@@ -367,9 +367,10 @@
         energyLabel:    'Show Energy button in header',
         energyHint:     'When disabled, the ⚡ button is hidden on the dashboard.',
         energySaved:    'Setting saved',
-        tileSizeTitle:  'Tile Size',
-        tileSizeHint:   'Adjusts the size of device tiles on the dashboard. Default: M',
-        tileSizeSaved:  'Size saved',
+        tileSizeTitle:      'Tile Size',
+        tileSizeHint:       'Adjusts the size of device tiles on the dashboard. Default: M',
+        tileSizeSaved:      'Size saved',
+        devicesNetworkHint: '⚠️ Device list requires being on the same Wi-Fi network as your Homey.',
       },
       de: {
         title:          'Shelly Wall Display',
@@ -394,7 +395,7 @@
         step2:          'Am Shelly Wall Display: <strong>Einstellungen → Netzwerk → Home Assistant → URL hinzufügen</strong> und die URL unten eintragen.',
         step3:          'Geräteauswahl, Port, Energy-Dashboard und Alarm-PIN nach Bedarf anpassen und speichern.',
         noDevices:      'Keine Geräte gefunden – App neu starten.',
-        devicesError:   'Geräte konnten nicht geladen werden: $1. Stelle sicher, dass das Dashboard läuft.',
+        devicesError:   'Geräte konnten nicht geladen werden ($1). Stelle sicher, dass die Homey-App läuft.',
         urlUnknown:     '(unbekannt — App neu starten oder Dashboard öffnen)',
         invalidPort:    'Ungültiger Port (1024–65535)',
         portSaved:      'Gespeichert. Server wird neu gestartet…',
@@ -410,9 +411,10 @@
         energyLabel:    '⚡-Schaltfläche in der Kopfzeile anzeigen',
         energyHint:     'Wenn deaktiviert, wird der ⚡-Button im Dashboard ausgeblendet.',
         energySaved:    'Einstellung gespeichert',
-        tileSizeTitle:  'Kachelgrösse',
-        tileSizeHint:   'Passt die Grösse der Gerätekacheln im Dashboard an. Standard: M',
-        tileSizeSaved:  'Grösse gespeichert',
+        tileSizeTitle:      'Kachelgrösse',
+        tileSizeHint:       'Passt die Grösse der Gerätekacheln im Dashboard an. Standard: M',
+        tileSizeSaved:      'Grösse gespeichert',
+        devicesNetworkHint: '⚠️ Geräteliste erfordert dasselbe WLAN wie dein Homey.',
       }
     };
 
@@ -529,23 +531,38 @@
         urlEl.removeAttribute('href');
       }
 
-      try {
-        var devices = await dashboardGet('/api/alldevices');
-        var zones   = await dashboardGet('/api/zones');
-
-        if (devices && devices.length) {
-          _allDevices = devices;
-          _allZones = {};
-          zones.forEach(function(z) { _allZones[z.id] = z; });
-          renderDeviceList(enabledDevices);
-          document.getElementById('save-devices-btn').disabled = false;
-        } else {
-          document.getElementById('devices-loading').textContent = T.noDevices;
-        }
-      } catch (e) {
-        document.getElementById('devices-loading').textContent =
-          T.devicesError.replace('$1', e.message);
+      // Methode 1: Homey-Settings-Cache – funktioniert überall (auch ohne WLAN, auch auf 5G)
+      // Der Cache wird von app.js beim Start und bei Gerätezustand-Änderungen befüllt.
+      var cachedDevices = await hGet('cachedDevices');
+      var cachedZones   = await hGet('cachedZones');
+      if (cachedDevices && cachedDevices.length) {
+        _allDevices = cachedDevices;
+        _allZones   = {};
+        (cachedZones || []).forEach(function(z) { _allZones[z.id] = z; });
+        renderDeviceList(enabledDevices);
+        document.getElementById('save-devices-btn').disabled = false;
+        return;
       }
+
+      // Methode 2: Direkter HTTP-Aufruf ans Dashboard (Fallback, braucht gleiches WLAN)
+      Promise.all([dashboardGet('/api/alldevices'), dashboardGet('/api/zones')])
+        .then(function(results) {
+          var devs  = results[0];
+          var zones = results[1];
+          if (devs && devs.length) {
+            _allDevices = devs;
+            _allZones   = {};
+            zones.forEach(function(z) { _allZones[z.id] = z; });
+            renderDeviceList(enabledDevices);
+            document.getElementById('save-devices-btn').disabled = false;
+          } else {
+            document.getElementById('devices-loading').textContent = T.noDevices;
+          }
+        })
+        .catch(function(e) {
+          document.getElementById('devices-loading').textContent =
+            T.devicesError.replace('$1', e.message);
+        });
     }
 
     // ── Render ─────────────────────────────────────────────────────────

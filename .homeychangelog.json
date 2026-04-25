@@ -28,5 +28,9 @@
   },
   "1.0.7": {
     "en": "fix icons"
+  },
+  "1.0.8": {
+    "en": "Device list in settings now loads without local network (works on mobile data)",
+    "de": "Geraete-Liste in Einstellungen laedt jetzt ohne lokales WLAN (funktioniert auch mit Mobilfunk)"
   }
 }

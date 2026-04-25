@@ -392,7 +392,10 @@
   scheduleClock();
 
   // ── Daten laden ─────────────────────────────────────
+  var _loadRetryTimer = null;
+
   function loadData() {
+    if (_loadRetryTimer) { clearTimeout(_loadRetryTimer); _loadRetryTimer = null; }
     showLoading();
 
     xhr('GET', '/api/settings', null, function (err, cfg) {
@@ -408,10 +411,10 @@
     });
 
     xhr('GET', '/api/zones', null, function (err, zonesData) {
-      if (err) return showError();
+      if (err) { showError(); _loadRetryTimer = setTimeout(loadData, 5000); return; }
 
       xhr('GET', '/api/devices', null, function (err2, devicesData) {
-        if (err2) return showError();
+        if (err2) { showError(); _loadRetryTimer = setTimeout(loadData, 5000); return; }
 
         zones = {};
         zonesData.forEach(function (z) { zones[z.id] = z; });
@@ -1066,10 +1069,10 @@
   }
 
   // ── #11 XHR-Wrapper mit Timeout ─────────────────────
-  function xhr(method, url, body, callback) {
+  function xhr(method, url, body, callback, timeoutMs) {
     var req = new XMLHttpRequest();
     req.open(method, url, true);
-    req.timeout = 10000; // 10 s Timeout
+    req.timeout = timeoutMs || 10000; // Standard 10 s, überschreibbar
     if (body) req.setRequestHeader('Content-Type', 'application/json');
     req.onreadystatechange = function () {
       if (req.readyState !== 4) return;

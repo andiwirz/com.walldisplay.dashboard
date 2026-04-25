@@ -57,9 +57,42 @@ class ShellyWallDisplayApp extends Homey.App {
           },
         });
       });
+
+      // Geräte-/Zonen-Liste in Homey-Settings cachen, damit die Settings-Seite
+      // sie via Homey.get() laden kann – funktioniert auch ohne lokales Netzwerk.
+      this.homeyApi.devices.on('device.create', () => this._updateDeviceSettingsCache());
+      this.homeyApi.devices.on('device.delete', () => this._updateDeviceSettingsCache());
+
+      // Initiales Befüllen des Caches (ohne await – App soll nicht blockieren)
+      this._updateDeviceSettingsCache().catch((e) =>
+        this.error('Device-Settings-Cache Fehler:', e.message)
+      );
     } catch (err) {
       this.error('Homey API Fehler:', err.message);
     }
+  }
+
+  // Schreibt alle Geräte + Zonen als kompakte JSON-Arrays in Homey-Settings.
+  // Wird bei App-Start, device.create und device.delete aufgerufen.
+  async _updateDeviceSettingsCache() {
+    if (!this.homeyApi) return;
+    const devMap  = await this.homeyApi.devices.getDevices();
+    const zoneMap = await this.homeyApi.zones.getZones();
+    const devices = Object.values(devMap).map((d) => ({
+      id:    d.id,
+      name:  d.name,
+      zone:  d.zone,
+      class: d.virtualClass || d.class,
+      icon:  this._buildIconUrl(d.iconOverride || (d.iconObj ? d.iconObj.url : null)),
+    }));
+    const zones = Object.values(zoneMap).map((z) => ({
+      id:     z.id,
+      name:   z.name,
+      parent: z.parent || null,
+    }));
+    this.homey.settings.set('cachedDevices', devices);
+    this.homey.settings.set('cachedZones',   zones);
+    this.log(`Device-Settings-Cache aktualisiert: ${devices.length} Geräte, ${zones.length} Zonen`);
   }
 
   async _startServer(port) {
@@ -686,6 +719,7 @@ class ShellyWallDisplayApp extends Homey.App {
           name: d.name,
           zone: d.zone,
           class: d.class,
+          icon: this._buildIconUrl(d.iconOverride || (d.iconObj ? d.iconObj.url : null)),
         }));
       } catch (_) {}
       try {

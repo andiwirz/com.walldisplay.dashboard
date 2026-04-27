@@ -23,6 +23,8 @@
 
   var zones = {};
   var devices = {};
+  var _enabledFlows  = null;  // Array von Flow-IDs oder null
+  var _flowTileMatch = false; // true = Breite wie Gerätekacheln
   var eventSource = null;
   var pollTimer = null;
   var _alarmPin = '';
@@ -39,20 +41,44 @@
 
   // ── Energy Modal ───────────────────────────────────
   var _energyTimer = null;
+  var _energyTab   = 'live'; // 'live' | 'history'
 
   function openEnergyModal() {
+    _energyTab = 'live';
+    _setEnergyTab('live');
     document.getElementById('energy-modal').style.display = 'flex';
+    _lastEnergySummaryKey = null;
     _fetchEnergy();
-    _energyTimer = setInterval(_fetchEnergy, 5000);
+    if (!_energyTimer) _energyTimer = setInterval(_fetchEnergy, 5000);
   }
   window.openEnergyModal = openEnergyModal;
 
   function closeEnergyModal() {
     document.getElementById('energy-modal').style.display = 'none';
     if (_energyTimer) { clearInterval(_energyTimer); _energyTimer = null; }
-    _lastEnergySummaryKey = null; // #4 Cache zurücksetzen
+    _lastEnergySummaryKey = null;
+    _energyTab = 'live';
   }
   window.closeEnergyModal = closeEnergyModal;
+
+  function switchEnergyTab(tab) {
+    _energyTab = tab;
+    _setEnergyTab(tab);
+    if (tab === 'history') {
+      if (_energyTimer) { clearInterval(_energyTimer); _energyTimer = null; }
+      _fetchEnergyHistory();
+    } else {
+      _lastEnergySummaryKey = null;
+      _fetchEnergy();
+      if (!_energyTimer) _energyTimer = setInterval(_fetchEnergy, 5000);
+    }
+  }
+  window.switchEnergyTab = switchEnergyTab;
+
+  function _setEnergyTab(tab) {
+    document.getElementById('energy-tab-live').classList.toggle('active',    tab === 'live');
+    document.getElementById('energy-tab-history').classList.toggle('active', tab === 'history');
+  }
 
   // #3 Energy Error Handling
   function _fetchEnergy() {
@@ -74,6 +100,224 @@
   function _showEnergyError(msg) {
     var body = document.getElementById('energy-body');
     if (body) body.innerHTML = '<p style="color:var(--danger);font-size:13px;text-align:center;padding:32px 16px">⚠️ ' + msg + '</p>';
+  }
+
+  // ── History-Tab ────────────────────────────────────
+  function _fetchEnergyHistory() {
+    var body = document.getElementById('energy-body');
+    if (body) body.innerHTML = '<div class="energy-spinner"><div class="spinner"></div></div>';
+
+    xhr('GET', '/api/energy/history?days=7', null, function (err, data) {
+      if (_energyTab !== 'history') return; // Tab wurde währenddessen gewechselt
+      if (err) { _showEnergyError(err.message); return; }
+      _renderEnergyHistory(data);
+    }, 20000);
+  }
+
+  function _renderEnergyHistory(data) {
+    var body = document.getElementById('energy-body');
+    if (!body) return;
+    if (!data || !data.hasData) {
+      var dbg = data && data._debug;
+      var hasDevices = dbg && (dbg.gridDevices.length + dbg.solarDevices.length) > 0;
+      var dbgLines = '';
+      if (dbg && dbg.log && dbg.log.length) {
+        dbgLines = '<br><code style="font-size:9px;opacity:0.5;word-break:break-all">' +
+          dbg.log.map(function(e) {
+            var label = e.type + '/[' + (e.capList || []).slice(0,2).join(',') + ']';
+            return label + ': ' + (e.dbg || []).join(' ');
+          }).join('<br>') + '</code>';
+      }
+      var devInfo = '';
+      if (dbg) {
+        var tagged = (dbg.gridDevices || []).map(function(d) { return Object.assign({ _t: 'grid' }, d); })
+          .concat((dbg.solarDevices || []).map(function(d) { return Object.assign({ _t: 'solar' }, d); }));
+        devInfo = tagged.map(function(d) {
+          return d._t + ' caps:[' + (d.capList || []).join(',') + '] logs:[' + (d.logIds || []).join(',') + ']';
+        }).join('<br>');
+      }
+      var apiInfo = dbg ? ' url=' + (dbg.homeyBaseUrl || '?') + ' token=' + (dbg.hasToken ? 'yes' : 'NO') : '';
+      var msg = hasDevices
+        ? '📊 Energy devices found, but no historical data yet.<br>' +
+          '<span style="font-size:11px;opacity:0.65">Grid: ' + dbg.gridDevices.length +
+          '  Solar: ' + dbg.solarDevices.length + apiInfo + dbgLines +
+          (devInfo ? '<br>' + devInfo : '') + '</span>'
+        : '📊 No energy history available.<br>' +
+          '<span style="font-size:11px;opacity:0.65">Requires devices with cumulative kWh meters (grid/solar).</span>';
+      body.innerHTML =
+        '<p style="text-align:center;color:var(--text-muted);padding:40px 24px 12px;font-size:14px;line-height:1.6">' +
+        msg + '</p>';
+      return;
+    }
+    body.innerHTML = '<div class="history-chart-wrap">' + _buildHistoryChartSVG(data) + '</div>';
+  }
+
+  function _buildHistoryChartSVG(data) {
+    var labels  = data.labels;   // ['Mon','Tue',...]
+    var grid    = data.grid;     // [kWh,...] Netzbezug
+    var solar   = data.solar;    // [kWh,...] Solarproduktion
+    var exp     = data.export || new Array(labels.length).fill(0); // Einspeisung
+    var n       = labels.length;
+
+    // ── Abgeleitete Werte ──────────────────────────────────────────────────────
+    // Solar-Eigenverbrauch = Solarproduktion − Einspeisung (mind. 0)
+    var selfUse  = solar.map(function(s, i) { return Math.max(0, s - (exp[i] || 0)); });
+    // Heimverbrauch = Solar-Eigenverbrauch + Netzbezug  →  Höhe des Hauptbalkens
+    var homeCons = grid.map(function(g, i)  { return g + selfUse[i]; });
+
+    var W = 460, H = 400;
+    var padL = 44, padR = 20, padTop = 24, padBot = 54;
+    var chartW = W - padL - padR;
+    var chartH = H - padTop - padBot;
+
+    // Y-Achse: Maximum aus Heimverbrauch und Einspeisung
+    var maxVal = 0.1;
+    for (var i = 0; i < n; i++) {
+      if (homeCons[i] > maxVal) maxVal = homeCons[i];
+      if ((exp[i] || 0) > maxVal) maxVal = exp[i];
+    }
+    var niceMax = maxVal <= 5  ? Math.ceil(maxVal) :
+                  maxVal <= 20 ? Math.ceil(maxVal / 5) * 5 :
+                  Math.ceil(maxVal / 10) * 10;
+
+    // Drei Balken pro Tag:  Gelb (Solar gesamt) | Grün+Orange (Heimverbrauch) | Blau (Einspeisung)
+    var step     = chartW / n;
+    var fullW    = Math.max(34, Math.floor(step * 0.84));
+    var barGap   = 2;
+    var yellowW  = Math.floor(fullW * 0.20);
+    var sideW    = Math.floor(fullW * 0.24);
+    var mainW    = fullW - yellowW - sideW - 2 * barGap;
+    var mainOff  = yellowW + barGap;   // x-Offset Hauptbalken
+    var sideOff  = mainOff + mainW + barGap; // x-Offset Nebenbalken
+
+    function bx(i)    { return Math.round(padL + i * step + (step - fullW) / 2); }
+    function barH(v)  { return Math.max(0, Math.round((v / niceMax) * chartH)); }
+
+    var svg = '<svg class="history-chart-svg" viewBox="0 0 ' + W + ' ' + H + '" ' +
+      'xmlns="http://www.w3.org/2000/svg" ' +
+      'style="font-family:system-ui,-apple-system,sans-serif;overflow:visible">';
+
+    // ── Horizontale Hilfslinien ──
+    var yTicks = [0.25, 0.5, 0.75, 1.0];
+    for (var t = 0; t < yTicks.length; t++) {
+      var yVal = niceMax * yTicks[t];
+      var yPx  = padTop + chartH - barH(yVal);
+      var lbl  = yVal >= 10 ? Math.round(yVal) : (Number.isInteger(yVal) ? yVal : yVal.toFixed(1));
+      svg += '<line x1="' + padL + '" y1="' + yPx + '" x2="' + (W - padR) + '" y2="' + yPx +
+        '" stroke="#8E8E93" stroke-width="0.5" stroke-dasharray="3 3" opacity="0.4"/>';
+      svg += '<text x="' + (padL - 6) + '" y="' + (yPx + 4) + '" text-anchor="end" ' +
+        'font-size="10" fill="#8E8E93">' + lbl + '</text>';
+    }
+    svg += '<text x="' + (padL - 6) + '" y="' + (padTop - 8) + '" text-anchor="end" ' +
+      'font-size="9" fill="#8E8E93" opacity="0.8">kWh</text>';
+
+    // ── Balken ──
+    var today = new Date().toLocaleDateString('en-US', { weekday: 'short' });
+    for (var i = 0; i < n; i++) {
+      var x       = bx(i);
+      var mx      = x + mainOff;     // x-Position Hauptbalken
+      var sx      = x + sideOff;     // x-Position Nebenbalken
+      var baseY   = padTop + chartH;
+      var yH      = barH(solar[i]   || 0);  // gelb   – Solar gesamt
+      var suH     = barH(selfUse[i] || 0);  // grün   – Solar-Eigenverbrauch
+      var gH      = barH(grid[i]    || 0);  // orange – Netzbezug
+      var eH      = barH(exp[i]     || 0);  // teal   – Einspeisung (Nebenbalken)
+      var mainH   = suH + gH;               // Gesamthöhe Hauptbalken = Heimverbrauch
+      var isToday = (labels[i] === today && i === n - 1);
+      var alpha   = isToday ? '1' : '0.78';
+
+      // Hintergrund – Hauptbalken
+      svg += '<rect x="' + mx + '" y="' + padTop + '" width="' + mainW + '" height="' + chartH +
+        '" rx="3" fill="#8E8E93" opacity="0.08"/>';
+      if (eH > 0) {
+        svg += '<rect x="' + sx + '" y="' + padTop + '" width="' + sideW + '" height="' + chartH +
+          '" rx="2" fill="#8E8E93" opacity="0.06"/>';
+      }
+
+      // Gelber Balken – Solar gesamt
+      if (yH > 0) {
+        svg += '<rect x="' + x + '" y="' + (baseY - yH) + '" width="' + yellowW + '" height="' + yH +
+          '" rx="2" fill="#FFD60A" opacity="' + alpha + '"/>';
+        var solarVal = solar[i] || 0;
+        if (solarVal >= 0.05) {
+          var solarLbl = solarVal >= 10 ? Math.round(solarVal).toString() : solarVal.toFixed(1);
+          svg += '<text x="' + Math.round(x + yellowW / 2) + '" y="' + (baseY - yH - 4) +
+            '" text-anchor="middle" font-size="9.5" font-weight="600" fill="#FFD60A" opacity="0.9">' + solarLbl + '</text>';
+        }
+      }
+
+      // Grüner Balken – Solar-Eigenverbrauch (unten)
+      if (suH > 0) {
+        svg += '<rect x="' + mx + '" y="' + (baseY - suH) + '" width="' + mainW + '" height="' + suH +
+          '" rx="3" fill="#34C759" opacity="' + alpha + '"/>';
+      }
+
+      // Oranger Balken – Netzbezug (auf Solar gestapelt)
+      if (gH > 0) {
+        var gy = baseY - suH - gH;
+        svg += '<rect x="' + mx + '" y="' + gy + '" width="' + mainW + '" height="' + gH +
+          '" rx="3" fill="#FF9500" opacity="' + alpha + '"/>';
+        if (suH > 0 && gH > 3) { // untere Ecken eckig wenn Solar darunter
+          svg += '<rect x="' + mx + '" y="' + (gy + gH - 4) + '" width="' + mainW + '" height="4"' +
+            ' fill="#FF9500" opacity="' + alpha + '"/>';
+        }
+      }
+
+      // Teal Nebenbalken – Einspeisung
+      if (eH > 0) {
+        svg += '<rect x="' + sx + '" y="' + (baseY - eH) + '" width="' + sideW + '" height="' + eH +
+          '" rx="2" fill="#5AC8FA" opacity="' + alpha + '"/>';
+        // Wert über dem Nebenbalken
+        var expVal = exp[i] || 0;
+        if (expVal >= 0.05) {
+          var expLbl = expVal >= 10 ? Math.round(expVal).toString() : expVal.toFixed(1);
+          svg += '<text x="' + Math.round(sx + sideW / 2) + '" y="' + (baseY - eH - 4) +
+            '" text-anchor="middle" font-size="9.5" font-weight="600" fill="#5AC8FA" opacity="0.9">' + expLbl + '</text>';
+        }
+      }
+
+      // Heute-Highlight (umschließt alle drei Balken)
+      if (isToday) {
+        svg += '<rect x="' + (x - 1) + '" y="' + (padTop - 1) + '" width="' + (fullW + 2) + '" height="' + (chartH + 2) +
+          '" rx="3" fill="none" stroke="var(--accent)" stroke-width="1.2" opacity="0.5"/>';
+      }
+
+      // Heimverbrauch-Wert über Hauptbalken
+      var cons = homeCons[i] || 0;
+      if (cons >= 0.05 && mainH > 0) {
+        var valLbl = cons >= 10 ? Math.round(cons).toString() : cons.toFixed(1);
+        svg += '<text x="' + Math.round(mx + mainW / 2) + '" y="' + (baseY - mainH - 5) +
+          '" text-anchor="middle" font-size="9.5" font-weight="600" fill="#8E8E93">' + valLbl + '</text>';
+      }
+
+      // Tag-Label
+      svg += '<text x="' + Math.round(mx + mainW / 2) + '" y="' + (padTop + chartH + 17) +
+        '" text-anchor="middle" font-size="12" fill="' + (isToday ? 'var(--accent)' : '#8E8E93') +
+        '" font-weight="' + (isToday ? '700' : '400') + '">' + labels[i] + '</text>';
+    }
+
+    // ── Legende ──
+    var legY     = H - 6;
+    var hasSolarData = solar.some(function(v) { return v > 0; });
+    var hasSelf  = selfUse.some(function(v) { return v > 0; });
+    var hasGrid  = grid.some(function(v)    { return v > 0; });
+    var hasExp   = exp.some(function(v)     { return v > 0; });
+    var legItems = [];
+    if (hasSolarData) legItems.push({ color: '#FFD60A', label: 'Solar total' });
+    if (hasSelf) legItems.push({ color: '#34C759', label: 'Solar self-use' });
+    if (hasGrid) legItems.push({ color: '#FF9500', label: 'Grid import' });
+    if (hasExp)  legItems.push({ color: '#5AC8FA', label: 'Grid export' });
+    var totalLegW = legItems.reduce(function(s, it) { return s + 11 + 5 + it.label.length * 6.6 + 10; }, 0);
+    var legX = Math.max(padL, Math.round((W - totalLegW) / 2));
+    for (var li = 0; li < legItems.length; li++) {
+      var it = legItems[li];
+      svg += '<rect x="' + legX + '" y="' + (legY - 8) + '" width="11" height="8" rx="2" fill="' + it.color + '" opacity="0.85"/>';
+      svg += '<text x="' + (legX + 15) + '" y="' + legY + '" font-size="11" fill="#8E8E93">' + it.label + '</text>';
+      legX += 11 + 5 + it.label.length * 6.6 + 10;
+    }
+
+    svg += '</svg>';
+    return svg;
   }
 
   function _fmtW(w) {
@@ -248,7 +492,6 @@
 
     var now = new Date();
     var ts  = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0') + ':' + now.getSeconds().toString().padStart(2,'0');
-    document.getElementById('energy-update-time').textContent = ts;
 
     var body   = document.getElementById('energy-body');
     var svgKey = JSON.stringify(s) + (hasBat ? '1' : '0');
@@ -407,6 +650,12 @@
         var tilePx = [90, 110, 130, 165, 210];
         var ts = (cfg.tileSize >= 1 && cfg.tileSize <= 5) ? cfg.tileSize : 3;
         document.documentElement.style.setProperty('--tile-min', tilePx[ts - 1] + 'px');
+        // Flow-IDs merken
+        // false = gespeichert mit "kein Flow", null = noch nie gespeichert → beides = keine Flows anzeigen
+        _enabledFlows = Array.isArray(cfg.enabledFlows) && cfg.enabledFlows.length
+          ? cfg.enabledFlows : null;
+        // Flow-Tile-Breite: 'match' = wie Gerätekacheln, sonst dynamisch
+        _flowTileMatch = cfg.flowTileWidth === 'match';
       }
     });
 
@@ -549,11 +798,94 @@
     card.addEventListener('mousedown', onDown);
   }
 
+  // ── Flow-Sektion ─────────────────────────────────────
+  var _flowsData = {}; // id → { id, name, type }
+
+  function renderFlowSection(container) {
+    var section = createElement('div', 'flow-section');
+
+
+    var grid = createElement('div', 'flow-grid' + (_flowTileMatch ? ' flow-grid-fixed' : ''));
+    section.appendChild(grid);
+    container.appendChild(section);
+
+    // Flows vom Server laden (Namen + Typen)
+    xhr('GET', '/api/flows', null, function (err, flows) {
+      if (err || !flows) return;
+      // Nur ausgewählte Flows zeigen
+      var enabledSet = new Set(_enabledFlows || []);
+      var visible = flows.filter(function (f) { return enabledSet.has(f.id); });
+      if (!visible.length) {
+        section.style.display = 'none';
+        return;
+      }
+      visible.forEach(function (f) {
+        _flowsData[f.id] = f;
+        grid.appendChild(buildFlowTile(f));
+      });
+    });
+  }
+
+  function buildFlowTile(f) {
+    var tile = createElement('button', 'flow-tile');
+    tile.id = 'flow-tile-' + f.id;
+    tile.setAttribute('aria-label', f.name);
+
+    var icon = createElement('span', 'flow-tile-icon');
+    icon.textContent = '▶';
+    tile.appendChild(icon);
+
+    var name = createElement('span', 'flow-tile-name');
+    name.textContent = f.name;
+    tile.appendChild(name);
+
+    tile.addEventListener('click', function () {
+      triggerFlow(f.id, tile);
+    });
+
+    return tile;
+  }
+
+  function triggerFlow(flowId, tileEl) {
+    if (!tileEl || tileEl.classList.contains('flow-running')) return;
+    tileEl.classList.add('flow-running');
+    var iconEl = tileEl.querySelector('.flow-tile-icon');
+    if (iconEl) iconEl.textContent = '⟳';
+
+    xhr('POST', '/api/flow/' + flowId + '/trigger', '{}', function (err, data) {
+      tileEl.classList.remove('flow-running');
+      if (err) {
+        tileEl.classList.add('flow-error');
+        if (iconEl) iconEl.textContent = '✕';
+        // Fehlermeldung vom Server als title anzeigen (sichtbar bei langem Tipp)
+        var msg = (data && data.error) ? data.error : err.message;
+        tileEl.title = msg;
+        setTimeout(function () {
+          tileEl.classList.remove('flow-error');
+          tileEl.title = '';
+          if (iconEl) iconEl.textContent = '▶';
+        }, 3000);
+      } else {
+        tileEl.classList.add('flow-success');
+        if (iconEl) iconEl.textContent = '✓';
+        setTimeout(function () {
+          tileEl.classList.remove('flow-success');
+          if (iconEl) iconEl.textContent = '▶';
+        }, 1800);
+      }
+    });
+  }
+
   // ── Rendern ─────────────────────────────────────────
   function render() {
     updateViewToggle();
     var container = document.getElementById('zones-container');
     container.innerHTML = '';
+
+    // Flows-Sektion zuerst (falls Flows konfiguriert)
+    if (_enabledFlows && _enabledFlows.length) {
+      renderFlowSection(container);
+    }
 
     if (viewMode === 'all') {
       renderAllFlat(container);
@@ -1076,12 +1408,12 @@
     if (body) req.setRequestHeader('Content-Type', 'application/json');
     req.onreadystatechange = function () {
       if (req.readyState !== 4) return;
+      var data = null;
+      try { data = JSON.parse(req.responseText); } catch (_) {}
       if (req.status >= 200 && req.status < 300) {
-        var data = null;
-        try { data = JSON.parse(req.responseText); } catch (_) {}
         callback(null, data);
       } else {
-        callback(new Error('HTTP ' + req.status));
+        callback(new Error('HTTP ' + req.status), data);
       }
     };
     req.onerror   = function () { callback(new Error('Netzwerkfehler')); };

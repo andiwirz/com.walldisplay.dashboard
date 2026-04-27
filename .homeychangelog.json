@@ -32,5 +32,17 @@
   "1.0.8": {
     "en": "Device list in settings now loads without local network (works on mobile data)",
     "de": "Geraete-Liste in Einstellungen laedt jetzt ohne lokales WLAN (funktioniert auch mit Mobilfunk)"
+  },
+  "1.0.9": {
+    "en": "Energy history chart: 7-day bar chart with solar and grid import (Live/History tabs)",
+    "de": "Energie-Historiendiagramm: 7-Tage-Balkendiagramm mit Solar und Netzbezug (Live/Verlauf-Tabs)"
+  },
+  "1.1.0": {
+    "en": "Flow buttons on dashboard: select flows in settings to trigger them with one tap",
+    "de": "Flow-Schaltflächen im Dashboard: Flows in Einstellungen auswählen und per Tap auslösen"
+  },
+  "1.2.0": {
+    "en": "Settings redesigned with tabs (General, Design, Devices, Flows); flow tile width option; Personal Access Token field for flow triggering; bug fixes",
+    "de": "Einstellungen mit Tabs neu gestaltet (Allgemein, Design, Geräte, Flows); Flow-Kachelbreite einstellbar; Personal Access Token für Flow-Auslösung; Fehlerbehebungen"
   }
 }

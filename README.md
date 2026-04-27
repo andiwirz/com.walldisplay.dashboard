@@ -18,6 +18,12 @@ The app runs a local HTTP/WebSocket server on your Homey that emulates the Home 
 - **External sensors** — reed contacts and similar sensors (e.g. garage door) shown as Open / Closed; tile turns red when open
 - **Sensor readings** — temperature, humidity, CO₂, and power consumption shown inline on each tile
 
+### Flow Buttons
+- **One-tap flow triggers** — select any manually-triggerable Homey flow in the settings to show it as a button on the dashboard
+- **Visual feedback** — spinner while triggering, green ✓ on success, red ✕ on error
+- **Basic and Advanced Flows** — supports both classic flows and Advanced Flows (Homey ≥ 10)
+- **Adjustable tile width** — flow tiles can use their natural width (dynamic) or match the width of device tiles exactly
+
 ### Navigation & Layout
 - **Room grouping** — devices organised by Homey zones, with a toggle to view all devices in a flat list
 - **Drag & drop reordering** — long-press a tile to drag it to a new position; order is saved across reloads
@@ -27,6 +33,7 @@ The app runs a local HTTP/WebSocket server on your Homey that emulates the Home 
 
 ### Energy Dashboard
 - **Flow diagram** — animated SVG showing real-time energy flows between solar panels, the power grid, your home, and battery storage
+- **Solar total bar** — 7-day history chart with a yellow bar for total solar production alongside grid import and home consumption
 - **Animated flow lines** — travelling dots indicate direction and magnitude of each energy flow
 - **Device cards** — individual power readings for each solar, grid, battery, and EV-charger device
 - **Exclude support** — devices marked as "Exclude from Energy" in Homey are automatically hidden
@@ -100,7 +107,9 @@ Homey App (com.walldisplay.dashboard)
 
 ## Settings
 
-Open the app settings in the Homey app to configure:
+The settings page is organised into three tabs:
+
+### General
 
 | Setting | Description | Default |
 |---|---|---|
@@ -109,7 +118,20 @@ Open the app settings in the Homey app to configure:
 | **Tile Size** | Size of device tiles on the dashboard: XS / S / M / L / XL | M (130 px) |
 | **Energy Dashboard** | Show or hide the ⚡ Energy button in the dashboard header | Enabled |
 | **Alarm PIN** | Optional 4-digit PIN to arm/disarm the alarm from the dashboard. Leave empty to disable. | — |
-| **Device Selection** | Choose which devices appear on the dashboard, filtered by room. | All devices |
+| **Homey API Token** | Personal Access Token required to trigger flows. Create at **my.homey.app → Account → Developer → API Keys**. | — |
+
+### Devices
+
+Choose which devices appear on the dashboard. Devices are grouped by room. Use the All / None buttons per room for quick selection.
+
+### Flows
+
+| Setting | Description |
+|---|---|
+| **Flow selection** | Select which manually-triggerable flows appear as buttons on the dashboard. Flows are grouped by folder. |
+| **Flow tile width** | **Dynamic** — tiles size to their content. **Same as devices** — tiles match the device tile width exactly. |
+
+> **Note on flow triggering:** Due to a Homey platform restriction, apps cannot trigger flows using their internal token. A **Personal Access Token** (set in the General tab) is required. Create one at [my.homey.app](https://my.homey.app) under Account → Developer → API Keys with full permissions.
 
 ---
 
@@ -121,6 +143,7 @@ Open the app settings in the Homey app to configure:
 | Tap dimmer / blind tile | Adjust slider |
 | Long-press tile (400 ms) | Start drag & drop to reorder |
 | Tap camera / doorbell tile | Open live snapshot |
+| Tap flow button | Trigger the flow immediately |
 | ⊞ All / ⊟ Rooms button | Switch between flat list and room-grouped view |
 | ☀️ / 🌙 button | Toggle dark / light mode |
 | ⚡ button | Open Energy Dashboard |
@@ -138,6 +161,8 @@ Open the app settings in the Homey app to configure:
 | `/api/alldevices` | GET | All devices (used by settings, cached 3 s) |
 | `/api/zones` | GET | Homey zones / rooms |
 | `/api/energy` | GET | Energy device data and summary |
+| `/api/flows` | GET | All manually-triggerable flows |
+| `/api/flow/:id/trigger` | POST | Trigger a flow by ID |
 | `/api/settings` | GET / POST | Read or update app settings |
 | `/api/device/:id/capability/:cap` | POST | Set a device capability value |
 | `/api/camera/:id` | GET | Latest camera snapshot (proxied from Homey) |
@@ -156,6 +181,7 @@ Open the app settings in the Homey app to configure:
 - **Homey** with Homey Web API (`homey:manager:api` permission)
 - **Homey SDK** v3, compatibility `>=5.0.0`
 - A **Shelly Wall Display** or any device / browser that can connect to a local HTTP server
+- A **Personal Access Token** (for flow triggering only)
 
 ---
 
@@ -171,11 +197,11 @@ com.walldisplay.dashboard/
 │   └── images/             # App store images (small / large / xlarge)
 ├── dashboard/
 │   ├── index.html          # Dashboard HTML shell
-│   ├── client.js           # Frontend logic (rendering, SSE, controls, energy, drag & drop, PIN)
-│   ├── style.css           # Touch-optimised styles (dark/light mode, tile sizes)
+│   ├── client.js           # Frontend logic (rendering, SSE, controls, energy, flows, drag & drop, PIN)
+│   ├── style.css           # Touch-optimised styles (dark/light mode, tile sizes, flow tiles)
 │   └── device-icons/       # SVG device icons served locally
 └── settings/
-    └── index.html          # Settings UI (URL, port, tile size, energy, PIN, device filter)
+    └── index.html          # Settings UI — tabs: General, Devices, Flows
 ```
 
 ---

@@ -41,6 +41,10 @@
     "en": "Flow buttons on dashboard: select flows in settings to trigger them with one tap",
     "de": "Flow-Schaltflächen im Dashboard: Flows in Einstellungen auswählen und per Tap auslösen"
   },
+  "1.2.1": {
+    "en": "Support for one-way blinds (windowcoverings_state): tap to open/close, stop button, live status",
+    "de": "Unterstützung für Einwegjalousien (windowcoverings_state): Tippen zum Öffnen/Schließen, Stopp-Schaltfläche, Live-Status"
+  },
   "1.2.0": {
     "en": "Settings redesigned with tabs (General, Design, Devices, Flows); flow tile width option; Personal Access Token field for flow triggering; bug fixes",
     "de": "Einstellungen mit Tabs neu gestaltet (Allgemein, Design, Geräte, Flows); Flow-Kachelbreite einstellbar; Personal Access Token für Flow-Auslösung; Fehlerbehebungen"

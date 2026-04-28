@@ -17,6 +17,7 @@
     MEASURE_CO2:     'measure_co2',
     MEASURE_BATTERY: 'measure_battery',
     WC_SET:          'windowcoverings_set',
+    WC_STATE:        'windowcoverings_state',
     HOMEALARM_STATE: 'homealarm_state',
     HOMEALARM:       'homealarm',
   };
@@ -956,14 +957,17 @@
 
     var caps     = d.capabilitiesObj || {};
     var capIds   = d.capabilities || [];
-    var hasOnOff = capIds.indexOf(CAP.ONOFF) !== -1;
-    var hasAlarm = d.class === 'homealarm' || capIds.indexOf(CAP.HOMEALARM) !== -1;
-    var hasDim   = capIds.indexOf(CAP.DIM) !== -1;
-    var isOn     = hasOnOff && caps[CAP.ONOFF] && caps[CAP.ONOFF].value === true;
-    var alarmCap = hasAlarm ? getAlarmCapability(d) : null;
-    var isArmed  = alarmCap ? alarmIsArmed(alarmCap.value) : false;
+    var hasOnOff   = capIds.indexOf(CAP.ONOFF) !== -1;
+    var hasAlarm   = d.class === 'homealarm' || capIds.indexOf(CAP.HOMEALARM) !== -1;
+    var hasDim     = capIds.indexOf(CAP.DIM) !== -1;
+    var hasWcState = capIds.indexOf(CAP.WC_STATE) !== -1 && capIds.indexOf(CAP.WC_SET) === -1;
+    var isOn       = hasOnOff && caps[CAP.ONOFF] && caps[CAP.ONOFF].value === true;
+    var alarmCap   = hasAlarm ? getAlarmCapability(d) : null;
+    var isArmed    = alarmCap ? alarmIsArmed(alarmCap.value) : false;
+    var wcState    = hasWcState && caps[CAP.WC_STATE] ? caps[CAP.WC_STATE].value : null;
 
     if (isOn || isArmed) card.classList.add('on');
+    if (wcState === 'up') card.classList.add('on');
     if (caps[CAP.INPUT_EXT_1] && caps[CAP.INPUT_EXT_1].value === true) card.classList.add('open');
 
     if (d.class === 'camera' || d.class === 'doorbell') {
@@ -996,6 +1000,21 @@
       }(d.id));
     }
 
+    // windowcoverings_state (z.B. Somfy RTS — kein onoff, kein WC_SET)
+    if (hasWcState) {
+      card.classList.add('clickable');
+      (function (deviceId) {
+        card.addEventListener('click', function (e) {
+          if (e.target.classList.contains('wc-state-btn')) return;
+          var dv = devices[deviceId];
+          if (!dv) return;
+          var cur = (dv.capabilitiesObj[CAP.WC_STATE] || {}).value;
+          // Tap: öffnen wenn zu/gestoppt, schliessen wenn offen
+          setCapability(deviceId, CAP.WC_STATE, cur === 'up' ? 'down' : 'up');
+        });
+      }(d.id));
+    }
+
     var header = createElement('div', 'device-header');
     header.appendChild(buildIconElement(d));
 
@@ -1008,6 +1027,21 @@
         setCapability(d.id, CAP.ONOFF, newVal);
       });
       header.appendChild(toggle);
+    }
+
+    if (hasWcState) {
+      // Stopp-Button (◼) — sendet 'idle'
+      var stopBtn = createElement('button', 'wc-state-btn');
+      stopBtn.textContent = '◼';
+      stopBtn.title = 'Stop';
+      stopBtn.setAttribute('aria-label', 'Stop');
+      (function (deviceId) {
+        stopBtn.addEventListener('click', function (e) {
+          e.stopPropagation();
+          setCapability(deviceId, CAP.WC_STATE, 'idle');
+        });
+      }(d.id));
+      header.appendChild(stopBtn);
     }
 
     if (hasAlarm) {
@@ -1044,10 +1078,11 @@
 
   // ── #15 Statustext für die Karte ────────────────────
   function buildStatusText(d) {
-    var caps     = d.capabilitiesObj || {};
-    var capIds   = d.capabilities || [];
-    var hasOnOff = capIds.indexOf(CAP.ONOFF) !== -1;
-    var hasAlarm = d.class === 'homealarm' || capIds.indexOf(CAP.HOMEALARM) !== -1;
+    var caps       = d.capabilitiesObj || {};
+    var capIds     = d.capabilities || [];
+    var hasOnOff   = capIds.indexOf(CAP.ONOFF) !== -1;
+    var hasAlarm   = d.class === 'homealarm' || capIds.indexOf(CAP.HOMEALARM) !== -1;
+    var hasWcState = capIds.indexOf(CAP.WC_STATE) !== -1 && capIds.indexOf(CAP.WC_SET) === -1;
 
     if (hasAlarm) {
       var ac = getAlarmCapability(d);
@@ -1055,6 +1090,13 @@
         if (ac.isBoolean) return alarmIsArmed(ac.value) ? 'Armed' : 'Disarmed';
         return ac.value === 'armed' ? 'Armed' : ac.value === 'partially_armed' ? 'Partly armed' : 'Disarmed';
       }
+    }
+    if (hasWcState) {
+      var wcVal = caps[CAP.WC_STATE] ? caps[CAP.WC_STATE].value : null;
+      if (wcVal === 'up')   return 'Open';
+      if (wcVal === 'down') return 'Closed';
+      if (wcVal === 'idle') return 'Stopped';
+      return '';
     }
     if (hasOnOff) {
       var isOn = caps[CAP.ONOFF] && caps[CAP.ONOFF].value === true;
@@ -1226,15 +1268,17 @@
     var card = document.getElementById('card-' + deviceId);
     if (!card) return;
 
-    var caps     = d.capabilitiesObj || {};
-    var capIds   = d.capabilities || [];
-    var hasOnOff = capIds.indexOf(CAP.ONOFF) !== -1;
-    var hasAlarm = d.class === 'homealarm' || capIds.indexOf(CAP.HOMEALARM) !== -1;
-    var isOn     = hasOnOff && caps[CAP.ONOFF] && caps[CAP.ONOFF].value === true;
-    var alarmCapU = hasAlarm ? getAlarmCapability(d) : null;
-    var isArmed  = alarmCapU ? alarmIsArmed(alarmCapU.value) : false;
+    var caps       = d.capabilitiesObj || {};
+    var capIds     = d.capabilities || [];
+    var hasOnOff   = capIds.indexOf(CAP.ONOFF) !== -1;
+    var hasAlarm   = d.class === 'homealarm' || capIds.indexOf(CAP.HOMEALARM) !== -1;
+    var hasWcState = capIds.indexOf(CAP.WC_STATE) !== -1 && capIds.indexOf(CAP.WC_SET) === -1;
+    var isOn       = hasOnOff && caps[CAP.ONOFF] && caps[CAP.ONOFF].value === true;
+    var alarmCapU  = hasAlarm ? getAlarmCapability(d) : null;
+    var isArmed    = alarmCapU ? alarmIsArmed(alarmCapU.value) : false;
+    var wcStateVal = hasWcState && caps[CAP.WC_STATE] ? caps[CAP.WC_STATE].value : null;
 
-    if (isOn || isArmed) card.classList.add('on');
+    if (isOn || isArmed || wcStateVal === 'up') card.classList.add('on');
     else card.classList.remove('on');
 
     if (caps[CAP.INPUT_EXT_1] && caps[CAP.INPUT_EXT_1].value === true) card.classList.add('open');

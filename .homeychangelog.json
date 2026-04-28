@@ -41,6 +41,14 @@
     "en": "Flow buttons on dashboard: select flows in settings to trigger them with one tap",
     "de": "Flow-Schaltflächen im Dashboard: Flows in Einstellungen auswählen und per Tap auslösen"
   },
+  "1.2.3": {
+    "en": "Font size slider in Design settings; slider styling fix",
+    "de": "Schriftgrössen-Slider in den Design-Einstellungen; Slider-Darstellung korrigiert"
+  },
+  "1.2.2": {
+    "en": "Customizable dashboard title (Design tab); stop button for one-way blinds enlarged",
+    "de": "Anpassbarer Dashboard-Titel (Design-Tab); Stopp-Button für Einwegjalousien vergrössert"
+  },
   "1.2.1": {
     "en": "Support for one-way blinds (windowcoverings_state): tap to open/close, stop button, live status",
     "de": "Unterstützung für Einwegjalousien (windowcoverings_state): Tippen zum Öffnen/Schließen, Stopp-Schaltfläche, Live-Status"

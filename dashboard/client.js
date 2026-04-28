@@ -657,6 +657,13 @@
           ? cfg.enabledFlows : null;
         // Flow-Tile-Breite: 'match' = wie Gerätekacheln, sonst dynamisch
         _flowTileMatch = cfg.flowTileWidth === 'match';
+        // Dashboard-Titel
+        var titleEl = document.getElementById('header-title');
+        if (titleEl) titleEl.textContent = cfg.dashboardTitle || 'My Homey';
+        // Schriftgrösse: 1–5 → scale 1.0 / 1.15 / 1.3 / 1.5 / 1.75
+        var fontScales = [1, 1.15, 1.3, 1.5, 1.75];
+        var fs = (cfg.fontSize >= 1 && cfg.fontSize <= 5) ? cfg.fontSize : 1;
+        document.documentElement.style.setProperty('--font-scale', fontScales[fs - 1]);
       }
     });
 

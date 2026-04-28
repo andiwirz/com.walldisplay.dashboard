@@ -346,6 +346,8 @@ class ShellyWallDisplayApp extends Homey.App {
           tileSize: (tileSize >= 1 && tileSize <= 5) ? tileSize : 3,
           enabledFlows: this.homey.settings.get('enabledFlows') || null,
           flowTileWidth: this.homey.settings.get('flowTileWidth') || 'auto',
+          dashboardTitle: this.homey.settings.get('dashboardTitle') || 'My Homey',
+          fontSize: this.homey.settings.get('fontSize') || 1,
         }));
         return;
       }
@@ -354,7 +356,7 @@ class ShellyWallDisplayApp extends Homey.App {
       if (url.pathname === '/api/settings' && req.method === 'POST') {
         const body = await this._readBody(req);
         const { key, value } = JSON.parse(body);
-        const allowed = ['port', 'enabledDevices', 'alarmPin', 'energyEnabled', 'tileSize', 'enabledFlows', 'homeyToken', 'flowTileWidth'];
+        const allowed = ['port', 'enabledDevices', 'alarmPin', 'energyEnabled', 'tileSize', 'enabledFlows', 'homeyToken', 'flowTileWidth', 'dashboardTitle', 'fontSize'];
         if (!allowed.includes(key)) {
           res.writeHead(400);
           res.end(JSON.stringify({ error: 'Not allowed' }));

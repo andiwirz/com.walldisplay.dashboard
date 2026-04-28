@@ -191,19 +191,19 @@
     /* ── Tile Size Slider ─────────────────────────── */
     .tile-slider-wrap { padding: 4px 0 2px; }
 
-    input[type="range"]#tile-size-input {
+    .tile-slider-wrap input[type="range"] {
       -webkit-appearance: none; appearance: none;
       width: 100%; height: 4px; border-radius: 2px;
       background: linear-gradient(to right, #F5A623 var(--pct,50%), #ddd var(--pct,50%));
       outline: none; cursor: pointer; margin-bottom: 6px;
     }
-    input[type="range"]#tile-size-input::-webkit-slider-thumb {
+    .tile-slider-wrap input[type="range"]::-webkit-slider-thumb {
       -webkit-appearance: none;
       width: 22px; height: 22px; border-radius: 50%;
       background: #F5A623; cursor: pointer;
       box-shadow: 0 1px 4px rgba(0,0,0,0.2); border: 2px solid #fff;
     }
-    input[type="range"]#tile-size-input::-moz-range-thumb {
+    .tile-slider-wrap input[type="range"]::-moz-range-thumb {
       width: 20px; height: 20px; border-radius: 50%;
       background: #F5A623; cursor: pointer; border: 2px solid #fff;
     }
@@ -376,6 +376,31 @@
   <!-- ── Tab: Design ──────────────────────────────── -->
   <div class="tab-panel" id="panel-design">
 
+    <!-- Dashboard Title -->
+    <div class="card">
+      <div class="card-title" data-i18n="dashboardTitleTitle">Dashboard Title</div>
+      <label for="dashboard-title-input" data-i18n="dashboardTitleLabel">Name shown in the header</label>
+      <input type="text" id="dashboard-title-input" maxlength="40" placeholder="My Homey"
+             style="width:100%;font-size:15px;">
+      <p class="hint" data-i18n="dashboardTitleHint"></p>
+      <button class="save-btn" onclick="saveDashboardTitle()" data-i18n="save">Save</button>
+      <div class="status" id="dashboard-title-status"></div>
+    </div>
+
+    <!-- Font Size -->
+    <div class="card">
+      <div class="card-title" data-i18n="fontSizeTitle">Font Size</div>
+      <div class="tile-slider-wrap">
+        <input type="range" id="font-size-input" min="1" max="5" step="1" value="1"
+               oninput="updateFontLabel(this.value)" onchange="saveFontSize(this.value)">
+        <div class="tile-size-steps" id="font-size-steps">
+          <span class="active">1</span><span>2</span><span>3</span><span>4</span><span>5</span>
+        </div>
+      </div>
+      <p class="hint" data-i18n="fontSizeHint">Adjusts text size on device tiles. Default: 1 (minimum)</p>
+      <div class="status" id="font-size-status"></div>
+    </div>
+
     <!-- Tile Size -->
     <div class="card">
       <div class="card-title" data-i18n="tileSizeTitle">Tile Size</div>
@@ -475,6 +500,13 @@
         pinSaved:         'PIN saved',
         pinRemoved:       'PIN removed',
         pinInvalid:       'PIN must be exactly 4 digits',
+        dashboardTitleTitle: 'Dashboard Title',
+        dashboardTitleLabel: 'Name shown in the header',
+        dashboardTitleHint:  '💡 Default: "My Homey". Shown in the top-left of the dashboard.',
+        dashboardTitleSaved: 'Title saved',
+        fontSizeTitle:      'Font Size',
+        fontSizeHint:       'Adjusts text size on device and flow tiles. Default: 1 (minimum)',
+        fontSizeSaved:      'Font size saved',
         flowTileWidthTitle: 'Flow Tile Width',
         flowTileAuto:       'Dynamic',
         flowTileMatch:      'Same as devices',
@@ -535,6 +567,13 @@
         pinSaved:         'PIN gespeichert',
         pinRemoved:       'PIN entfernt',
         pinInvalid:       'PIN muss genau 4 Ziffern haben',
+        dashboardTitleTitle: 'Dashboard-Titel',
+        dashboardTitleLabel: 'Name in der Kopfzeile',
+        dashboardTitleHint:  '💡 Standard: "My Homey". Wird oben links im Dashboard angezeigt.',
+        dashboardTitleSaved: 'Titel gespeichert',
+        fontSizeTitle:      'Schriftgrösse',
+        fontSizeHint:       'Passt die Textgrösse auf Geräte- und Flow-Kacheln an. Standard: 1 (Minimum)',
+        fontSizeSaved:      'Schriftgrösse gespeichert',
         flowTileWidthTitle: 'Flow-Kachelbreite',
         flowTileAuto:       'Dynamisch',
         flowTileMatch:      'Wie Geräte',
@@ -669,13 +708,17 @@
       var tileSize      = await hGet('tileSize') || 3;
       var savedPin      = await hGet('alarmPin') || '';
       var savedPat           = await hGet('homeyToken') || '';
-      var savedFlowTileWidth = await hGet('flowTileWidth') || 'auto';
+      var savedFlowTileWidth  = await hGet('flowTileWidth') || 'auto';
+      var savedDashboardTitle = await hGet('dashboardTitle') || '';
+      var savedFontSize       = await hGet('fontSize') || 1;
 
       // ── General tab values ─────────────────────────────────────────
       document.getElementById('port-input').value = port;
       document.getElementById('pin-input').value  = savedPin;
       document.getElementById('pat-input').value  = savedPat;
+      document.getElementById('dashboard-title-input').value = savedDashboardTitle;
       setFlowTileWidth(savedFlowTileWidth, true);
+      updateFontLabel(savedFontSize);
       document.getElementById('energy-toggle').checked = energyEnabled !== false;
       updateTileLabel(tileSize);
 
@@ -919,6 +962,35 @@
         await hSet('homeyToken', pat || false);
         showStatus('pat-status', pat ? T.patSaved : T.patRemoved, true);
       } catch (e) { showStatus('pat-status', T.errorPrefix + e.message, false); }
+    }
+
+    async function saveDashboardTitle() {
+      var title = document.getElementById('dashboard-title-input').value.trim();
+      try {
+        await hSet('dashboardTitle', title || false);
+        showStatus('dashboard-title-status', T.dashboardTitleSaved, true);
+      } catch (e) { showStatus('dashboard-title-status', T.errorPrefix + e.message, false); }
+    }
+
+    function updateFontLabel(val) {
+      val = parseInt(val, 10);
+      var slider = document.getElementById('font-size-input');
+      if (slider) {
+        slider.value = val;
+        slider.style.setProperty('--pct', Math.round((val - 1) / 4 * 100) + '%');
+      }
+      document.querySelectorAll('#font-size-steps span').forEach(function(s, i) {
+        s.classList.toggle('active', i === val - 1);
+      });
+    }
+
+    async function saveFontSize(val) {
+      val = parseInt(val, 10);
+      if (val < 1 || val > 5 || isNaN(val)) return;
+      try {
+        await hSet('fontSize', val);
+        showStatus('font-size-status', T.fontSizeSaved, true);
+      } catch (e) { showStatus('font-size-status', T.errorPrefix + e.message, false); }
     }
 
     function updateTileLabel(val) {

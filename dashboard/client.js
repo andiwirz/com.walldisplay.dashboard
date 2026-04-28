@@ -517,7 +517,7 @@
   function applyTheme(t) {
     document.documentElement.setAttribute('data-theme', t === 'dark' ? 'dark' : '');
     var btn = document.getElementById('theme-toggle');
-    if (btn) btn.textContent = t === 'dark' ? '🌙' : '☀️';
+    if (btn) btn.textContent = t === 'dark' ? '🌙' : '🔆';
   }
 
   function toggleTheme() {
@@ -530,8 +530,13 @@
   window.toggleTheme = toggleTheme;
 
   // ── View-Modus ('zones' | 'all') ───────────────────
-  var viewMode = 'zones';
-  try { viewMode = localStorage.getItem('viewMode') || 'zones'; } catch (_) {}
+  var _viewDefault   = 'all';   // aus Settings, wird in loadData gesetzt
+  var _viewBtnHidden = false;   // aus Settings
+  var viewMode = 'all';
+  try {
+    var _stored = localStorage.getItem('viewMode');
+    viewMode = _stored || 'all';
+  } catch (_) {}
 
   function toggleView() {
     viewMode = viewMode === 'zones' ? 'all' : 'zones';
@@ -543,6 +548,7 @@
   function updateViewToggle() {
     var btn = document.getElementById('view-toggle');
     if (!btn) return;
+    btn.style.display = _viewBtnHidden ? 'none' : '';
     btn.textContent = viewMode === 'zones' ? '⊞ All' : '⊟ Rooms';
     btn.setAttribute('aria-label', viewMode === 'zones' ? 'Show all devices' : 'Group by rooms');
   }
@@ -664,6 +670,33 @@
         var fontScales = [1, 1.15, 1.3, 1.5, 1.75];
         var fs = (cfg.fontSize >= 1 && cfg.fontSize <= 5) ? cfg.fontSize : 1;
         document.documentElement.style.setProperty('--font-scale', fontScales[fs - 1]);
+        // Ansicht-Standard + Button-Sichtbarkeit
+        _viewDefault   = cfg.viewDefault   || 'all';
+        _viewBtnHidden = cfg.viewBtnHidden === true;
+        // Nur anwenden wenn der Nutzer noch keine eigene Wahl getroffen hat
+        if (!localStorage.getItem('viewMode')) {
+          viewMode = _viewDefault;
+        }
+        // Akzentfarbe
+        var accent = cfg.accentColor || '#F5A623';
+        var ar = parseInt(accent.slice(1,3),16), ag = parseInt(accent.slice(3,5),16), ab = parseInt(accent.slice(5,7),16);
+        var root = document.documentElement;
+        root.style.setProperty('--accent',     accent);
+        root.style.setProperty('--toggle-on',  accent);
+        root.style.setProperty('--border-on',  'rgba('+ar+','+ag+','+ab+',0.35)');
+        root.style.setProperty('--shadow-on',  '0 2px 10px rgba('+ar+','+ag+','+ab+',0.22), 0 0 1px rgba('+ar+','+ag+','+ab+',0.3)');
+        // Kachelform
+        var radii = { sharp: '6px', rounded: '14px', pill: '28px' };
+        root.style.setProperty('--radius', radii[cfg.tileRadius] || '14px');
+        // Header ausblenden
+        var header = document.querySelector('.header');
+        if (cfg.headerHidden) {
+          if (header) header.style.display = 'none';
+          root.style.setProperty('--header-h', '0px');
+        } else {
+          if (header) header.style.display = '';
+          root.style.setProperty('--header-h', '62px');
+        }
       }
     });
 

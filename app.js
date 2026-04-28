@@ -18,6 +18,18 @@ class ShellyWallDisplayApp extends Homey.App {
     this._deviceCache  = null;
     this._deviceCacheTs = 0;
 
+    // Standardwerte für neue Settings vorbelegen, damit Homey.get() nie auf null trifft
+    const settingDefaults = {
+      accentColor: '#F5A623',
+      tileRadius:  'rounded',
+      fontSize:    1,
+    };
+    for (const [key, val] of Object.entries(settingDefaults)) {
+      if (this.homey.settings.get(key) == null) {
+        this.homey.settings.set(key, val);
+      }
+    }
+
     await this._initHomeyApi();
 
     const port = this.homey.settings.get('port') || DEFAULT_PORT;
@@ -348,6 +360,11 @@ class ShellyWallDisplayApp extends Homey.App {
           flowTileWidth: this.homey.settings.get('flowTileWidth') || 'auto',
           dashboardTitle: this.homey.settings.get('dashboardTitle') || 'My Homey',
           fontSize: this.homey.settings.get('fontSize') || 1,
+          accentColor: this.homey.settings.get('accentColor') || '#F5A623',
+          tileRadius: this.homey.settings.get('tileRadius') || 'rounded',
+          headerHidden: this.homey.settings.get('headerHidden') || false,
+          viewDefault: this.homey.settings.get('viewDefault') || 'all',
+          viewBtnHidden: this.homey.settings.get('viewBtnHidden') || false,
         }));
         return;
       }
@@ -356,7 +373,7 @@ class ShellyWallDisplayApp extends Homey.App {
       if (url.pathname === '/api/settings' && req.method === 'POST') {
         const body = await this._readBody(req);
         const { key, value } = JSON.parse(body);
-        const allowed = ['port', 'enabledDevices', 'alarmPin', 'energyEnabled', 'tileSize', 'enabledFlows', 'homeyToken', 'flowTileWidth', 'dashboardTitle', 'fontSize'];
+        const allowed = ['port', 'enabledDevices', 'alarmPin', 'energyEnabled', 'tileSize', 'enabledFlows', 'homeyToken', 'flowTileWidth', 'dashboardTitle', 'fontSize', 'accentColor', 'tileRadius', 'headerHidden', 'viewDefault', 'viewBtnHidden'];
         if (!allowed.includes(key)) {
           res.writeHead(400);
           res.end(JSON.stringify({ error: 'Not allowed' }));

@@ -272,7 +272,11 @@
       transition: background 0.15s, color 0.15s;
     }
     .seg-btn:last-child { border-right: none; }
-    .seg-btn.active { background: #F5A623; color: #000; font-weight: 700; }
+    .seg-btn.active {
+      background: #F5A623; color: #000; font-weight: 700;
+      box-shadow: inset 0 0 0 1.5px rgba(0,0,0,0.15);
+    }
+    .seg-btn.active::before { content: '✓ '; font-size: 11px; opacity: 0.7; }
     .seg-btn:not(.active):hover { background: #f5f5f5; }
 
     .folder-header {
@@ -385,6 +389,64 @@
       <p class="hint" data-i18n="dashboardTitleHint"></p>
       <button class="save-btn" onclick="saveDashboardTitle()" data-i18n="save">Save</button>
       <div class="status" id="dashboard-title-status"></div>
+    </div>
+
+    <!-- Accent Color -->
+    <div class="card">
+      <div class="card-title" data-i18n="accentColorTitle">Accent Color</div>
+      <div style="display:flex;align-items:center;gap:12px;margin-top:6px;">
+        <input type="color" id="accent-color-input" value="#F5A623"
+               style="width:48px;height:40px;border:none;padding:0;background:none;cursor:pointer;border-radius:8px;">
+        <span id="accent-color-hex" style="font-family:monospace;font-size:14px;color:#555;">#F5A623</span>
+        <button class="btn-small" onclick="resetAccentColor()" data-i18n="accentColorReset">Reset</button>
+      </div>
+      <p class="hint" data-i18n="accentColorHint"></p>
+      <button class="save-btn" onclick="saveAccentColor()" data-i18n="save">Save</button>
+      <div class="status" id="accent-color-status"></div>
+    </div>
+
+    <!-- Tile Shape -->
+    <div class="card">
+      <div class="card-title" data-i18n="tileRadiusTitle">Tile Shape</div>
+      <div class="seg-btn-group" id="tile-radius-group">
+        <button class="seg-btn" data-value="sharp"   onclick="setTileRadius('sharp')"   data-i18n="tileRadiusSharp">Sharp</button>
+        <button class="seg-btn active" data-value="rounded" onclick="setTileRadius('rounded')" data-i18n="tileRadiusRounded">Rounded</button>
+        <button class="seg-btn" data-value="pill"    onclick="setTileRadius('pill')"    data-i18n="tileRadiusPill">Pill</button>
+      </div>
+      <div class="status" id="tile-radius-status"></div>
+    </div>
+
+    <!-- Header Hidden -->
+    <div class="card">
+      <div class="card-title" data-i18n="headerHiddenTitle">Header</div>
+      <div class="toggle-row">
+        <span class="toggle-label" data-i18n="headerHiddenLabel">Show header bar</span>
+        <label class="toggle-switch">
+          <input type="checkbox" id="header-hidden-toggle" checked onchange="saveHeaderHidden()">
+          <span class="toggle-track"></span>
+        </label>
+      </div>
+      <p class="toggle-hint" data-i18n="headerHiddenHint">When disabled, the title, clock and buttons are hidden for a clean full-screen look.</p>
+      <div class="status" id="header-hidden-status"></div>
+    </div>
+
+    <!-- View Toggle Button -->
+    <div class="card">
+      <div class="card-title" data-i18n="viewToggleTitle">View Toggle Button</div>
+      <div class="toggle-row">
+        <span class="toggle-label" data-i18n="viewBtnLabel">Show Rooms/All button</span>
+        <label class="toggle-switch">
+          <input type="checkbox" id="view-btn-toggle" checked onchange="saveViewBtnHidden()">
+          <span class="toggle-track"></span>
+        </label>
+      </div>
+      <div class="card-title" style="margin-top:14px" data-i18n="viewDefaultTitle">Default View</div>
+      <div class="seg-btn-group" id="view-default-group">
+        <button class="seg-btn active" data-value="all"   onclick="setViewDefault('all')"   data-i18n="viewDefaultAll">All devices</button>
+        <button class="seg-btn"        data-value="zones" onclick="setViewDefault('zones')" data-i18n="viewDefaultRooms">By rooms</button>
+      </div>
+      <p class="hint" style="margin-top:8px" data-i18n="viewDefaultHint"></p>
+      <div class="status" id="view-toggle-status"></div>
     </div>
 
     <!-- Font Size -->
@@ -504,6 +566,26 @@
         dashboardTitleLabel: 'Name shown in the header',
         dashboardTitleHint:  '💡 Default: "My Homey". Shown in the top-left of the dashboard.',
         dashboardTitleSaved: 'Title saved',
+        accentColorTitle:   'Accent Color',
+        accentColorHint:    '💡 Used for highlights, toggles and active tiles. Default: #F5A623',
+        accentColorSaved:   'Color saved',
+        accentColorReset:   'Reset',
+        tileRadiusTitle:    'Tile Shape',
+        tileRadiusSharp:    'Sharp',
+        tileRadiusRounded:  'Rounded',
+        tileRadiusPill:     'Pill',
+        tileRadiusSaved:    'Shape saved',
+        headerHiddenTitle:  'Header',
+        headerHiddenLabel:  'Show header bar',
+        headerHiddenHint:   'When disabled, the title, clock and buttons are hidden for a clean full-screen look.',
+        headerHiddenSaved:  'Setting saved',
+        viewToggleTitle:    'View Toggle Button',
+        viewBtnLabel:       'Show Rooms/All button',
+        viewDefaultTitle:   'Default View',
+        viewDefaultAll:     'All devices',
+        viewDefaultRooms:   'By rooms',
+        viewDefaultHint:    '💡 The user\'s last choice is remembered per device.',
+        viewToggleSaved:    'Setting saved',
         fontSizeTitle:      'Font Size',
         fontSizeHint:       'Adjusts text size on device and flow tiles. Default: 1 (minimum)',
         fontSizeSaved:      'Font size saved',
@@ -571,6 +653,26 @@
         dashboardTitleLabel: 'Name in der Kopfzeile',
         dashboardTitleHint:  '💡 Standard: "My Homey". Wird oben links im Dashboard angezeigt.',
         dashboardTitleSaved: 'Titel gespeichert',
+        accentColorTitle:   'Akzentfarbe',
+        accentColorHint:    '💡 Farbe für Highlights, Toggles und aktive Kacheln. Standard: #F5A623',
+        accentColorSaved:   'Farbe gespeichert',
+        accentColorReset:   'Zurücksetzen',
+        tileRadiusTitle:    'Kachelform',
+        tileRadiusSharp:    'Eckig',
+        tileRadiusRounded:  'Abgerundet',
+        tileRadiusPill:     'Rund',
+        tileRadiusSaved:    'Form gespeichert',
+        headerHiddenTitle:  'Kopfzeile',
+        headerHiddenLabel:  'Kopfzeile anzeigen',
+        headerHiddenHint:   'Wenn deaktiviert, werden Titel, Uhr und Buttons ausgeblendet – für einen sauberen Vollbild-Look.',
+        headerHiddenSaved:  'Einstellung gespeichert',
+        viewToggleTitle:    'Ansicht-Umschalter',
+        viewBtnLabel:       'Räume/Alle-Button anzeigen',
+        viewDefaultTitle:   'Standardansicht',
+        viewDefaultAll:     'Alle Geräte',
+        viewDefaultRooms:   'Nach Räumen',
+        viewDefaultHint:    '💡 Die letzte Wahl des Nutzers wird pro Gerät gespeichert.',
+        viewToggleSaved:    'Einstellung gespeichert',
         fontSizeTitle:      'Schriftgrösse',
         fontSizeHint:       'Passt die Textgrösse auf Geräte- und Flow-Kacheln an. Standard: 1 (Minimum)',
         fontSizeSaved:      'Schriftgrösse gespeichert',
@@ -699,18 +801,28 @@
       loadAll();
     }
 
+    async function hGetSafe(key, fallback) {
+      try { var v = await hGet(key); return (v != null) ? v : fallback; }
+      catch (_) { return fallback; }
+    }
+
     async function loadAll() {
-      var port          = await hGet('port') || 7575;
-      var storedUrl     = await hGet('currentUrl');
-      var enabledDevices = await hGet('enabledDevices');
-      var enabledFlows  = await hGet('enabledFlows');
-      var energyEnabled = await hGet('energyEnabled');
-      var tileSize      = await hGet('tileSize') || 3;
-      var savedPin      = await hGet('alarmPin') || '';
-      var savedPat           = await hGet('homeyToken') || '';
-      var savedFlowTileWidth  = await hGet('flowTileWidth') || 'auto';
-      var savedDashboardTitle = await hGet('dashboardTitle') || '';
-      var savedFontSize       = await hGet('fontSize') || 1;
+      var port           = await hGetSafe('port', 7575);
+      var storedUrl      = await hGetSafe('currentUrl', null);
+      var enabledDevices = await hGetSafe('enabledDevices', null);
+      var enabledFlows   = await hGetSafe('enabledFlows', null);
+      var energyEnabled  = await hGetSafe('energyEnabled', true);
+      var tileSize       = await hGetSafe('tileSize', 3);
+      var savedPin       = await hGetSafe('alarmPin', '');
+      var savedPat            = await hGetSafe('homeyToken', '');
+      var savedFlowTileWidth  = await hGetSafe('flowTileWidth', 'auto');
+      var savedDashboardTitle = await hGetSafe('dashboardTitle', '');
+      var savedFontSize       = await hGetSafe('fontSize', 1);
+      var savedAccentColor    = await hGetSafe('accentColor', '#F5A623');
+      var savedTileRadius     = await hGetSafe('tileRadius', 'rounded');
+      var savedHeaderHidden   = await hGetSafe('headerHidden', false);
+      var savedViewDefault    = await hGetSafe('viewDefault', 'all');
+      var savedViewBtnHidden  = await hGetSafe('viewBtnHidden', false);
 
       // ── General tab values ─────────────────────────────────────────
       document.getElementById('port-input').value = port;
@@ -719,6 +831,11 @@
       document.getElementById('dashboard-title-input').value = savedDashboardTitle;
       setFlowTileWidth(savedFlowTileWidth, true);
       updateFontLabel(savedFontSize);
+      setAccentColorInput(savedAccentColor);
+      setTileRadius(savedTileRadius, true);
+      document.getElementById('header-hidden-toggle').checked = !savedHeaderHidden;
+      document.getElementById('view-btn-toggle').checked = !savedViewBtnHidden;
+      setViewDefault(savedViewDefault, true);
       document.getElementById('energy-toggle').checked = energyEnabled !== false;
       updateTileLabel(tileSize);
 
@@ -991,6 +1108,68 @@
         await hSet('fontSize', val);
         showStatus('font-size-status', T.fontSizeSaved, true);
       } catch (e) { showStatus('font-size-status', T.errorPrefix + e.message, false); }
+    }
+
+    function setAccentColorInput(hex) {
+      var inp = document.getElementById('accent-color-input');
+      var lbl = document.getElementById('accent-color-hex');
+      if (inp) {
+        inp.value = hex;
+        inp.oninput = function() {
+          var lblEl = document.getElementById('accent-color-hex');
+          if (lblEl) lblEl.textContent = inp.value.toUpperCase();
+        };
+      }
+      if (lbl) lbl.textContent = hex.toUpperCase();
+    }
+    function resetAccentColor() {
+      setAccentColorInput('#F5A623');
+    }
+    async function saveAccentColor() {
+      var hex = document.getElementById('accent-color-input').value;
+      if (!/^#[0-9a-fA-F]{6}$/.test(hex)) return;
+      try {
+        await hSet('accentColor', hex);
+        showStatus('accent-color-status', T.accentColorSaved, true);
+      } catch (e) { showStatus('accent-color-status', T.errorPrefix + e.message, false); }
+    }
+
+    async function setTileRadius(value, silent) {
+      document.querySelectorAll('#tile-radius-group .seg-btn').forEach(function(btn) {
+        btn.classList.toggle('active', btn.getAttribute('data-value') === value);
+      });
+      if (silent) return;
+      try {
+        await hSet('tileRadius', value);
+        showStatus('tile-radius-status', T.tileRadiusSaved, true);
+      } catch (e) { showStatus('tile-radius-status', T.errorPrefix + e.message, false); }
+    }
+
+    async function saveHeaderHidden() {
+      var visible = document.getElementById('header-hidden-toggle').checked;
+      try {
+        await hSet('headerHidden', !visible);
+        showStatus('header-hidden-status', T.headerHiddenSaved, true);
+      } catch (e) { showStatus('header-hidden-status', T.errorPrefix + e.message, false); }
+    }
+
+    async function saveViewBtnHidden() {
+      var visible = document.getElementById('view-btn-toggle').checked;
+      try {
+        await hSet('viewBtnHidden', !visible);
+        showStatus('view-toggle-status', T.viewToggleSaved, true);
+      } catch (e) { showStatus('view-toggle-status', T.errorPrefix + e.message, false); }
+    }
+
+    async function setViewDefault(value, silent) {
+      document.querySelectorAll('#view-default-group .seg-btn').forEach(function(btn) {
+        btn.classList.toggle('active', btn.getAttribute('data-value') === value);
+      });
+      if (silent) return;
+      try {
+        await hSet('viewDefault', value);
+        showStatus('view-toggle-status', T.viewToggleSaved, true);
+      } catch (e) { showStatus('view-toggle-status', T.errorPrefix + e.message, false); }
     }
 
     function updateTileLabel(val) {

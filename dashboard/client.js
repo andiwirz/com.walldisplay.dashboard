@@ -26,6 +26,8 @@
   var devices = {};
   var _enabledFlows  = null;  // Array von Flow-IDs oder null
   var _flowTileMatch = false; // true = Breite wie Gerätekacheln
+  var _flowConfirm   = false; // true = Bestätigung vor Flow-Start
+  var _flowPosition  = 'top'; // 'top' | 'bottom'
   var eventSource = null;
   var pollTimer = null;
   var _alarmPin = '';
@@ -663,6 +665,9 @@
           ? cfg.enabledFlows : null;
         // Flow-Tile-Breite: 'match' = wie Gerätekacheln, sonst dynamisch
         _flowTileMatch = cfg.flowTileWidth === 'match';
+        // Flow-Bestätigung und Position
+        _flowConfirm  = cfg.flowConfirm  === true;
+        _flowPosition = cfg.flowPosition === 'bottom' ? 'bottom' : 'top';
         // Dashboard-Titel
         var titleEl = document.getElementById('header-title');
         if (titleEl) titleEl.textContent = cfg.dashboardTitle || 'My Homey';
@@ -889,6 +894,44 @@
 
   function triggerFlow(flowId, tileEl) {
     if (!tileEl || tileEl.classList.contains('flow-running')) return;
+    if (_flowConfirm) {
+      _showFlowConfirm(flowId, tileEl);
+      return;
+    }
+    _doTriggerFlow(flowId, tileEl);
+  }
+
+  function _showFlowConfirm(flowId, tileEl) {
+    var f = _flowsData[flowId];
+    var nameEl  = document.getElementById('flow-confirm-name');
+    var modal   = document.getElementById('flow-confirm-modal');
+    var okBtn   = document.getElementById('flow-confirm-ok');
+    var cancelBtn = document.getElementById('flow-confirm-cancel');
+    if (!modal) { _doTriggerFlow(flowId, tileEl); return; }
+    if (nameEl) nameEl.textContent = f ? f.name : '';
+    modal.style.display = 'flex';
+
+    // Handler einmalig setzen (vorherige entfernen)
+    var newOk     = okBtn.cloneNode(true);
+    var newCancel = cancelBtn.cloneNode(true);
+    okBtn.parentNode.replaceChild(newOk, okBtn);
+    cancelBtn.parentNode.replaceChild(newCancel, cancelBtn);
+
+    newOk.addEventListener('click', function () {
+      modal.style.display = 'none';
+      _doTriggerFlow(flowId, tileEl);
+    });
+    newCancel.addEventListener('click', function () {
+      modal.style.display = 'none';
+    });
+
+    // Hintergrund-Klick schliesst Modal
+    modal.onclick = function (e) {
+      if (e.target === modal) modal.style.display = 'none';
+    };
+  }
+
+  function _doTriggerFlow(flowId, tileEl) {
     tileEl.classList.add('flow-running');
     var iconEl = tileEl.querySelector('.flow-tile-icon');
     if (iconEl) iconEl.textContent = '⟳';
@@ -898,7 +941,6 @@
       if (err) {
         tileEl.classList.add('flow-error');
         if (iconEl) iconEl.textContent = '✕';
-        // Fehlermeldung vom Server als title anzeigen (sichtbar bei langem Tipp)
         var msg = (data && data.error) ? data.error : err.message;
         tileEl.title = msg;
         setTimeout(function () {
@@ -923,8 +965,10 @@
     var container = document.getElementById('zones-container');
     container.innerHTML = '';
 
-    // Flows-Sektion zuerst (falls Flows konfiguriert)
-    if (_enabledFlows && _enabledFlows.length) {
+    var showFlows = _enabledFlows && _enabledFlows.length;
+
+    // Flows-Sektion oben (Standard)
+    if (showFlows && _flowPosition !== 'bottom') {
       renderFlowSection(container);
     }
 
@@ -932,6 +976,11 @@
       renderAllFlat(container);
     } else {
       renderByZones(container);
+    }
+
+    // Flows-Sektion unten (optional)
+    if (showFlows && _flowPosition === 'bottom') {
+      renderFlowSection(container);
     }
 
     document.getElementById('loading').style.display = 'none';

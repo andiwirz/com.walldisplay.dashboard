@@ -45,6 +45,10 @@
     "en": "Font size slider in Design settings; slider styling fix",
     "de": "Schriftgrössen-Slider in den Design-Einstellungen; Slider-Darstellung korrigiert"
   },
+  "1.2.5": {
+    "en": "Flow confirmation dialog (optional); flow position above or below device tiles",
+    "de": "Bestätigungsdialog vor Flow-Start (optional); Flow-Position ober- oder unterhalb der Gerätekacheln"
+  },
   "1.2.4": {
     "en": "Larger header icons; 🔆/🌙 icons for theme toggle",
     "de": "Grössere Header-Icons; 🔆/🌙 Icons für Hell/Dunkel-Umschalter"

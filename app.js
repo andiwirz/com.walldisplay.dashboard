@@ -358,6 +358,8 @@ class ShellyWallDisplayApp extends Homey.App {
           tileSize: (tileSize >= 1 && tileSize <= 5) ? tileSize : 3,
           enabledFlows: this.homey.settings.get('enabledFlows') || null,
           flowTileWidth: this.homey.settings.get('flowTileWidth') || 'auto',
+          flowConfirm: this.homey.settings.get('flowConfirm') === true,
+          flowPosition: this.homey.settings.get('flowPosition') || 'top',
           dashboardTitle: this.homey.settings.get('dashboardTitle') || 'My Homey',
           fontSize: this.homey.settings.get('fontSize') || 1,
           accentColor: this.homey.settings.get('accentColor') || '#F5A623',

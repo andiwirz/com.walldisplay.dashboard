@@ -509,6 +509,32 @@
 
   <!-- ── Tab: Flows ────────────────────────────────── -->
   <div class="tab-panel" id="panel-flows">
+
+    <!-- Flow Bestätigung -->
+    <div class="card">
+      <div class="card-title" data-i18n="flowConfirmTitle">Flow Confirmation</div>
+      <div class="toggle-row">
+        <span class="toggle-label" data-i18n="flowConfirmLabel">Ask before starting a flow</span>
+        <label class="toggle-switch">
+          <input type="checkbox" id="flow-confirm-toggle" onchange="saveFlowConfirm()">
+          <span class="toggle-track"></span>
+        </label>
+      </div>
+      <p class="toggle-hint" data-i18n="flowConfirmHint">When enabled, a confirmation dialog appears before any flow is started.</p>
+      <div class="status" id="flow-confirm-status"></div>
+    </div>
+
+    <!-- Flow Position -->
+    <div class="card">
+      <div class="card-title" data-i18n="flowPositionTitle">Flow Position</div>
+      <div class="seg-btn-group" id="flow-position-group">
+        <button class="seg-btn active" data-value="top"    onclick="setFlowPosition('top')"    data-i18n="flowPositionTop">Above devices</button>
+        <button class="seg-btn"        data-value="bottom" onclick="setFlowPosition('bottom')" data-i18n="flowPositionBottom">Below devices</button>
+      </div>
+      <div class="status" id="flow-position-status"></div>
+    </div>
+
+    <!-- Flow-Auswahl -->
     <div class="card">
       <div class="card-title">
         <span data-i18n="flowsTitle">Flows on Dashboard</span>
@@ -593,6 +619,14 @@
         flowTileAuto:       'Dynamic',
         flowTileMatch:      'Same as devices',
         flowTileWidthSaved: 'Saved',
+        flowConfirmTitle:   'Flow Confirmation',
+        flowConfirmLabel:   'Ask before starting a flow',
+        flowConfirmHint:    'When enabled, a confirmation dialog appears before any flow is started.',
+        flowConfirmSaved:   'Setting saved',
+        flowPositionTitle:  'Flow Position',
+        flowPositionTop:    'Above devices',
+        flowPositionBottom: 'Below devices',
+        flowPositionSaved:  'Saved',
         patTitle:         'Homey API Token',
         patLabel:         'Personal Access Token (required for Flow triggering)',
         patHint:          '💡 Create at: my.homey.app → ⚙ → API → New Token. Required to start flows from the dashboard.',
@@ -680,6 +714,14 @@
         flowTileAuto:       'Dynamisch',
         flowTileMatch:      'Wie Geräte',
         flowTileWidthSaved: 'Gespeichert',
+        flowConfirmTitle:   'Flow-Bestätigung',
+        flowConfirmLabel:   'Vor dem Starten eines Flows bestätigen',
+        flowConfirmHint:    'Wenn aktiviert, erscheint vor jedem Flow-Start ein Bestätigungs-Dialog.',
+        flowConfirmSaved:   'Einstellung gespeichert',
+        flowPositionTitle:  'Flow-Position',
+        flowPositionTop:    'Über den Geräten',
+        flowPositionBottom: 'Unter den Geräten',
+        flowPositionSaved:  'Gespeichert',
         patTitle:         'Homey API Token',
         patLabel:         'Personal Access Token (für Flow-Auslösung erforderlich)',
         patHint:          '💡 Erstellen unter: my.homey.app → ⚙ → API → Neues Token. Wird benötigt, um Flows vom Dashboard zu starten.',
@@ -816,6 +858,8 @@
       var savedPin       = await hGetSafe('alarmPin', '');
       var savedPat            = await hGetSafe('homeyToken', '');
       var savedFlowTileWidth  = await hGetSafe('flowTileWidth', 'auto');
+      var savedFlowConfirm    = await hGetSafe('flowConfirm', false);
+      var savedFlowPosition   = await hGetSafe('flowPosition', 'top');
       var savedDashboardTitle = await hGetSafe('dashboardTitle', '');
       var savedFontSize       = await hGetSafe('fontSize', 1);
       var savedAccentColor    = await hGetSafe('accentColor', '#F5A623');
@@ -830,6 +874,8 @@
       document.getElementById('pat-input').value  = savedPat;
       document.getElementById('dashboard-title-input').value = savedDashboardTitle;
       setFlowTileWidth(savedFlowTileWidth, true);
+      document.getElementById('flow-confirm-toggle').checked = savedFlowConfirm === true;
+      setFlowPosition(savedFlowPosition, true);
       updateFontLabel(savedFontSize);
       setAccentColorInput(savedAccentColor);
       setTileRadius(savedTileRadius, true);
@@ -1071,6 +1117,25 @@
         await hSet('flowTileWidth', value);
         showStatus('flow-tile-width-status', T.flowTileWidthSaved, true);
       } catch (e) { showStatus('flow-tile-width-status', T.errorPrefix + e.message, false); }
+    }
+
+    async function saveFlowConfirm() {
+      var enabled = document.getElementById('flow-confirm-toggle').checked;
+      try {
+        await hSet('flowConfirm', enabled);
+        showStatus('flow-confirm-status', T.flowConfirmSaved, true);
+      } catch (e) { showStatus('flow-confirm-status', T.errorPrefix + e.message, false); }
+    }
+
+    async function setFlowPosition(value, silent) {
+      document.querySelectorAll('#flow-position-group .seg-btn').forEach(function(btn) {
+        btn.classList.toggle('active', btn.getAttribute('data-value') === value);
+      });
+      if (silent) return;
+      try {
+        await hSet('flowPosition', value);
+        showStatus('flow-position-status', T.flowPositionSaved, true);
+      } catch (e) { showStatus('flow-position-status', T.errorPrefix + e.message, false); }
     }
 
     async function savePat() {

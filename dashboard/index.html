@@ -78,6 +78,18 @@
     </div>
   </div>
 
+  <!-- Flow Bestätigungs-Modal -->
+  <div id="flow-confirm-modal" class="confirm-modal" style="display:none">
+    <div class="confirm-modal-inner">
+      <div class="confirm-title" id="flow-confirm-title">Start Flow?</div>
+      <div class="confirm-name" id="flow-confirm-name"></div>
+      <div class="confirm-btns">
+        <button id="flow-confirm-cancel" class="confirm-btn confirm-btn-cancel">✕</button>
+        <button id="flow-confirm-ok" class="confirm-btn confirm-btn-ok">▶ Start</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Kamera-Modal -->
   <div id="camera-modal" class="camera-modal" style="display:none" onclick="closeCameraModal()">
     <div class="camera-modal-inner" onclick="event.stopPropagation()">

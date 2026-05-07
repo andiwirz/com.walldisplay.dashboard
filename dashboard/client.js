@@ -173,15 +173,20 @@
     var chartW = W - padL - padR;
     var chartH = H - padTop - padBot;
 
-    // Y-Achse: Maximum aus Heimverbrauch und Einspeisung
+    // Y-Achse: Maximum aus Solar gesamt, Heimverbrauch und Einspeisung
     var maxVal = 0.1;
     for (var i = 0; i < n; i++) {
-      if (homeCons[i] > maxVal) maxVal = homeCons[i];
-      if ((exp[i] || 0) > maxVal) maxVal = exp[i];
+      if (homeCons[i]       > maxVal) maxVal = homeCons[i];
+      if ((exp[i]   || 0)   > maxVal) maxVal = exp[i];
+      if ((solar[i] || 0)   > maxVal) maxVal = solar[i]; // gelber Balken darf Y-Achse nicht übersteigen
     }
     var niceMax = maxVal <= 5  ? Math.ceil(maxVal) :
                   maxVal <= 20 ? Math.ceil(maxVal / 5) * 5 :
                   Math.ceil(maxVal / 10) * 10;
+    // Headroom: wenn maxVal sehr nah an niceMax liegt, eine Stufe höher (Label-Platz sichern)
+    if (niceMax < maxVal * 1.05) {
+      niceMax = maxVal <= 20 ? niceMax + 5 : niceMax + 10;
+    }
 
     // Drei Balken pro Tag:  Gelb (Solar gesamt) | Grün+Orange (Heimverbrauch) | Blau (Einspeisung)
     var step     = chartW / n;
@@ -728,10 +733,24 @@
   var _order = [];
   try { _order = JSON.parse(localStorage.getItem('deviceOrder') || '[]'); } catch (_) {}
 
+  var _flowOrder = [];
+  try { _flowOrder = JSON.parse(localStorage.getItem('flowOrder') || '[]'); } catch (_) {}
+
   function getOrderedDevices(list) {
     return list.slice().sort(function (a, b) {
       var ia = _order.indexOf(a.id);
       var ib = _order.indexOf(b.id);
+      if (ia === -1 && ib === -1) return a.name.localeCompare(b.name);
+      if (ia === -1) return 1;
+      if (ib === -1) return -1;
+      return ia - ib;
+    });
+  }
+
+  function getOrderedFlows(list) {
+    return list.slice().sort(function (a, b) {
+      var ia = _flowOrder.indexOf(a.id);
+      var ib = _flowOrder.indexOf(b.id);
       if (ia === -1 && ib === -1) return a.name.localeCompare(b.name);
       if (ia === -1) return 1;
       if (ib === -1) return -1;
@@ -752,15 +771,36 @@
     try { localStorage.setItem('deviceOrder', JSON.stringify(_order)); } catch (_) {}
   }
 
+  function saveFlowOrderFromGrid(grid) {
+    var ids = Array.from(grid.querySelectorAll('.flow-tile'))
+      .map(function (t) { return t.id.replace('flow-tile-', ''); });
+    var first = ids.find(function (id) { return _flowOrder.indexOf(id) !== -1; });
+    var insertAt = first ? _flowOrder.indexOf(first) : _flowOrder.length;
+    ids.forEach(function (id) {
+      var i = _flowOrder.indexOf(id);
+      if (i !== -1) { if (i < insertAt) insertAt--; _flowOrder.splice(i, 1); }
+    });
+    ids.forEach(function (id, i) { _flowOrder.splice(insertAt + i, 0, id); });
+    try { localStorage.setItem('flowOrder', JSON.stringify(_flowOrder)); } catch (_) {}
+  }
+
   var _drag = null;
 
   function initDragOnGrid(grid) {
     Array.from(grid.querySelectorAll('.device-card')).forEach(function (card) {
-      makeDraggable(card, grid);
+      makeDraggable(card, grid, '.device-card', saveOrderFromGrid);
     });
   }
 
-  function makeDraggable(card, grid) {
+  function initDragOnFlowGrid(grid) {
+    Array.from(grid.querySelectorAll('.flow-tile')).forEach(function (tile) {
+      makeDraggable(tile, grid, '.flow-tile', saveFlowOrderFromGrid);
+    });
+  }
+
+  // cardSelector: CSS-Selektor für die draggbaren Elemente im Grid
+  // onReorder:    Callback(grid) nach erfolgreichem Drop
+  function makeDraggable(card, grid, cardSelector, onReorder) {
     var st = null;
 
     function onDown(e) {
@@ -792,8 +832,8 @@
       _drag.ghost.style.visibility = 'hidden';
       var el = document.elementFromPoint(pt.clientX, pt.clientY);
       _drag.ghost.style.visibility = '';
-      var target = el && el.closest ? el.closest('.device-card') : null;
-      Array.from(grid.querySelectorAll('.device-card.drag-over'))
+      var target = el && el.closest ? el.closest(cardSelector) : null;
+      Array.from(grid.querySelectorAll(cardSelector + '.drag-over'))
         .forEach(function (c) { c.classList.remove('drag-over'); });
       _drag.over = (target && target !== card) ? target : null;
       if (_drag.over) _drag.over.classList.add('drag-over');
@@ -801,15 +841,15 @@
 
     function onUp() {
       if (!_drag) { clearTimeout(st && st.timer); cleanup(); return; }
-      Array.from(grid.querySelectorAll('.device-card.drag-over'))
+      Array.from(grid.querySelectorAll(cardSelector + '.drag-over'))
         .forEach(function (c) { c.classList.remove('drag-over'); });
       if (_drag.over) {
-        var cards = Array.from(grid.querySelectorAll('.device-card'));
+        var cards = Array.from(grid.querySelectorAll(cardSelector));
         var fi = cards.indexOf(card);
         var ti = cards.indexOf(_drag.over);
         if (fi < ti) grid.insertBefore(card, _drag.over.nextSibling);
         else         grid.insertBefore(card, _drag.over);
-        saveOrderFromGrid(grid);
+        if (onReorder) onReorder(grid);
       }
       _drag.ghost.remove();
       card.style.opacity = '';
@@ -865,10 +905,13 @@
         section.style.display = 'none';
         return;
       }
-      visible.forEach(function (f) {
+      // Gespeicherte Reihenfolge anwenden
+      getOrderedFlows(visible).forEach(function (f) {
         _flowsData[f.id] = f;
         grid.appendChild(buildFlowTile(f));
       });
+      // Drag & Drop aktivieren
+      initDragOnFlowGrid(grid);
     });
   }
 

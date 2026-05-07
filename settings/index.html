@@ -21,6 +21,11 @@
     .page-header {
       padding: 18px 20px 0;
     }
+    .page-header-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
     .page-header h2 {
       font-size: 18px;
       font-weight: 700;
@@ -29,6 +34,19 @@
       color: #666;
       font-size: 13px;
       margin-top: 2px;
+    }
+    .beer-btn {
+      font-size: 30px;
+      line-height: 1;
+      text-decoration: none;
+      opacity: 0.75;
+      transition: opacity 0.15s, transform 0.15s;
+      display: flex;
+      align-items: center;
+    }
+    .beer-btn:hover {
+      opacity: 1;
+      transform: scale(1.15);
     }
 
     /* ── Tabs ─────────────────────────────────────── */
@@ -44,7 +62,7 @@
     }
 
     .tab-btn {
-      background: none;
+      background: transparent !important;
       border: none;
       border-bottom: 2.5px solid transparent;
       padding: 8px 16px 10px;
@@ -54,12 +72,14 @@
       cursor: pointer;
       white-space: nowrap;
       margin-bottom: -1.5px;
-      transition: color 0.15s, border-color 0.15s;
+      transition: color 0.15s, border-color 0.15s, background 0.15s;
     }
     .tab-btn:hover { color: #444; }
     .tab-btn.active {
-      color: #F5A623;
+      color: #fff !important;
       font-weight: 700;
+      background: #F5A623 !important;
+      border-radius: 6px 6px 0 0;
       border-bottom-color: #F5A623;
     }
 
@@ -290,8 +310,14 @@
 <body>
 
   <div class="page-header">
-    <h2 data-i18n="title">Shelly Wall Display</h2>
-    <p class="subtitle" data-i18n="subtitle">Configure Homey as a dashboard server</p>
+    <div class="page-header-top">
+      <p class="subtitle" data-i18n="subtitle">Configure Homey as a dashboard server</p>
+      <a class="beer-btn" href="https://www.paypal.com/paypalme/AndiWirz/5" target="_blank" rel="noopener noreferrer"
+         onclick="window.open('https://www.paypal.com/paypalme/AndiWirz/5','_blank','noopener,noreferrer');return false;"
+         title="Buy me a beer 🍺">
+        🍺
+      </a>
+    </div>
   </div>
 
   <!-- Tab Bar -->
@@ -339,20 +365,6 @@
       <div class="status" id="port-status"></div>
     </div>
 
-    <!-- Energy Dashboard -->
-    <div class="card">
-      <div class="card-title" data-i18n="energyTitle">Energy Dashboard</div>
-      <div class="toggle-row">
-        <span class="toggle-label" data-i18n="energyLabel">Show Energy button in header</span>
-        <label class="toggle-switch">
-          <input type="checkbox" id="energy-toggle" checked onchange="saveEnergy()">
-          <span class="toggle-track"></span>
-        </label>
-      </div>
-      <p class="toggle-hint" data-i18n="energyHint">When disabled, the ⚡ button is hidden on the dashboard.</p>
-      <div class="status" id="energy-status"></div>
-    </div>
-
     <!-- Alarm PIN -->
     <div class="card">
       <div class="card-title" data-i18n="pinTitle">Alarm PIN</div>
@@ -362,6 +374,20 @@
       <p class="hint" data-i18n="pinHint">This PIN is required when arming or disarming the alarm.</p>
       <button class="save-btn" onclick="savePin()" data-i18n="save">Save</button>
       <div class="status" id="pin-status"></div>
+    </div>
+
+    <!-- Flow Bestätigung -->
+    <div class="card">
+      <div class="card-title" data-i18n="flowConfirmTitle">Flow Confirmation</div>
+      <div class="toggle-row">
+        <span class="toggle-label" data-i18n="flowConfirmLabel">Ask before starting a flow</span>
+        <label class="toggle-switch">
+          <input type="checkbox" id="flow-confirm-toggle" onchange="saveFlowConfirm()">
+          <span class="toggle-track"></span>
+        </label>
+      </div>
+      <p class="toggle-hint" data-i18n="flowConfirmHint">When enabled, a confirmation dialog appears before any flow is started.</p>
+      <div class="status" id="flow-confirm-status"></div>
     </div>
 
     <!-- Homey Personal Access Token -->
@@ -430,6 +456,20 @@
       <div class="status" id="header-hidden-status"></div>
     </div>
 
+    <!-- Energy Dashboard -->
+    <div class="card">
+      <div class="card-title" data-i18n="energyTitle">Energy Dashboard</div>
+      <div class="toggle-row">
+        <span class="toggle-label" data-i18n="energyLabel">Show Energy button in header</span>
+        <label class="toggle-switch">
+          <input type="checkbox" id="energy-toggle" checked onchange="saveEnergy()">
+          <span class="toggle-track"></span>
+        </label>
+      </div>
+      <p class="toggle-hint" data-i18n="energyHint">When disabled, the ⚡ button is hidden on the dashboard.</p>
+      <div class="status" id="energy-status"></div>
+    </div>
+
     <!-- View Toggle Button -->
     <div class="card">
       <div class="card-title" data-i18n="viewToggleTitle">View Toggle Button</div>
@@ -487,6 +527,16 @@
       <div class="status" id="flow-tile-width-status"></div>
     </div>
 
+    <!-- Flow Position -->
+    <div class="card">
+      <div class="card-title" data-i18n="flowPositionTitle">Flow Position</div>
+      <div class="seg-btn-group" id="flow-position-group">
+        <button class="seg-btn active" data-value="top"    onclick="setFlowPosition('top')"    data-i18n="flowPositionTop">Above devices</button>
+        <button class="seg-btn"        data-value="bottom" onclick="setFlowPosition('bottom')" data-i18n="flowPositionBottom">Below devices</button>
+      </div>
+      <div class="status" id="flow-position-status"></div>
+    </div>
+
   </div><!-- /panel-design -->
 
   <!-- ── Tab: Devices ──────────────────────────────── -->
@@ -509,30 +559,6 @@
 
   <!-- ── Tab: Flows ────────────────────────────────── -->
   <div class="tab-panel" id="panel-flows">
-
-    <!-- Flow Bestätigung -->
-    <div class="card">
-      <div class="card-title" data-i18n="flowConfirmTitle">Flow Confirmation</div>
-      <div class="toggle-row">
-        <span class="toggle-label" data-i18n="flowConfirmLabel">Ask before starting a flow</span>
-        <label class="toggle-switch">
-          <input type="checkbox" id="flow-confirm-toggle" onchange="saveFlowConfirm()">
-          <span class="toggle-track"></span>
-        </label>
-      </div>
-      <p class="toggle-hint" data-i18n="flowConfirmHint">When enabled, a confirmation dialog appears before any flow is started.</p>
-      <div class="status" id="flow-confirm-status"></div>
-    </div>
-
-    <!-- Flow Position -->
-    <div class="card">
-      <div class="card-title" data-i18n="flowPositionTitle">Flow Position</div>
-      <div class="seg-btn-group" id="flow-position-group">
-        <button class="seg-btn active" data-value="top"    onclick="setFlowPosition('top')"    data-i18n="flowPositionTop">Above devices</button>
-        <button class="seg-btn"        data-value="bottom" onclick="setFlowPosition('bottom')" data-i18n="flowPositionBottom">Below devices</button>
-      </div>
-      <div class="status" id="flow-position-status"></div>
-    </div>
 
     <!-- Flow-Auswahl -->
     <div class="card">

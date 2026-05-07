@@ -45,6 +45,18 @@
     "en": "Font size slider in Design settings; slider styling fix",
     "de": "Schriftgrössen-Slider in den Design-Einstellungen; Slider-Darstellung korrigiert"
   },
+  "1.2.7": {
+    "en": "Flow tiles can be reordered by long-press drag & drop",
+    "de": "Flow-Kacheln können per Langes-Drücken-Drag&Drop neu angeordnet werden"
+  },
+  "1.2.8": {
+    "en": "Settings redesign: Energy Dashboard moved to Design tab; active tab highlighted in orange; support link in header",
+    "de": "Einstellungen überarbeitet: Energie-Dashboard in Design-Tab verschoben; aktiver Tab orange hervorgehoben; Support-Link im Header"
+  },
+  "1.2.6": {
+    "en": "Energy history chart: fix bars exceeding Y-axis when solar production > 50 kWh/day",
+    "de": "Energie-Verlauf: Balken überschritten Y-Achse bei Solarproduktion > 50 kWh/Tag – behoben"
+  },
   "1.2.5": {
     "en": "Flow confirmation dialog (optional); flow position above or below device tiles",
     "de": "Bestätigungsdialog vor Flow-Start (optional); Flow-Position ober- oder unterhalb der Gerätekacheln"

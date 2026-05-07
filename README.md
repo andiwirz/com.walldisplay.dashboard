@@ -107,7 +107,7 @@ Homey App (com.walldisplay.dashboard)
 
 ## Settings
 
-The settings page is organised into three tabs:
+The settings page is organised into four tabs:
 
 ### General
 
@@ -115,10 +115,24 @@ The settings page is organised into three tabs:
 |---|---|---|
 | **Dashboard URL** | Clickable link to the dashboard — also works in any browser | Auto-detected |
 | **Port** | HTTP server port (1024–65535). Server restarts automatically when changed. | `7575` |
-| **Tile Size** | Size of device tiles on the dashboard: XS / S / M / L / XL | M (130 px) |
-| **Energy Dashboard** | Show or hide the ⚡ Energy button in the dashboard header | Enabled |
 | **Alarm PIN** | Optional 4-digit PIN to arm/disarm the alarm from the dashboard. Leave empty to disable. | — |
+| **Flow Confirmation** | Show a confirmation dialog before triggering a flow | Disabled |
 | **Homey API Token** | Personal Access Token required to trigger flows. Create at **my.homey.app → Account → Developer → API Keys**. | — |
+
+### Design
+
+| Setting | Description | Default |
+|---|---|---|
+| **Dashboard Title** | Name shown in the top-left of the dashboard header | `My Homey` |
+| **Accent Color** | Highlight color used for active tiles, toggles, and interactive elements | `#F5A623` |
+| **Tile Shape** | Corner radius of tiles: Sharp / Rounded / Pill | Rounded |
+| **Header** | Show or hide the header bar (title, clock, buttons) | Enabled |
+| **Energy Dashboard** | Show or hide the ⚡ Energy button in the dashboard header | Enabled |
+| **View Toggle Button** | Show or hide the Rooms / All button; set the default view | Enabled / All |
+| **Font Size** | Text size on device and flow tiles (1–5) | 1 |
+| **Tile Size** | Size of device tiles: XS / S / M / L / XL | M |
+| **Flow Tile Width** | **Dynamic** — tiles size to their content. **Same as devices** — match device tile width. | Dynamic |
+| **Flow Position** | Show flow buttons above or below device tiles | Above |
 
 ### Devices
 
@@ -129,7 +143,6 @@ Choose which devices appear on the dashboard. Devices are grouped by room. Use t
 | Setting | Description |
 |---|---|
 | **Flow selection** | Select which manually-triggerable flows appear as buttons on the dashboard. Flows are grouped by folder. |
-| **Flow tile width** | **Dynamic** — tiles size to their content. **Same as devices** — tiles match the device tile width exactly. |
 
 > **Note on flow triggering:** Due to a Homey platform restriction, apps cannot trigger flows using their internal token. A **Personal Access Token** (set in the General tab) is required. Create one at [my.homey.app](https://my.homey.app) under Account → Developer → API Keys with full permissions.
 
@@ -201,8 +214,16 @@ com.walldisplay.dashboard/
 │   ├── style.css           # Touch-optimised styles (dark/light mode, tile sizes, flow tiles)
 │   └── device-icons/       # SVG device icons served locally
 └── settings/
-    └── index.html          # Settings UI — tabs: General, Devices, Flows
+    └── index.html          # Settings UI — tabs: General, Design, Devices, Flows
 ```
+
+---
+
+## Support
+
+If you enjoy this app, consider buying me a beer 🍺
+
+[![PayPal](https://img.shields.io/badge/PayPal-Buy%20me%20a%20beer-blue?logo=paypal)](https://www.paypal.com/paypalme/AndiWirz)
 
 ---
 

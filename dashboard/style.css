@@ -54,6 +54,8 @@ html, body {
   -webkit-tap-highlight-color: transparent;
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 /* ── Header ───────────────────────────────────── */
@@ -457,6 +459,12 @@ html, body {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
   background: var(--surface-on);
+}
+
+.flow-tile.drag-over {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  background: rgba(245, 166, 35, 0.1);
 }
 
 /* ── PIN-Modal ────────────────────────────────── */

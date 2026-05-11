@@ -691,6 +691,25 @@ class ShellyWallDisplayApp extends Homey.App {
         return;
       }
 
+      // GET /api/device/:id/caps — frische Capabilities eines Geräts (kein Cache, für Speaker-Polling)
+      const deviceCapsMatch = url.pathname.match(/^\/api\/device\/([^/]+)\/caps$/);
+      if (deviceCapsMatch && req.method === 'GET') {
+        const deviceId = deviceCapsMatch[1];
+        try {
+          const device = await this.homeyApi.devices.getDevice({ id: deviceId });
+          this._deviceCache = null; // globalen Cache invalidieren
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({
+            id:              device.id,
+            capabilitiesObj: device.capabilitiesObj || {},
+          }));
+        } catch (e) {
+          res.writeHead(404);
+          res.end(JSON.stringify({ error: e.message }));
+        }
+        return;
+      }
+
       // GET /api/camera/:deviceId â€” aktuelles Kamerabild (Snapshot) proxyen
       const cameraMatch = url.pathname.match(/^\/api\/camera\/([^/]+)$/);
       if (cameraMatch && req.method === 'GET') {

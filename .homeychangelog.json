@@ -49,6 +49,10 @@
     "en": "Flow tiles can be reordered by long-press drag & drop",
     "de": "Flow-Kacheln können per Langes-Drücken-Drag&Drop neu angeordnet werden"
   },
+  "1.2.9": {
+    "en": "Speaker/media player modal: album art, track info below cover, smooth cover fade transition, volume slider spanning full cover height, centered layout",
+    "de": "Lautsprecher-Modal: Albumcover, Track-Info unter dem Cover, sanfter Cover-Übergang, Lautstärkeregler über volle Cover-Höhe, zentriertes Layout"
+  },
   "1.2.8": {
     "en": "Settings redesign: Energy Dashboard moved to Design tab; active tab highlighted in orange; support link in header",
     "de": "Einstellungen überarbeitet: Energie-Dashboard in Design-Tab verschoben; aktiver Tab orange hervorgehoben; Support-Link im Header"

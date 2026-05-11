@@ -20,6 +20,16 @@
     WC_STATE:        'windowcoverings_state',
     HOMEALARM_STATE: 'homealarm_state',
     HOMEALARM:       'homealarm',
+    SPEAKER_PLAYING: 'speaker_playing',
+    SPEAKER_NEXT:    'speaker_next',
+    SPEAKER_PREV:    'speaker_prev',
+    SPEAKER_SHUFFLE: 'speaker_shuffle',
+    SPEAKER_REPEAT:  'speaker_repeat',
+    SPEAKER_TRACK:   'speaker_track',
+    SPEAKER_ARTIST:  'speaker_artist',
+    SPEAKER_ALBUM:   'speaker_album',
+    VOLUME_SET:      'volume_set',
+    VOLUME_MUTE:     'volume_mute',
   };
 
   var zones = {};
@@ -1087,16 +1097,17 @@
     card.id = 'card-' + d.id;
     if (!d.available) card.classList.add('unavailable');
 
-    var caps     = d.capabilitiesObj || {};
-    var capIds   = d.capabilities || [];
-    var hasOnOff   = capIds.indexOf(CAP.ONOFF) !== -1;
-    var hasAlarm   = d.class === 'homealarm' || capIds.indexOf(CAP.HOMEALARM) !== -1;
-    var hasDim     = capIds.indexOf(CAP.DIM) !== -1;
+    var caps      = d.capabilitiesObj || {};
+    var capIds    = d.capabilities || [];
+    var hasOnOff  = capIds.indexOf(CAP.ONOFF) !== -1;
+    var hasAlarm  = d.class === 'homealarm' || capIds.indexOf(CAP.HOMEALARM) !== -1;
+    var hasDim    = capIds.indexOf(CAP.DIM) !== -1;
     var hasWcState = capIds.indexOf(CAP.WC_STATE) !== -1 && capIds.indexOf(CAP.WC_SET) === -1;
-    var isOn       = hasOnOff && caps[CAP.ONOFF] && caps[CAP.ONOFF].value === true;
-    var alarmCap   = hasAlarm ? getAlarmCapability(d) : null;
-    var isArmed    = alarmCap ? alarmIsArmed(alarmCap.value) : false;
-    var wcState    = hasWcState && caps[CAP.WC_STATE] ? caps[CAP.WC_STATE].value : null;
+    var isSpeaker = d.class === 'speaker' || d.class === 'mediaplayer';
+    var isOn      = hasOnOff && caps[CAP.ONOFF] && caps[CAP.ONOFF].value === true;
+    var alarmCap  = hasAlarm ? getAlarmCapability(d) : null;
+    var isArmed   = alarmCap ? alarmIsArmed(alarmCap.value) : false;
+    var wcState   = hasWcState && caps[CAP.WC_STATE] ? caps[CAP.WC_STATE].value : null;
 
     if (isOn || isArmed) card.classList.add('on');
     if (wcState === 'up') card.classList.add('on');
@@ -1111,7 +1122,17 @@
       }(d.id, d.name));
     }
 
-    if (hasAlarm || (hasOnOff && !hasDim)) {
+    // Speaker/Mediaplayer → Modal öffnen statt on/off
+    if (isSpeaker) {
+      card.classList.add('clickable');
+      (function (deviceId) {
+        card.addEventListener('click', function () {
+          openSpeakerModal(deviceId);
+        });
+      }(d.id));
+    }
+
+    if (!isSpeaker && (hasAlarm || (hasOnOff && !hasDim))) {
       card.classList.add('clickable');
       (function (deviceId) {
         card.addEventListener('click', function (e) {
@@ -1150,7 +1171,7 @@
     var header = createElement('div', 'device-header');
     header.appendChild(buildIconElement(d));
 
-    if (hasOnOff) {
+    if (!isSpeaker && hasOnOff) {
       var toggle = createElement('button', 'device-toggle');
       if (isOn) toggle.classList.add('on');
       toggle.setAttribute('aria-label', isOn ? 'Turn off' : 'Turn on');
@@ -1215,6 +1236,14 @@
     var hasOnOff   = capIds.indexOf(CAP.ONOFF) !== -1;
     var hasAlarm   = d.class === 'homealarm' || capIds.indexOf(CAP.HOMEALARM) !== -1;
     var hasWcState = capIds.indexOf(CAP.WC_STATE) !== -1 && capIds.indexOf(CAP.WC_SET) === -1;
+
+    if (d.class === 'speaker' || d.class === 'mediaplayer') {
+      var track   = caps[CAP.SPEAKER_TRACK]  && caps[CAP.SPEAKER_TRACK].value;
+      var artist  = caps[CAP.SPEAKER_ARTIST] && caps[CAP.SPEAKER_ARTIST].value;
+      var playing = caps[CAP.SPEAKER_PLAYING] && caps[CAP.SPEAKER_PLAYING].value === true;
+      if (track) return (playing ? '▶ ' : '⏸ ') + track + (artist ? ' · ' + artist : '');
+      return playing ? 'Playing' : 'Stopped';
+    }
 
     if (hasAlarm) {
       var ac = getAlarmCapability(d);
@@ -1459,6 +1488,9 @@
         wcLabel.textContent = '🪟 ' + Math.round((caps[CAP.WC_SET].value || 0) * 100) + ' %';
       }
     }
+
+    // Speaker-Modal live aktualisieren wenn offen
+    if (_speakerModalId === deviceId) _updateSpeakerModal();
 
     // Alarme (dot-Index muss mit buildValueElements übereinstimmen)
     var dots = card.querySelectorAll('.alarm-dot');
@@ -1750,5 +1782,207 @@
 
   window.openCameraModal  = openCameraModal;
   window.closeCameraModal = closeCameraModal;
+
+  // ── Speaker-Modal ─────────────────────────────────
+  var _speakerModalId  = null;
+  var _speakerPollTimer = null;
+  var _speakerPollCount = 0;
+  var _speakerPollTrack = '';
+
+  // SVG-Icons für die Transport-Controls
+  var _SI = {
+    shuffle:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/></svg>',
+    prev:     '<svg viewBox="0 0 24 24" fill="currentColor"><polygon points="19,20 9,12 19,4"/><rect x="5" y="4" width="3" height="16" rx="1.5"/></svg>',
+    play:     '<svg viewBox="0 0 24 24" fill="currentColor"><polygon points="6,3 20,12 6,21"/></svg>',
+    pause:    '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="5" y="3" width="4" height="18" rx="1.5"/><rect x="15" y="3" width="4" height="18" rx="1.5"/></svg>',
+    next:     '<svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5,4 15,12 5,20"/><rect x="16" y="4" width="3" height="16" rx="1.5"/></svg>',
+    repeat:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>',
+    repeat1:  '<svg viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></g><text x="12" y="14.5" text-anchor="middle" font-size="7" fill="currentColor" font-weight="700" font-family="sans-serif">1</text></svg>',
+    volHi:    '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>',
+    volMute:  '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/></svg>',
+  };
+
+  function openSpeakerModal(deviceId) {
+    _speakerModalId = deviceId;
+    var d = devices[deviceId];
+    if (!d) return;
+    document.getElementById('speaker-modal-name').textContent = d.name;
+    // Event-Listener für beide Slider (vertikal + horizontal)
+    function _volChange() {
+      setCapability(_speakerModalId, CAP.VOLUME_SET, parseInt(this.value, 10) / 100);
+      // Anderen Slider synchron halten
+      var other = this.id === 'speaker-vol-slider'
+                  ? document.getElementById('speaker-vol-slider-row')
+                  : document.getElementById('speaker-vol-slider');
+      if (other) { other.value = this.value; other.style.setProperty('--val', this.value + '%'); }
+    }
+    var volSlider = document.getElementById('speaker-vol-slider');
+    volSlider.oninput  = function () { /* thumb position gibt Feedback */ };
+    volSlider.onchange = _volChange;
+    var volSliderRow = document.getElementById('speaker-vol-slider-row');
+    volSliderRow.oninput  = function () { this.style.setProperty('--val', this.value + '%'); };
+    volSliderRow.onchange = _volChange;
+    _updateSpeakerModal();
+    document.getElementById('speaker-modal').style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeSpeakerModal() {
+    document.getElementById('speaker-modal').style.display = 'none';
+    document.body.style.overflow = '';
+    var coverImg = document.getElementById('speaker-cover');
+    coverImg.src = '';
+    coverImg.removeAttribute('data-track');
+    coverImg.classList.remove('loaded');
+    _stopSpeakerPoll();
+    _speakerModalId = null;
+  }
+
+  // Nach Next/Prev: alle 1.5 s pollen bis Track wechselt (max. 15 Versuche = ~22 s)
+  function _startSpeakerPoll() {
+    _stopSpeakerPoll();
+    _speakerPollCount = 0;
+    var d = devices[_speakerModalId];
+    _speakerPollTrack = (d && d.capabilitiesObj && d.capabilitiesObj[CAP.SPEAKER_TRACK]
+                         && d.capabilitiesObj[CAP.SPEAKER_TRACK].value) || '';
+    _speakerPollTimer = setInterval(function () {
+      if (!_speakerModalId) { _stopSpeakerPoll(); return; }
+      if (++_speakerPollCount > 15) { _stopSpeakerPoll(); return; }
+      xhr('GET', '/api/device/' + _speakerModalId + '/caps', null, function (err, raw) {
+        if (err || !raw) return;
+        try {
+          var data = JSON.parse(raw);
+          var caps = data.capabilitiesObj || {};
+          var newTrack = (caps[CAP.SPEAKER_TRACK] && caps[CAP.SPEAKER_TRACK].value) || '';
+          if (newTrack !== _speakerPollTrack) {
+            _stopSpeakerPoll();
+            // Gerätecache aktualisieren und Modal neu zeichnen
+            if (devices[_speakerModalId]) {
+              var existing = devices[_speakerModalId].capabilitiesObj || {};
+              Object.keys(caps).forEach(function (k) { existing[k] = caps[k]; });
+              devices[_speakerModalId].capabilitiesObj = existing;
+            }
+            _updateSpeakerModal();
+          }
+        } catch (_) {}
+      });
+    }, 1500);
+  }
+
+  function _stopSpeakerPoll() {
+    if (_speakerPollTimer) { clearInterval(_speakerPollTimer); _speakerPollTimer = null; }
+  }
+
+  function _updateSpeakerModal() {
+    if (!_speakerModalId) return;
+    var d = devices[_speakerModalId];
+    if (!d) return;
+    var caps = d.capabilitiesObj || {};
+
+    // Track-Info
+    var track  = (caps[CAP.SPEAKER_TRACK]  && caps[CAP.SPEAKER_TRACK].value)  || '';
+    var artist = (caps[CAP.SPEAKER_ARTIST] && caps[CAP.SPEAKER_ARTIST].value) || '';
+    var album  = (caps[CAP.SPEAKER_ALBUM]  && caps[CAP.SPEAKER_ALBUM].value)  || '';
+    document.getElementById('speaker-track-name').textContent   = track  || '—';
+    document.getElementById('speaker-track-artist').textContent = artist;
+    document.getElementById('speaker-track-album').textContent  = album;
+
+    // Cover: nur neu laden wenn sich der Track geändert hat
+    var coverImg = document.getElementById('speaker-cover');
+    var prevTrack = coverImg.getAttribute('data-track') || '';
+    if (track !== prevTrack) {
+      coverImg.setAttribute('data-track', track);
+      // Sanft ausblenden, dann neues Cover laden
+      coverImg.classList.remove('loaded');
+      var coverSrc = '/api/camera/' + _speakerModalId + '?t=' + Date.now();
+      coverImg.onload  = function () { this.classList.add('loaded'); };
+      coverImg.onerror = function () { this.classList.remove('loaded'); };
+      // Kurz warten, damit CSS-Transition greift, dann src wechseln
+      setTimeout(function () { coverImg.src = coverSrc; }, 150);
+    }
+
+    // Statische Icons (prev/next/shuffle/repeat-Outline setzen)
+    document.getElementById('speaker-prev-btn').innerHTML    = _SI.prev;
+    document.getElementById('speaker-next-btn').innerHTML    = _SI.next;
+    document.getElementById('speaker-shuffle-btn').innerHTML = _SI.shuffle;
+
+    // Play / Pause
+    var playing = caps[CAP.SPEAKER_PLAYING] && caps[CAP.SPEAKER_PLAYING].value === true;
+    var playBtn = document.getElementById('speaker-play-btn');
+    playBtn.innerHTML = playing ? _SI.pause : _SI.play;
+
+    // Shuffle
+    var shuffle = caps[CAP.SPEAKER_SHUFFLE] && caps[CAP.SPEAKER_SHUFFLE].value === true;
+    document.getElementById('speaker-shuffle-btn').classList.toggle('active', shuffle);
+
+    // Repeat (none / playlist / track)
+    var repeat = (caps[CAP.SPEAKER_REPEAT] && caps[CAP.SPEAKER_REPEAT].value) || 'none';
+    var repeatActive = repeat && repeat !== 'none' && repeat !== false;
+    var repeatBtn = document.getElementById('speaker-repeat-btn');
+    repeatBtn.innerHTML = (repeat === 'track') ? _SI.repeat1 : _SI.repeat;
+    repeatBtn.classList.toggle('active', !!repeatActive);
+
+    // Lautstärke
+    var vol = (caps[CAP.VOLUME_SET] && caps[CAP.VOLUME_SET].value != null)
+              ? Math.round(caps[CAP.VOLUME_SET].value * 100) : 50;
+    var muted = caps[CAP.VOLUME_MUTE] && caps[CAP.VOLUME_MUTE].value === true;
+    // Beide Slider synchron halten (vertikal + horizontal)
+    var slider = document.getElementById('speaker-vol-slider');
+    slider.value = vol;
+    var sliderRow = document.getElementById('speaker-vol-slider-row');
+    sliderRow.value = vol;
+    sliderRow.style.setProperty('--val', vol + '%');
+    // Beide Mute-Buttons
+    var volIcon = muted ? _SI.volMute : _SI.volHi;
+    var muteBtn = document.getElementById('speaker-mute-btn');
+    muteBtn.innerHTML = volIcon;
+    muteBtn.classList.toggle('muted', muted);
+    var muteBtnRow = document.getElementById('speaker-mute-btn-row');
+    muteBtnRow.innerHTML = volIcon;
+    muteBtnRow.classList.toggle('muted', muted);
+  }
+
+  function speakerPlayPause() {
+    if (!_speakerModalId) return;
+    var playing = ((devices[_speakerModalId].capabilitiesObj || {})[CAP.SPEAKER_PLAYING] || {}).value === true;
+    setCapability(_speakerModalId, CAP.SPEAKER_PLAYING, !playing);
+  }
+  function speakerPrev() {
+    if (!_speakerModalId) return;
+    setCapability(_speakerModalId, CAP.SPEAKER_PREV, true);
+    setTimeout(_startSpeakerPoll, 800); // kurz warten bis Sonos reagiert
+  }
+  function speakerNext() {
+    if (!_speakerModalId) return;
+    setCapability(_speakerModalId, CAP.SPEAKER_NEXT, true);
+    setTimeout(_startSpeakerPoll, 800);
+  }
+  function speakerToggleShuffle() {
+    if (!_speakerModalId) return;
+    var shuffle = ((devices[_speakerModalId].capabilitiesObj || {})[CAP.SPEAKER_SHUFFLE] || {}).value === true;
+    setCapability(_speakerModalId, CAP.SPEAKER_SHUFFLE, !shuffle);
+  }
+  function speakerCycleRepeat() {
+    if (!_speakerModalId) return;
+    var repeat = ((devices[_speakerModalId].capabilitiesObj || {})[CAP.SPEAKER_REPEAT] || {}).value || 'none';
+    var next = (!repeat || repeat === 'none') ? 'playlist'
+             : repeat === 'playlist'          ? 'track'
+             : 'none';
+    setCapability(_speakerModalId, CAP.SPEAKER_REPEAT, next);
+  }
+  function speakerToggleMute() {
+    if (!_speakerModalId) return;
+    var muted = ((devices[_speakerModalId].capabilitiesObj || {})[CAP.VOLUME_MUTE] || {}).value === true;
+    setCapability(_speakerModalId, CAP.VOLUME_MUTE, !muted);
+  }
+
+  window.openSpeakerModal     = openSpeakerModal;
+  window.closeSpeakerModal    = closeSpeakerModal;
+  window.speakerPlayPause     = speakerPlayPause;
+  window.speakerPrev          = speakerPrev;
+  window.speakerNext          = speakerNext;
+  window.speakerToggleShuffle = speakerToggleShuffle;
+  window.speakerCycleRepeat   = speakerCycleRepeat;
+  window.speakerToggleMute    = speakerToggleMute;
 
 })();

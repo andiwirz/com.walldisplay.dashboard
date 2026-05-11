@@ -104,6 +104,47 @@
     </div>
   </div>
 
+  <!-- Speaker-Modal -->
+  <div id="speaker-modal" class="speaker-modal" style="display:none" onclick="if(event.target===this)closeSpeakerModal()">
+    <div class="speaker-modal-inner">
+      <div class="speaker-modal-header">
+        <span id="speaker-modal-name" class="speaker-modal-name"></span>
+        <button class="speaker-modal-close" onclick="closeSpeakerModal()">✕</button>
+      </div>
+      <div class="speaker-modal-body">
+        <div class="speaker-main-col">
+          <div class="speaker-cover-wrap">
+            <img id="speaker-cover" class="speaker-cover" alt="" src="">
+          </div>
+          <div class="speaker-track-info">
+            <div class="speaker-track-name" id="speaker-track-name">—</div>
+            <div class="speaker-track-artist" id="speaker-track-artist"></div>
+            <div class="speaker-track-album" id="speaker-track-album"></div>
+          </div>
+        </div>
+        <!-- Vertikaler Slider (native, grosse Screens) -->
+        <div class="speaker-vol-col">
+          <input type="range" class="speaker-vol-slider" id="speaker-vol-slider" min="0" max="100" value="50">
+          <button class="speaker-mute-btn" id="speaker-mute-btn" onclick="speakerToggleMute()"></button>
+        </div>
+        <!-- Rotierter horizontaler Slider (kleine Screens) -->
+        <div class="speaker-vol-col-sm">
+          <div class="speaker-vol-rotate-wrap">
+            <input type="range" class="speaker-vol-slider-h" id="speaker-vol-slider-row" min="0" max="100" value="50">
+          </div>
+          <button class="speaker-mute-btn" id="speaker-mute-btn-row" onclick="speakerToggleMute()"></button>
+        </div>
+      </div>
+      <div class="speaker-controls">
+        <button class="speaker-btn" id="speaker-shuffle-btn" onclick="speakerToggleShuffle()" title="Shuffle"></button>
+        <button class="speaker-btn speaker-btn-prev" id="speaker-prev-btn" onclick="speakerPrev()" title="Previous"></button>
+        <button class="speaker-btn speaker-btn-play" id="speaker-play-btn" onclick="speakerPlayPause()"></button>
+        <button class="speaker-btn speaker-btn-next" id="speaker-next-btn" onclick="speakerNext()" title="Next"></button>
+        <button class="speaker-btn" id="speaker-repeat-btn" onclick="speakerCycleRepeat()" title="Repeat"></button>
+      </div>
+    </div>
+  </div>
+
   <script src="client.js"></script>
 </body>
 </html>

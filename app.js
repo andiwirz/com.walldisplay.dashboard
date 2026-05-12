@@ -22,6 +22,12 @@ class ShellyWallDisplayApp extends Homey.App {
     this._zonesCacheTs = 0;
     // Static-File-Cache — Dateien einmal von Disk lesen, dann im Memory halten
     this._staticCache = new Map();
+    // SSE-Filter: Vereinigungsmenge aller in irgendeinem Profil sichtbaren Geräte.
+    // null = kein Filter (mind. ein Profil zeigt alle Geräte).
+    this._relevantDeviceIds = null;
+    // Debounce-Timer für Settings-Cache-Updates
+    this._flowCacheTimer   = null;
+    this._deviceCacheTimer = null;
     // Owner-Token-Cache (5 min TTL — Token ändert sich selten)
     this._ownerToken   = null;
     this._ownerTokenTs = 0;
@@ -57,6 +63,10 @@ class ShellyWallDisplayApp extends Homey.App {
         const newPort = this.homey.settings.get('port') || DEFAULT_PORT;
         this._restartServer(newPort).catch((e) => this.error('Server-Neustart fehlgeschlagen:', e.message));
       }
+      // SSE-Filter neu berechnen wenn sich Profile oder Geräteauswahl ändern
+      if (key === 'displayProfiles' || key === 'defaultProfileDevices') {
+        this._buildRelevantDeviceIds();
+      }
     });
   }
 
@@ -72,11 +82,13 @@ class ShellyWallDisplayApp extends Homey.App {
 
       this.homeyApi.devices.on('device.update', (device) => {
         // Nur das geänderte Gerät im Cache patchen — nicht den gesamten Cache wegwerfen.
-        // Verhindert ständige Voll-Fetches bei häufigen Sensor-/Steckdosen-Updates.
         if (this._deviceCache && this._deviceCache[device.id]) {
           this._deviceCache[device.id].capabilitiesObj = device.capabilitiesObj;
           this._deviceCache[device.id].available       = device.available;
         }
+        // SSE-Filter: nur Geräte broadcasten die in mindestens einem Profil sichtbar sind.
+        // _relevantDeviceIds === null bedeutet "kein Filter" (mind. ein Profil zeigt alle Geräte).
+        if (this._relevantDeviceIds !== null && !this._relevantDeviceIds.has(device.id)) return;
         this._broadcastSSE({
           type: 'device.update',
           device: {
@@ -87,14 +99,17 @@ class ShellyWallDisplayApp extends Homey.App {
         });
       });
 
-      // Gerät hinzugefügt/entfernt: Cache komplett invalidieren + Settings aktualisieren
+      // SSE-Filter initial befüllen (nach API-Init, damit Settings bereits geladen sind)
+      this._buildRelevantDeviceIds();
+
+      // Gerät hinzugefügt/entfernt: Cache invalidieren + Settings mit Debounce aktualisieren
       this.homeyApi.devices.on('device.create', () => {
         this._deviceCache = null;
-        this._updateDeviceSettingsCache();
+        this._scheduleDeviceCacheUpdate();
       });
       this.homeyApi.devices.on('device.delete', () => {
         this._deviceCache = null;
-        this._updateDeviceSettingsCache();
+        this._scheduleDeviceCacheUpdate();
       });
 
       // Initiales BefÃ¼llen des Caches (ohne await â€” App soll nicht blockieren)
@@ -106,11 +121,13 @@ class ShellyWallDisplayApp extends Homey.App {
       this._updateFlowSettingsCache().catch((e) =>
         this.error('Flow-Settings-Cache Fehler:', e.message)
       );
-      // Bei Flow-Ã„nderungen Cache aktualisieren
+      // Bei Flow-Änderungen Cache mit Debounce aktualisieren.
+      // flow.update feuert bei jeder Ausführung (Homey aktualisiert lastExecuted) —
+      // ohne Debounce würden bei aktiven Flows zig unnötige 3-Call-Fetches pro Stunde ausgelöst.
       try {
-        this.homeyApi.flow.on('flow.create', () => this._updateFlowSettingsCache());
-        this.homeyApi.flow.on('flow.update', () => this._updateFlowSettingsCache());
-        this.homeyApi.flow.on('flow.delete', () => this._updateFlowSettingsCache());
+        this.homeyApi.flow.on('flow.create', () => this._scheduleFlowCacheUpdate());
+        this.homeyApi.flow.on('flow.update', () => this._scheduleFlowCacheUpdate());
+        this.homeyApi.flow.on('flow.delete', () => this._scheduleFlowCacheUpdate());
       } catch (_) {}
     } catch (err) {
       this.error('Homey API Fehler:', err.message);
@@ -140,10 +157,12 @@ class ShellyWallDisplayApp extends Homey.App {
     this.log(`Device-Settings-Cache aktualisiert: ${devices.length} GerÃ¤te, ${zones.length} Zonen`);
   }
 
-  // Schreibt alle auslösbaren Flows (Basic + Advanced) in Homey-Settings-Cache.
+  // Schreibt alle triggerbaren Flows (Basic + Advanced) in Homey-Settings-Cache.
+  // Nur triggerable:true Flows werden gespeichert — reduziert Cache-Grösse und
+  // macht das filter() in /api/flows überflüssig.
+  // Basic und Advanced Flows werden parallel geladen (Promise.all).
   async _updateFlowSettingsCache() {
     if (!this.homeyApi) return;
-    const flows = [];
 
     // Ordner-Namen vorab laden für lesbare Anzeige
     let folderMap = {};
@@ -152,39 +171,35 @@ class ShellyWallDisplayApp extends Homey.App {
       for (const f of Object.values(folders)) folderMap[f.id] = f.name;
     } catch (_) {}
 
-    // Basic Flows (Classic Flows)
-    try {
-      const basicFlows = await this.homeyApi.flow.getFlows();
-      for (const f of Object.values(basicFlows)) {
-        flows.push({
-          id:          f.id,
-          name:        f.name,
-          folder:      (f.folder && folderMap[f.folder]) || null,
-          type:        'flow',
-          triggerable: f.triggerable !== false,
-        });
-      }
-    } catch (e) {
-      this.error('Flow-Cache (basic):', e.message);
-    }
+    // Basic und Advanced Flows parallel laden
+    const [basicFlows, advFlows] = await Promise.all([
+      this.homeyApi.flow.getFlows().catch(() => ({})),
+      this.homeyApi.flow.getAdvancedFlows().catch(() => ({})),
+    ]);
 
-    // Advanced Flows (Homey >= 10)
-    try {
-      const advFlows = await this.homeyApi.flow.getAdvancedFlows();
-      for (const f of Object.values(advFlows)) {
-        flows.push({
-          id:          f.id,
-          name:        f.name,
-          folder:      (f.folder && folderMap[f.folder]) || null,
-          type:        'advancedflow',
-          triggerable: f.triggerable !== false,
-        });
-      }
-    } catch (_) {} // Homey < 10: kein Advanced Flow
+    const flows = [];
+    for (const f of Object.values(basicFlows)) {
+      if (f.triggerable === false) continue; // nicht triggerbar → überspringen (D)
+      flows.push({
+        id:     f.id,
+        name:   f.name,
+        folder: (f.folder && folderMap[f.folder]) || null,
+        type:   'flow',
+      });
+    }
+    for (const f of Object.values(advFlows)) {
+      if (f.triggerable === false) continue;
+      flows.push({
+        id:     f.id,
+        name:   f.name,
+        folder: (f.folder && folderMap[f.folder]) || null,
+        type:   'advancedflow',
+      });
+    }
 
     flows.sort((a, b) => a.name.localeCompare(b.name));
     this.homey.settings.set('cachedFlows', flows);
-    this.log(`Flow-Settings-Cache aktualisiert: ${flows.length} Flows`);
+    this.log(`Flow-Settings-Cache aktualisiert: ${flows.length} triggerbare Flows`);
   }
 
   async _startServer(port) {
@@ -521,8 +536,8 @@ class ShellyWallDisplayApp extends Homey.App {
 
       // GET /api/flows â€” alle auslösbaren Flows für das Dashboard (aus Settings-Cache)
       if (url.pathname === '/api/flows' && req.method === 'GET') {
-        const cached = this.homey.settings.get('cachedFlows') || [];
-        const flows  = cached.filter((f) => f.triggerable !== false);
+        // cachedFlows enthält bereits nur triggerbare Flows — kein filter() nötig
+        const flows = this.homey.settings.get('cachedFlows') || [];
         res.writeHead(200);
         res.end(JSON.stringify(flows));
         return;
@@ -1465,6 +1480,59 @@ class ShellyWallDisplayApp extends Homey.App {
     return this._zonesCache;
   }
 
+  // Debounce-Wrapper für _updateFlowSettingsCache (5 s).
+  // flow.update feuert bei jeder Ausführung → fasst Bursts zu einem einzigen Aufruf zusammen.
+  _scheduleFlowCacheUpdate() {
+    clearTimeout(this._flowCacheTimer);
+    this._flowCacheTimer = setTimeout(
+      () => this._updateFlowSettingsCache().catch((e) => this.error('Flow-Cache Fehler:', e.message)),
+      5000
+    );
+  }
+
+  // Debounce-Wrapper für _updateDeviceSettingsCache (3 s).
+  // Schützt vor Burst-Fetches beim Pairen mehrerer Geräte gleichzeitig.
+  _scheduleDeviceCacheUpdate() {
+    clearTimeout(this._deviceCacheTimer);
+    this._deviceCacheTimer = setTimeout(
+      () => this._updateDeviceSettingsCache().catch((e) => this.error('Device-Cache Fehler:', e.message)),
+      3000
+    );
+  }
+
+  // Berechnet die Vereinigungsmenge aller Geräte die in irgendeinem Profil sichtbar sind.
+  // Wird bei App-Start und bei jeder Profil-Änderung aufgerufen.
+  // Ergebnis: Set<deviceId> oder null (= kein Filter, alle Geräte relevant).
+  _buildRelevantDeviceIds() {
+    const defaultDevices = this.homey.settings.get('defaultProfileDevices') || [];
+    const profiles       = this.homey.settings.get('displayProfiles')       || [];
+
+    const relevant = new Set();
+
+    // Hilfsfunktion: Geräteliste eines Profils auswerten
+    const addDevices = (devs) => {
+      if (!Array.isArray(devs) || devs.length === 0) {
+        // Leeres Array = kein Filter = alle Geräte → kein SSE-Filtering möglich
+        this._relevantDeviceIds = null;
+        return false; // Signal: Abbruch, null gesetzt
+      }
+      if (devs.includes('__none__')) return true; // Profil zeigt nichts → nichts hinzufügen
+      for (const id of devs) relevant.add(id);
+      return true;
+    };
+
+    // Default-Profil
+    if (!addDevices(defaultDevices)) return; // null gesetzt → fertig
+
+    // IP-Profile
+    for (const profile of profiles) {
+      if (!addDevices(profile.devices || [])) return; // null gesetzt → fertig
+    }
+
+    this._relevantDeviceIds = relevant;
+    this.log(`SSE-Filter: ${relevant.size} relevante Geräte aus ${1 + profiles.length} Profil(en)`);
+  }
+
   // Owner-API-Token mit 5 min TTL cachen — wird an mehreren Stellen benötigt,
   // ändert sich aber selten. Vermeidet wiederholte API-Calls pro Request.
   async _getOwnerToken() {
@@ -1498,8 +1566,10 @@ class ShellyWallDisplayApp extends Homey.App {
   }
 
   async onUninit() {
-    if (this._sseHeartbeat) clearInterval(this._sseHeartbeat);
-    if (this.wss) this.wss.close();
+    if (this._sseHeartbeat)   clearInterval(this._sseHeartbeat);
+    if (this._flowCacheTimer)   clearTimeout(this._flowCacheTimer);
+    if (this._deviceCacheTimer) clearTimeout(this._deviceCacheTimer);
+    if (this.wss)    this.wss.close();
     if (this.server) this.server.close();
   }
 

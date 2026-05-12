@@ -305,6 +305,124 @@
       border-top: 1px solid #f0f0f0;
     }
     .folder-header:first-child { border-top: none; margin-top: 0; padding-top: 0; }
+
+    /* ── Display Profiles ─────────────────────────── */
+    .profile-card-default {
+      background: #fff8ee;
+      border-color: #F5A623;
+      margin-bottom: 18px;
+    }
+    .profile-default-heading {
+      font-size: 13px;
+      font-weight: 700;
+      color: #b87200;
+      margin-bottom: 10px;
+      letter-spacing: 0.02em;
+    }
+    .profile-card {
+      border: 1.5px solid #e8e8e8;
+      border-radius: 10px;
+      padding: 14px;
+      margin-bottom: 12px;
+      background: #fafafa;
+    }
+    .profile-header {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    .profile-name-input {
+      display: block;
+      width: 100%;
+      box-sizing: border-box;
+      padding: 8px 10px;
+      border: 1px solid #ddd;
+      border-radius: 7px;
+      font-size: 14px;
+      font-weight: 600;
+      background: #fff;
+      margin-bottom: 8px;
+    }
+    .profile-ip-input {
+      width: 150px;
+      flex-shrink: 0;
+      padding: 8px 10px;
+      border: 1px solid #ddd;
+      border-radius: 7px;
+      font-size: 13px;
+      font-family: monospace;
+      background: #fff;
+    }
+    .profile-name-input:focus,
+    .profile-ip-input:focus { outline: none; border-color: #F5A623; }
+    .profile-delete-btn {
+      background: none;
+      border: 1px solid #ddd;
+      border-radius: 7px;
+      width: 34px; height: 34px;
+      cursor: pointer;
+      font-size: 16px;
+      color: #aaa;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      transition: color 0.15s, border-color 0.15s;
+    }
+    .profile-delete-btn:hover { color: #e53935; border-color: #e53935; }
+    .profile-delete-btn.confirming {
+      background: #e53935;
+      border-color: #e53935;
+      color: #fff;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 0 10px;
+      width: auto;
+    }
+    .profile-zone-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .profile-zone-row {
+      display: flex; align-items: center; gap: 8px;
+      padding: 5px 4px; border-radius: 5px; cursor: pointer;
+      font-size: 13px;
+    }
+    .profile-zone-row:hover { background: #f0f0f0; }
+    .profile-zone-row input[type="checkbox"] {
+      width: 15px; height: 15px; accent-color: #F5A623; cursor: pointer; flex-shrink: 0;
+    }
+    .profile-ip-hint {
+      font-size: 11px; color: #aaa; margin-top: 6px;
+      display: flex; align-items: center; gap: 5px;
+    }
+    .profile-ip-detected { color: #F5A623; font-weight: 600; }
+    .add-profile-btn {
+      width: 100%;
+      padding: 10px;
+      border: 1.5px dashed #ddd;
+      border-radius: 8px;
+      background: #fff;
+      color: #888;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: border-color 0.15s, color 0.15s;
+      margin-top: 4px;
+    }
+    .add-profile-btn:hover { border-color: #F5A623; color: #F5A623; }
+    .profiles-empty { color: #aaa; font-size: 13px; text-align: center; padding: 16px 0; }
+    .profile-section-toggle {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-top: 12px; padding-top: 10px;
+      border-top: 1px solid #eee;
+      cursor: pointer; user-select: none;
+    }
+    .profile-section-toggle span { font-size: 12px; font-weight: 600; color: #666; text-transform: uppercase; letter-spacing: 0.6px; }
+    .profile-section-toggle .toggle-arrow { font-size: 12px; color: #aaa; transition: transform 0.2s; }
+    .profile-section-toggle.open .toggle-arrow { transform: rotate(180deg); }
+    .profile-section-body { display: none; margin-top: 8px; }
+    .profile-section-body.open { display: block; }
   </style>
 </head>
 <body>
@@ -324,8 +442,7 @@
   <div class="tab-bar">
     <button class="tab-btn active" onclick="switchTab('general')" id="tab-general" data-i18n="tabGeneral">General</button>
     <button class="tab-btn" onclick="switchTab('design')" id="tab-design" data-i18n="tabDesign">Design</button>
-    <button class="tab-btn" onclick="switchTab('devices')" id="tab-devices" data-i18n="tabDevices">Devices</button>
-    <button class="tab-btn" onclick="switchTab('flows')" id="tab-flows" data-i18n="tabFlows">Flows</button>
+    <button class="tab-btn" onclick="switchTab('displays')" id="tab-displays" data-i18n="tabDisplays">Profile</button>
   </div>
 
   <!-- ── Tab: General ─────────────────────────────── -->
@@ -539,44 +656,26 @@
 
   </div><!-- /panel-design -->
 
-  <!-- ── Tab: Devices ──────────────────────────────── -->
-  <div class="tab-panel" id="panel-devices">
-    <div class="card">
-      <div class="card-title">
-        <span data-i18n="devicesTitle">Devices on Dashboard</span>
-        <div class="card-title-actions">
-          <button class="btn-small" onclick="selectAllDevices(true)" data-i18n="all">All</button>
-          <button class="btn-small" onclick="selectAllDevices(false)" data-i18n="none">None</button>
-        </div>
-      </div>
-      <p class="hint" style="margin-bottom:10px" data-i18n="devicesHint">Choose which devices are visible on the dashboard.</p>
-      <div id="devices-loading" class="list-loading" data-i18n="devicesLoading">Loading devices…</div>
-      <div id="devices-list" style="display:none"></div>
-      <div class="status" id="devices-status"></div>
-      <button class="save-list-btn" id="save-devices-btn" onclick="saveDevices()" disabled data-i18n="saveSelection">Save selection</button>
-    </div>
-  </div><!-- /panel-devices -->
+  <!-- ── Tab: Displays ─────────────────────────────── -->
+  <div class="tab-panel" id="panel-displays">
 
-  <!-- ── Tab: Flows ────────────────────────────────── -->
-  <div class="tab-panel" id="panel-flows">
-
-    <!-- Flow-Auswahl -->
     <div class="card">
-      <div class="card-title">
-        <span data-i18n="flowsTitle">Flows on Dashboard</span>
-        <div class="card-title-actions">
-          <button class="btn-small" onclick="selectAllFlows(true)" data-i18n="all">All</button>
-          <button class="btn-small" onclick="selectAllFlows(false)" data-i18n="none">None</button>
-        </div>
-      </div>
-      <p class="hint" style="margin-bottom:10px" data-i18n="flowsHint">Select flows to show as one-tap buttons on the dashboard.</p>
-      <div id="flows-loading" class="list-loading" data-i18n="flowsLoading">Loading flows…</div>
-      <div id="flows-list" style="display:none"></div>
-      <div class="status" id="flows-status"></div>
-      <button class="save-list-btn" id="save-flows-btn" onclick="saveFlows()" disabled data-i18n="saveFlowSelection">Save selection</button>
+      <div class="card-title" data-i18n="displaysTitle">Display Profiles</div>
+      <p class="hint" style="margin-bottom:14px;" data-i18n="displaysHint">
+        The default profile applies to all displays. Add IP-specific profiles to show only certain rooms and flows on individual Shelly Wall Displays.
+      </p>
+      <p class="hint profile-ip-hint" style="margin-bottom:14px;">
+        <span data-i18n="displaysYourIp">Your current IP:</span>
+        <span class="profile-ip-detected" id="detected-ip">…</span>
+      </p>
+      <div id="default-profile-container"></div>
+      <div id="profiles-list"></div>
+      <button class="add-profile-btn" onclick="addProfile()" data-i18n="displaysAdd">＋ Add IP profile</button>
+      <button class="save-list-btn" id="save-profiles-btn" onclick="saveProfiles()" style="margin-top:14px;" data-i18n="displaysSave">Save profiles</button>
+      <div class="status" id="profiles-status"></div>
     </div>
 
-  </div><!-- /panel-flows -->
+  </div><!-- /panel-displays -->
 
   <script>
     // ── i18n ───────────────────────────────────────────────────────────
@@ -665,6 +764,16 @@
         selectionSaved:   'Saved ($1 of $2 devices)',
         noDevices:        'No devices found — restart the app.',
         devicesError:     'Could not load devices ($1).',
+        tabDisplays:      'Profiles',
+        displaysTitle:    'Display Profiles',
+        displaysHint:     'The default profile applies to all displays. Add IP-specific profiles to restrict individual Shelly Wall Displays to certain rooms and flows.',
+        displaysYourIp:   'Your current IP:',
+        displaysAdd:      '＋ Add IP profile',
+        displaysSave:     'Save profiles',
+        displaysSaved:    'Profiles saved',
+        displaysNamePlh:  'Name (e.g. Living Room)',
+        displaysIpPlh:    'IP address',
+        displaysZonesAll: 'Show all rooms (no filter)',
         flowsTitle:       'Flows on Dashboard',
         flowsHint:        'Select flows to show as one-tap buttons. Only manually triggerable flows are shown.',
         flowsLoading:     'Loading flows…',
@@ -760,6 +869,16 @@
         selectionSaved:   'Gespeichert ($1 von $2 Geräten)',
         noDevices:        'Keine Geräte gefunden – App neu starten.',
         devicesError:     'Geräte konnten nicht geladen werden ($1).',
+        tabDisplays:      'Profiles',
+        displaysTitle:    'Display-Profile',
+        displaysHint:     'Das Standard-Profil gilt für alle Displays. Füge IP-spezifische Profile hinzu, um einzelne Shelly Wall Displays auf bestimmte Räume und Flows zu beschränken.',
+        displaysYourIp:   'Deine aktuelle IP:',
+        displaysAdd:      '＋ IP-Profil hinzufügen',
+        displaysSave:     'Profile speichern',
+        displaysSaved:    'Profile gespeichert',
+        displaysNamePlh:  'Name (z.B. Wohnzimmer)',
+        displaysIpPlh:    'IP-Adresse',
+        displaysZonesAll: 'Alle Räume anzeigen (kein Filter)',
         flowsTitle:       'Flows auf dem Dashboard',
         flowsHint:        'Wähle Flows als Schnellstart-Buttons. Nur manuell auslösbare Flows werden angezeigt.',
         flowsLoading:     'Lade Flows…',
@@ -803,9 +922,11 @@
 
     // ── App state ──────────────────────────────────────────────────────
     var _Homey;
-    var _allDevices = [];
-    var _allZones   = {};
-    var _allFlows   = [];
+    var _allDevices  = [];
+    var _allZones    = {};
+    var _allFlows    = [];
+    var _profiles    = [];   // Display-Profile (displayProfiles setting)
+    var _defaultProfile = { zones: [], devices: [], flows: [] };
     var _dashboardBase = null;
 
     var CLASS_ICONS = {
@@ -877,8 +998,17 @@
     async function loadAll() {
       var port           = await hGetSafe('port', 7575);
       var storedUrl      = await hGetSafe('currentUrl', null);
-      var enabledDevices = await hGetSafe('enabledDevices', null);
-      var enabledFlows   = await hGetSafe('enabledFlows', null);
+      var enabledFlows    = await hGetSafe('enabledFlows', null);
+      var defaultZones    = await hGetSafe('defaultProfileZones', []);
+      // Migrate from old enabledDevices key if defaultProfileDevices not yet set
+      var rawDefaultDevices = await hGet('defaultProfileDevices');
+      var defaultDevices;
+      if (rawDefaultDevices != null) {
+        defaultDevices = Array.isArray(rawDefaultDevices) ? rawDefaultDevices : [];
+      } else {
+        var legacyDevices = await hGetSafe('enabledDevices', null);
+        defaultDevices = Array.isArray(legacyDevices) ? legacyDevices : [];
+      }
       var energyEnabled  = await hGetSafe('energyEnabled', true);
       var tileSize       = await hGetSafe('tileSize', 3);
       var savedPin       = await hGetSafe('alarmPin', '');
@@ -923,194 +1053,54 @@
         urlEl.removeAttribute('href');
       }
 
+      // ── Display Profiles ──────────────────────────────────────────
+      var savedProfiles = await hGetSafe('displayProfiles', []);
+      _profiles = Array.isArray(savedProfiles) ? savedProfiles : [];
+      _defaultProfile = {
+        zones:   Array.isArray(defaultZones)   ? defaultZones   : [],
+        devices: Array.isArray(defaultDevices) ? defaultDevices : [],
+        flows:   Array.isArray(enabledFlows)   ? enabledFlows   : [],
+      };
+      // Eigene IP ermitteln (best-effort)
+      dashboardGet('/api/client-ip').then(function(r) {
+        var ipEl = document.getElementById('detected-ip');
+        if (ipEl && r && r.ip) ipEl.textContent = r.ip;
+      }).catch(function() {});
+
       // ── Flows (from cache or HTTP) ─────────────────────────────────
       var cachedFlows = await hGet('cachedFlows');
       if (cachedFlows && cachedFlows.length) {
         _allFlows = cachedFlows.filter(function(f) { return f.triggerable !== false; });
-        renderFlowList(enabledFlows);
-        document.getElementById('save-flows-btn').disabled = false;
+        renderProfiles();
       } else {
         dashboardGet('/api/flows')
           .then(function(flows) {
-            if (flows && flows.length) {
-              _allFlows = flows;
-              renderFlowList(enabledFlows);
-              document.getElementById('save-flows-btn').disabled = false;
-            } else {
-              document.getElementById('flows-loading').textContent = T.noFlows;
-            }
+            if (flows && flows.length) { _allFlows = flows; renderProfiles(); }
           })
-          .catch(function() {
-            document.getElementById('flows-loading').textContent = T.noFlows;
-          });
+          .catch(function() {});
       }
 
-      // ── Devices (cache first, then HTTP fallback) ──────────────────
-      var cachedDevices = await hGet('cachedDevices');
+      // ── Zones + Devices (cache first, then HTTP fallback) ─────────
       var cachedZones   = await hGet('cachedZones');
-      if (cachedDevices && cachedDevices.length) {
-        _allDevices = cachedDevices;
-        _allZones   = {};
-        (cachedZones || []).forEach(function(z) { _allZones[z.id] = z; });
-        renderDeviceList(enabledDevices);
-        document.getElementById('save-devices-btn').disabled = false;
+      var cachedDevices = await hGet('cachedDevices');
+      if (cachedZones && cachedZones.length) {
+        _allZones = {};
+        cachedZones.forEach(function(z) { _allZones[z.id] = z; });
+        if (cachedDevices && cachedDevices.length) _allDevices = cachedDevices;
+        renderProfiles();
         return;
       }
-      Promise.all([dashboardGet('/api/alldevices'), dashboardGet('/api/zones')])
-        .then(function(results) {
-          var devs = results[0], zones = results[1];
-          if (devs && devs.length) {
-            _allDevices = devs;
-            _allZones   = {};
+      Promise.all([dashboardGet('/api/zones'), dashboardGet('/api/alldevices')])
+        .then(function(res) {
+          var zones = res[0], devs = res[1];
+          if (zones && zones.length) {
+            _allZones = {};
             zones.forEach(function(z) { _allZones[z.id] = z; });
-            renderDeviceList(enabledDevices);
-            document.getElementById('save-devices-btn').disabled = false;
-          } else {
-            document.getElementById('devices-loading').textContent = T.noDevices;
           }
+          if (devs && devs.length) _allDevices = devs;
+          renderProfiles();
         })
-        .catch(function(e) {
-          document.getElementById('devices-loading').textContent = T.devicesError.replace('$1', e.message);
-        });
-    }
-
-    // ── Render device list ─────────────────────────────────────────────
-    function renderDeviceList(enabledDevices) {
-      var isAll = !Array.isArray(enabledDevices);
-      var enabledSet = isAll ? null : new Set(enabledDevices);
-      var byZone = {}, noZone = [];
-      _allDevices.forEach(function(d) {
-        if (d.zone && _allZones[d.zone]) {
-          if (!byZone[d.zone]) byZone[d.zone] = [];
-          byZone[d.zone].push(d);
-        } else { noZone.push(d); }
-      });
-      var sortedZoneIds = Object.keys(byZone).sort(function(a, b) {
-        return _allZones[a].name.localeCompare(_allZones[b].name);
-      });
-      if (noZone.length) sortedZoneIds.push('__nozone__');
-      byZone['__nozone__'] = noZone;
-
-      var listEl = document.getElementById('devices-list');
-      listEl.innerHTML = '';
-
-      sortedZoneIds.forEach(function(zoneId) {
-        var zoneName = zoneId === '__nozone__' ? T.other : _allZones[zoneId].name;
-        var zoneDevices = byZone[zoneId];
-        if (!zoneDevices || !zoneDevices.length) return;
-
-        var group = document.createElement('div');
-        group.className = 'zone-group';
-        group.setAttribute('data-zone', zoneId);
-
-        var header = document.createElement('div');
-        header.className = 'zone-header';
-        var nameEl = document.createElement('span');
-        nameEl.className = 'zone-name';
-        nameEl.textContent = zoneName;
-        var actions = document.createElement('div');
-        actions.className = 'zone-actions';
-        var btnAll  = document.createElement('button');
-        btnAll.className = 'btn-small'; btnAll.textContent = T.zoneAll;
-        btnAll.onclick = function() { selectZone(zoneId, true); };
-        var btnNone = document.createElement('button');
-        btnNone.className = 'btn-small'; btnNone.textContent = T.zoneNone;
-        btnNone.onclick = function() { selectZone(zoneId, false); };
-        actions.appendChild(btnAll); actions.appendChild(btnNone);
-        header.appendChild(nameEl); header.appendChild(actions);
-        group.appendChild(header);
-
-        zoneDevices.sort(function(a, b) { return a.name.localeCompare(b.name); });
-        zoneDevices.forEach(function(d) {
-          var row = document.createElement('label');
-          row.className = 'item-row'; row.htmlFor = 'dev-' + d.id;
-          var cb = document.createElement('input');
-          cb.type = 'checkbox'; cb.id = 'dev-' + d.id;
-          cb.checked = isAll || enabledSet.has(d.id);
-          cb.setAttribute('data-device-id', d.id);
-          var lbl = document.createElement('span');
-          lbl.className = 'item-label'; lbl.textContent = d.name;
-          var badge = document.createElement('span');
-          badge.className = 'item-badge'; badge.textContent = d.class || '';
-          row.appendChild(cb); row.appendChild(buildIconEl(d));
-          row.appendChild(lbl); row.appendChild(badge);
-          group.appendChild(row);
-        });
-        listEl.appendChild(group);
-      });
-
-      document.getElementById('devices-loading').style.display = 'none';
-      listEl.style.display = 'block';
-    }
-
-    // ── Render flow list ───────────────────────────────────────────────
-    function renderFlowList(enabledFlows) {
-      var enabledSet = Array.isArray(enabledFlows) ? new Set(enabledFlows) : (enabledFlows === false ? new Set() : null);
-      var listEl = document.getElementById('flows-list');
-      listEl.innerHTML = '';
-
-      if (!_allFlows.length) {
-        document.getElementById('flows-loading').textContent = T.noFlows;
-        return;
-      }
-
-      var byFolder = {}, noFolder = [];
-      _allFlows.forEach(function(f) {
-        if (f.folder) {
-          if (!byFolder[f.folder]) byFolder[f.folder] = [];
-          byFolder[f.folder].push(f);
-        } else { noFolder.push(f); }
-      });
-      var sortedFolders = Object.keys(byFolder).sort();
-      if (noFolder.length) sortedFolders.push('__nofolder__');
-      byFolder['__nofolder__'] = noFolder;
-
-      sortedFolders.forEach(function(folderName) {
-        var flowsInFolder = byFolder[folderName];
-        if (!flowsInFolder || !flowsInFolder.length) return;
-
-        if (folderName !== '__nofolder__') {
-          var fhdr = document.createElement('div');
-          fhdr.className = 'folder-header';
-          fhdr.textContent = '📁 ' + folderName;
-          listEl.appendChild(fhdr);
-        }
-
-        flowsInFolder.forEach(function(f) {
-          var row = document.createElement('label');
-          row.className = 'item-row'; row.htmlFor = 'flow-' + f.id;
-          var cb = document.createElement('input');
-          cb.type = 'checkbox'; cb.id = 'flow-' + f.id;
-          cb.checked = enabledSet ? enabledSet.has(f.id) : false;
-          cb.setAttribute('data-flow-id', f.id);
-          var icon = document.createElement('span');
-          icon.className = 'item-icon'; icon.textContent = '▶';
-          icon.style.fontSize = '12px';
-          var lbl = document.createElement('span');
-          lbl.className = 'item-label'; lbl.textContent = f.name;
-          var badge = document.createElement('span');
-          badge.className = 'item-badge';
-          badge.textContent = f.type === 'advancedflow' ? 'Advanced' : 'Flow';
-          row.appendChild(cb); row.appendChild(icon);
-          row.appendChild(lbl); row.appendChild(badge);
-          listEl.appendChild(row);
-        });
-      });
-
-      document.getElementById('flows-loading').style.display = 'none';
-      listEl.style.display = 'block';
-    }
-
-    // ── Selection helpers ──────────────────────────────────────────────
-    function selectAllDevices(state) {
-      document.querySelectorAll('#devices-list input[type="checkbox"]').forEach(function(cb) { cb.checked = state; });
-    }
-    function selectZone(zoneId, state) {
-      var g = document.querySelector('[data-zone="' + zoneId + '"]');
-      if (g) g.querySelectorAll('input[type="checkbox"]').forEach(function(cb) { cb.checked = state; });
-    }
-    function selectAllFlows(state) {
-      document.querySelectorAll('#flows-list input[type="checkbox"]').forEach(function(cb) { cb.checked = state; });
+        .catch(function() {});
     }
 
     // ── Save functions ─────────────────────────────────────────────────
@@ -1292,25 +1282,383 @@
       } catch (e) { showStatus('energy-status', T.errorPrefix + e.message, false); }
     }
 
-    async function saveDevices() {
-      var checkboxes = document.querySelectorAll('#devices-list input[type="checkbox"]');
-      var enabled = [];
-      checkboxes.forEach(function(cb) { if (cb.checked) enabled.push(cb.getAttribute('data-device-id')); });
-      var value = (enabled.length === _allDevices.length) ? true : enabled;
-      try {
-        await hSet('enabledDevices', value);
-        showStatus('devices-status', T.selectionSaved.replace('$1', enabled.length).replace('$2', _allDevices.length), true);
-      } catch (e) { showStatus('devices-status', T.errorPrefix + e.message, false); }
+    // ── Display Profiles ──────────────────────────────────────────────
+
+    function renderProfiles() {
+      // Default profile card (always shown, at top)
+      var defContainer = document.getElementById('default-profile-container');
+      if (defContainer) {
+        defContainer.innerHTML = '';
+        defContainer.appendChild(buildDefaultProfileCard(_defaultProfile));
+      }
+      // IP-specific profiles
+      var list = document.getElementById('profiles-list');
+      if (!list) return;
+      list.innerHTML = '';
+      _profiles.forEach(function(profile) {
+        list.appendChild(buildProfileCard(profile));
+      });
     }
 
-    async function saveFlows() {
-      var checkboxes = document.querySelectorAll('#flows-list input[type="checkbox"]');
-      var enabled = [];
-      checkboxes.forEach(function(cb) { if (cb.checked) enabled.push(cb.getAttribute('data-flow-id')); });
+    function buildDefaultProfileCard(profile) {
+      var card = document.createElement('div');
+      card.className = 'profile-card profile-card-default';
+      card.setAttribute('data-profile-id', '__default__');
+
+      var heading = document.createElement('div');
+      heading.className = 'profile-default-heading';
+      heading.textContent = lang === 'de' ? '🌐 Standard-Profil (alle Displays)' : '🌐 Default profile (all displays)';
+      card.appendChild(heading);
+
+      _appendDevicesSection(card, profile);
+      _appendFlowsSection(card, profile);
+
+      return card;
+    }
+
+    function buildProfileCard(profile) {
+      var card = document.createElement('div');
+      card.className = 'profile-card';
+      card.setAttribute('data-profile-id', profile.id);
+
+      // Header: [name input] [✕] on top row, IP input below
+      var nameRow = document.createElement('div');
+      nameRow.className = 'profile-header';
+
+      var nameInput = document.createElement('input');
+      nameInput.type = 'text';
+      nameInput.className = 'profile-name-input';
+      nameInput.style.marginBottom = '0';
+      nameInput.placeholder = T.displaysNamePlh || 'Profilname';
+      nameInput.value = profile.name || '';
+      nameInput.setAttribute('data-field', 'name');
+
+      var delBtn = document.createElement('button');
+      delBtn.className = 'profile-delete-btn';
+      delBtn.textContent = '✕';
+      delBtn.title = lang === 'de' ? 'Profil löschen' : 'Delete profile';
+      var _delConfirmPending = false;
+      var _delConfirmTimer  = null;
+      delBtn.onclick = function() {
+        if (!_delConfirmPending) {
+          // First click: ask for confirmation
+          _delConfirmPending = true;
+          delBtn.textContent = lang === 'de' ? 'Löschen?' : 'Delete?';
+          delBtn.classList.add('confirming');
+          _delConfirmTimer = setTimeout(function() {
+            _delConfirmPending = false;
+            delBtn.textContent = '✕';
+            delBtn.classList.remove('confirming');
+          }, 3000);
+        } else {
+          // Second click: confirm delete
+          clearTimeout(_delConfirmTimer);
+          _syncProfilesFromDOM();
+          _profiles = _profiles.filter(function(p) { return p.id !== profile.id; });
+          renderProfiles();
+        }
+      };
+
+      nameRow.appendChild(nameInput);
+      nameRow.appendChild(delBtn);
+      card.appendChild(nameRow);
+
+      var ipInput = document.createElement('input');
+      ipInput.type = 'text';
+      ipInput.className = 'profile-ip-input';
+      ipInput.style.cssText = 'display:block;width:100%;box-sizing:border-box;margin-bottom:12px;';
+      ipInput.placeholder = T.displaysIpPlh || '192.168.x.x';
+      ipInput.value = profile.ip || '';
+      ipInput.setAttribute('data-field', 'ip');
+      card.appendChild(ipInput);
+
+      _appendDevicesSection(card, profile);
+      _appendFlowsSection(card, profile);
+
+      return card;
+    }
+
+    // ── Shared collapsible sections ────────────────────────────────────
+
+    function _appendFlowsSection(card, profile) {
+      if (!_allFlows.length) return;
+      var isNone   = Array.isArray(profile.flows) && profile.flows.includes('__none__');
+      var hasFilter = Array.isArray(profile.flows) && profile.flows.length > 0 && !isNone;
+      var toggle = document.createElement('div');
+      toggle.className = 'profile-section-toggle';
+      var lbl = document.createElement('span'); lbl.textContent = 'Flows';
+      var badge = document.createElement('span');
+      badge.style.cssText = 'font-size:11px;background:#f0f0f0;border-radius:4px;padding:1px 7px;color:#888;font-weight:600;';
+      badge.textContent = isNone
+        ? (lang === 'de' ? 'Keine' : 'None')
+        : (hasFilter
+          ? (lang === 'de' ? profile.flows.length + ' ausgewählt' : profile.flows.length + ' selected')
+          : (lang === 'de' ? 'Alle' : 'All'));
+      var arrow = document.createElement('span');
+      arrow.className = 'toggle-arrow'; arrow.textContent = '▼';
+      var left = document.createElement('div');
+      left.style.cssText = 'display:flex;align-items:center;gap:8px;';
+      left.appendChild(lbl); left.appendChild(badge);
+      toggle.appendChild(left); toggle.appendChild(arrow);
+
+      var body = document.createElement('div');
+      body.className = 'profile-section-body';
+      toggle.onclick = function() { toggle.classList.toggle('open'); body.classList.toggle('open'); };
+
+      function uncheckSpecial() {
+        // Deselect __all__ and __none__ only — individual flows stay independent
+        var a = body.querySelector('[data-flow="__all__"]');  if (a) a.checked = false;
+        var n = body.querySelector('[data-flow="__none__"]'); if (n) n.checked = false;
+      }
+      function uncheckAll() {
+        // Deselect everything (used by __all__ and __none__)
+        body.querySelectorAll('[data-flow]').forEach(function(c) { c.checked = false; });
+      }
+
+      // "Alle Flows anzeigen"
+      var allLabel = document.createElement('label');
+      allLabel.className = 'profile-zone-row';
+      allLabel.style.cssText = 'margin-bottom:2px;font-size:13px;color:#888;cursor:pointer;display:flex;align-items:center;gap:8px;';
+      var allCb = document.createElement('input');
+      allCb.type = 'checkbox';
+      allCb.style.cssText = 'width:15px;height:15px;accent-color:#F5A623;cursor:pointer;flex-shrink:0;';
+      allCb.checked = !hasFilter && !isNone;
+      allCb.setAttribute('data-flow', '__all__');
+      allCb.onchange = function() { if (this.checked) { uncheckAll(); this.checked = true; } };
+      var allSpan = document.createElement('span');
+      allSpan.textContent = lang === 'de' ? 'Alle Flows anzeigen' : 'Show all flows';
+      allLabel.appendChild(allCb); allLabel.appendChild(allSpan);
+      body.appendChild(allLabel);
+
+      // "Keine Flows anzeigen"
+      var noneLabel = document.createElement('label');
+      noneLabel.className = 'profile-zone-row';
+      noneLabel.style.cssText = 'margin-bottom:6px;border-bottom:1px solid #eee;padding-bottom:6px;font-size:13px;color:#888;cursor:pointer;display:flex;align-items:center;gap:8px;';
+      var noneCb = document.createElement('input');
+      noneCb.type = 'checkbox';
+      noneCb.style.cssText = 'width:15px;height:15px;accent-color:#F5A623;cursor:pointer;flex-shrink:0;';
+      noneCb.checked = isNone;
+      noneCb.setAttribute('data-flow', '__none__');
+      noneCb.onchange = function() { if (this.checked) { uncheckAll(); this.checked = true; } };
+      var noneSpan = document.createElement('span');
+      noneSpan.textContent = lang === 'de' ? 'Keine Flows anzeigen' : 'Show no flows';
+      noneLabel.appendChild(noneCb); noneLabel.appendChild(noneSpan);
+      body.appendChild(noneLabel);
+
+      var grid = document.createElement('div');
+      grid.className = 'profile-zone-grid';
+      var flowSet = new Set(profile.flows || []);
+      _allFlows.forEach(function(f) {
+        var row = document.createElement('label');
+        row.className = 'profile-zone-row';
+        var cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.setAttribute('data-flow', f.id);
+        cb.checked = flowSet.has(f.id);
+        cb.onchange = function() {
+          if (this.checked) uncheckSpecial();
+        };
+        var sp = document.createElement('span');
+        sp.textContent = f.name;
+        sp.style.cssText = 'overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
+        row.appendChild(cb); row.appendChild(sp);
+        grid.appendChild(row);
+      });
+      body.appendChild(grid);
+      card.appendChild(toggle); card.appendChild(body);
+    }
+
+    function _appendDevicesSection(card, profile) {
+      if (!_allDevices.length) return;
+      var isNone    = Array.isArray(profile.devices) && profile.devices.includes('__none__');
+      var hasFilter = Array.isArray(profile.devices) && profile.devices.length > 0 && !isNone;
+      var toggle = document.createElement('div');
+      toggle.className = 'profile-section-toggle';
+      var lbl = document.createElement('span'); lbl.textContent = lang === 'de' ? 'Geräte' : 'Devices';
+      var badge = document.createElement('span');
+      badge.style.cssText = 'font-size:11px;background:#f0f0f0;border-radius:4px;padding:1px 7px;color:#888;font-weight:600;';
+      badge.textContent = isNone
+        ? (lang === 'de' ? 'Keine' : 'None')
+        : (hasFilter
+          ? (lang === 'de' ? profile.devices.length + ' Geräte' : profile.devices.length + ' devices')
+          : (lang === 'de' ? 'Alle' : 'All'));
+      var arrow = document.createElement('span');
+      arrow.className = 'toggle-arrow'; arrow.textContent = '▼';
+      var left = document.createElement('div');
+      left.style.cssText = 'display:flex;align-items:center;gap:8px;';
+      left.appendChild(lbl); left.appendChild(badge);
+      toggle.appendChild(left); toggle.appendChild(arrow);
+
+      var body = document.createElement('div');
+      body.className = 'profile-section-body';
+      toggle.onclick = function() { toggle.classList.toggle('open'); body.classList.toggle('open'); };
+
+      function uncheckDeviceSpecial() {
+        var a = body.querySelector('[data-device="__all__"]');  if (a) a.checked = false;
+        var n = body.querySelector('[data-device="__none__"]'); if (n) n.checked = false;
+      }
+      function uncheckAllDevices() {
+        body.querySelectorAll('[data-device]').forEach(function(c) { c.checked = false; });
+      }
+
+      // "Alle Geräte anzeigen"
+      var allLabel = document.createElement('label');
+      allLabel.className = 'profile-zone-row';
+      allLabel.style.cssText = 'margin-bottom:2px;display:flex;align-items:center;gap:8px;font-size:13px;color:#888;cursor:pointer;';
+      var allCb = document.createElement('input');
+      allCb.type = 'checkbox';
+      allCb.style.cssText = 'width:15px;height:15px;accent-color:#F5A623;cursor:pointer;flex-shrink:0;';
+      allCb.checked = !hasFilter && !isNone;
+      allCb.setAttribute('data-device', '__all__');
+      allCb.onchange = function() { if (this.checked) { uncheckAllDevices(); this.checked = true; } };
+      var allSpan = document.createElement('span');
+      allSpan.textContent = lang === 'de' ? 'Alle Geräte anzeigen' : 'Show all devices';
+      allLabel.appendChild(allCb); allLabel.appendChild(allSpan);
+      body.appendChild(allLabel);
+
+      // "Keine Geräte anzeigen"
+      var noneLabel = document.createElement('label');
+      noneLabel.className = 'profile-zone-row';
+      noneLabel.style.cssText = 'margin-bottom:6px;border-bottom:1px solid #eee;padding-bottom:6px;display:flex;align-items:center;gap:8px;font-size:13px;color:#888;cursor:pointer;';
+      var noneCb = document.createElement('input');
+      noneCb.type = 'checkbox';
+      noneCb.style.cssText = 'width:15px;height:15px;accent-color:#F5A623;cursor:pointer;flex-shrink:0;';
+      noneCb.checked = isNone;
+      noneCb.setAttribute('data-device', '__none__');
+      noneCb.onchange = function() { if (this.checked) { uncheckAllDevices(); this.checked = true; } };
+      var noneSpan = document.createElement('span');
+      noneSpan.textContent = lang === 'de' ? 'Keine Geräte anzeigen' : 'Show no devices';
+      noneLabel.appendChild(noneCb); noneLabel.appendChild(noneSpan);
+      body.appendChild(noneLabel);
+
+      // Devices grouped by zone
+      var deviceSet = new Set(profile.devices || []);
+      var byZone = {}, noZone = [];
+      _allDevices.forEach(function(d) {
+        if (d.zone && _allZones[d.zone]) {
+          if (!byZone[d.zone]) byZone[d.zone] = [];
+          byZone[d.zone].push(d);
+        } else { noZone.push(d); }
+      });
+      var sortedZoneIds = Object.keys(byZone).sort(function(a, b) {
+        return (_allZones[a] ? _allZones[a].name : '').localeCompare(_allZones[b] ? _allZones[b].name : '');
+      });
+      if (noZone.length) sortedZoneIds.push('__nozone__');
+      byZone['__nozone__'] = noZone;
+
+      sortedZoneIds.forEach(function(zoneId) {
+        var zoneDevs = byZone[zoneId];
+        if (!zoneDevs || !zoneDevs.length) return;
+        var zoneName = zoneId === '__nozone__' ? (lang === 'de' ? 'Sonstige' : 'Other') : _allZones[zoneId].name;
+
+        var zoneHdr = document.createElement('div');
+        zoneHdr.style.cssText = 'font-size:11px;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:0.05em;padding:6px 0 3px;';
+        zoneHdr.textContent = zoneName;
+        body.appendChild(zoneHdr);
+
+        var grid = document.createElement('div');
+        grid.className = 'profile-zone-grid';
+        zoneDevs.sort(function(a, b) { return a.name.localeCompare(b.name); });
+        zoneDevs.forEach(function(d) {
+          var row = document.createElement('label');
+          row.className = 'profile-zone-row';
+          var cb = document.createElement('input');
+          cb.type = 'checkbox';
+          cb.setAttribute('data-device', d.id);
+          cb.checked = deviceSet.has(d.id);
+          cb.onchange = function() { if (this.checked) uncheckDeviceSpecial(); };
+          var sp = document.createElement('span');
+          sp.textContent = d.name;
+          sp.style.cssText = 'overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
+          row.appendChild(cb); row.appendChild(sp);
+          grid.appendChild(row);
+        });
+        body.appendChild(grid);
+      });
+
+      card.appendChild(toggle); card.appendChild(body);
+    }
+
+    function _syncProfilesFromDOM() {
+      // Read current card DOM state back into _profiles without saving to Homey
+      var synced = [];
+      document.querySelectorAll('.profile-card:not([data-profile-id="__default__"])').forEach(function(card) {
+        var id   = card.getAttribute('data-profile-id');
+        var name = (card.querySelector('[data-field="name"]') || {}).value || '';
+        var ip   = ((card.querySelector('[data-field="ip"]')  || {}).value || '').trim();
+        var data = _collectProfileData(card);
+        synced.push({ id: id || Date.now().toString(), name: name.trim(), ip: ip, devices: data.devices, flows: data.flows });
+      });
+      _profiles = synced;
+    }
+
+    function addProfile() {
+      _syncProfilesFromDOM(); // preserve unsaved changes in existing cards
+      var newProfile = {
+        id: Date.now().toString(),
+        name: '',
+        ip: '',
+        devices: [],
+        flows: [],
+      };
+      _profiles.push(newProfile);
+      renderProfiles();
+      // Focus name input of new card
+      var cards = document.querySelectorAll('.profile-card:not([data-profile-id="__default__"])');
+      var last  = cards[cards.length - 1];
+      if (last) {
+        var inp = last.querySelector('.profile-name-input');
+        if (inp) setTimeout(function() { inp.focus(); }, 50);
+      }
+    }
+
+    function _collectProfileData(card) {
+      var allDeviceCb = card.querySelector('[data-device="__all__"]');
+      var devices = [];
+      if (!allDeviceCb || !allDeviceCb.checked) {
+        card.querySelectorAll('[data-device]:not([data-device="__all__"])').forEach(function(cb) {
+          if (cb.checked) devices.push(cb.getAttribute('data-device'));
+        });
+      }
+      var allFlowCb = card.querySelector('[data-flow="__all__"]');
+      var flows = [];
+      if (!allFlowCb || !allFlowCb.checked) {
+        card.querySelectorAll('[data-flow]:not([data-flow="__all__"])').forEach(function(cb) {
+          if (cb.checked) flows.push(cb.getAttribute('data-flow'));
+        });
+      }
+      return { devices: devices, flows: flows };
+    }
+
+    async function saveProfiles() {
+      // Save default profile
+      var defCard = document.querySelector('[data-profile-id="__default__"]');
+      if (defCard) {
+        var defData = _collectProfileData(defCard);
+        _defaultProfile = defData;
+        await hSet('defaultProfileDevices', defData.devices);
+        // flows=[] → false (all), flows=['__none__'] → [] (none), flows=[ids] → those ids
+        var flowsToSave = defData.flows.length ? defData.flows : false;
+        await hSet('enabledFlows', flowsToSave);
+      }
+      // Save IP-specific profiles
+      var result = [];
+      document.querySelectorAll('.profile-card:not([data-profile-id="__default__"])').forEach(function(card) {
+        var id   = card.getAttribute('data-profile-id');
+        var name = (card.querySelector('[data-field="name"]') || {}).value || '';
+        var ip   = ((card.querySelector('[data-field="ip"]')  || {}).value || '').trim();
+        if (!ip) return;
+        var data = _collectProfileData(card);
+        result.push({ id: id || Date.now().toString(), name: name.trim(), ip: ip, devices: data.devices, flows: data.flows });
+      });
+      _profiles = result;
       try {
-        await hSet('enabledFlows', enabled.length ? enabled : false);
-        showStatus('flows-status', T.flowSelectionSaved.replace('$1', enabled.length), true);
-      } catch (e) { showStatus('flows-status', T.errorPrefix + e.message, false); }
+        await hSet('displayProfiles', _profiles);
+        showStatus('profiles-status', T.displaysSaved || 'Saved', true);
+        renderProfiles();
+      } catch (e) {
+        showStatus('profiles-status', (T.errorPrefix || 'Error: ') + e.message, false);
+      }
     }
 
     function showStatus(id, msg, success) {

@@ -349,6 +349,20 @@ class ShellyWallDisplayApp extends Homey.App {
       if (url.pathname === '/api/settings' && req.method === 'GET') {
         const energyEnabled = this.homey.settings.get('energyEnabled');
         const tileSize     = this.homey.settings.get('tileSize');
+
+        // Per-Display Flow-Filter: Profil für diese IP suchen
+        const settingsClientIp    = (req.socket.remoteAddress || '').replace(/^::ffff:/, '');
+        const settingsProfiles    = this.homey.settings.get('displayProfiles') || [];
+        const settingsProfile     = settingsProfiles.find((p) => p.ip === settingsClientIp);
+        const globalEnabledFlows  = this.homey.settings.get('enabledFlows') || null;
+        const rawEffectiveFlows = (settingsProfile && Array.isArray(settingsProfile.flows) && settingsProfile.flows.length > 0)
+          ? settingsProfile.flows
+          : globalEnabledFlows;
+        // ['__none__'] = explicitly no flows → send empty array; client treats [] as "no flows"
+        const effectiveEnabledFlows = Array.isArray(rawEffectiveFlows) && rawEffectiveFlows.includes('__none__')
+          ? []
+          : rawEffectiveFlows;
+
         res.writeHead(200);
         res.end(JSON.stringify({
           port: this.homey.settings.get('port') || DEFAULT_PORT,
@@ -356,7 +370,7 @@ class ShellyWallDisplayApp extends Homey.App {
           alarmPin: this.homey.settings.get('alarmPin') || '',
           energyEnabled: energyEnabled === false ? false : true,
           tileSize: (tileSize >= 1 && tileSize <= 5) ? tileSize : 3,
-          enabledFlows: this.homey.settings.get('enabledFlows') || null,
+          enabledFlows: effectiveEnabledFlows,
           flowTileWidth: this.homey.settings.get('flowTileWidth') || 'auto',
           flowConfirm: this.homey.settings.get('flowConfirm') === true,
           flowPosition: this.homey.settings.get('flowPosition') || 'top',
@@ -375,7 +389,7 @@ class ShellyWallDisplayApp extends Homey.App {
       if (url.pathname === '/api/settings' && req.method === 'POST') {
         const body = await this._readBody(req);
         const { key, value } = JSON.parse(body);
-        const allowed = ['port', 'enabledDevices', 'alarmPin', 'energyEnabled', 'tileSize', 'enabledFlows', 'homeyToken', 'flowTileWidth', 'dashboardTitle', 'fontSize', 'accentColor', 'tileRadius', 'headerHidden', 'viewDefault', 'viewBtnHidden'];
+        const allowed = ['port', 'enabledDevices', 'alarmPin', 'energyEnabled', 'tileSize', 'enabledFlows', 'homeyToken', 'flowTileWidth', 'dashboardTitle', 'fontSize', 'accentColor', 'tileRadius', 'headerHidden', 'viewDefault', 'viewBtnHidden', 'defaultProfileZones', 'defaultProfileDevices'];
         if (!allowed.includes(key)) {
           res.writeHead(400);
           res.end(JSON.stringify({ error: 'Not allowed' }));
@@ -409,12 +423,35 @@ class ShellyWallDisplayApp extends Homey.App {
         return;
       }
 
+      // GET /api/client-ip — liefert die IP-Adresse des anfragenden Clients
+      if (url.pathname === '/api/client-ip' && req.method === 'GET') {
+        const ip = (req.socket.remoteAddress || '').replace(/^::ffff:/, '');
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ip }));
+        return;
+      }
+
       // GET /api/devices
       if (url.pathname === '/api/devices' && req.method === 'GET') {
         const devices = await this._getDevicesCache(); // #17
-        const enabledDevices = this.homey.settings.get('enabledDevices'); // string[] | null
-        const result = Object.values(devices)
-          .filter((d) => !Array.isArray(enabledDevices) || enabledDevices.includes(d.id))
+
+        // Per-Display Zonen-Filter: IP des anfragenden Displays mit Profilen abgleichen
+        const clientIp        = (req.socket.remoteAddress || '').replace(/^::ffff:/, '');
+        const displayProfiles  = this.homey.settings.get('displayProfiles') || [];
+        const displayProfile   = displayProfiles.find((p) => p.ip === clientIp);
+        // Resolve active profile: IP-specific → default → no filter
+        const defaultProfileDevices = this.homey.settings.get('defaultProfileDevices');
+        const legacyEnabledDevices  = this.homey.settings.get('enabledDevices');
+        const defaultDeviceFallback = Array.isArray(defaultProfileDevices) ? defaultProfileDevices
+          : (Array.isArray(legacyEnabledDevices) ? legacyEnabledDevices : []);
+        const activeDevices = displayProfile && Array.isArray(displayProfile.devices) && displayProfile.devices.length > 0
+          ? displayProfile.devices
+          : defaultDeviceFallback;
+        const noDevices      = activeDevices.includes('__none__');
+        const profileDevices = !noDevices && activeDevices.length > 0 ? new Set(activeDevices) : null;
+
+        const result = noDevices ? [] : Object.values(devices)
+          .filter((d) => !profileDevices || profileDevices.has(d.id))
           .map((d) => ({
             id: d.id,
             name: d.name,

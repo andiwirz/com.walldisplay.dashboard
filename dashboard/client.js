@@ -30,6 +30,8 @@
     SPEAKER_ALBUM:   'speaker_album',
     VOLUME_SET:      'volume_set',
     VOLUME_MUTE:     'volume_mute',
+    TARGET_TEMP:     'target_temperature',
+    THERMOSTAT_MODE: 'thermostat_mode',
   };
 
   var zones = {};
@@ -1103,8 +1105,9 @@
     var hasAlarm  = d.class === 'homealarm' || capIds.indexOf(CAP.HOMEALARM) !== -1;
     var hasDim    = capIds.indexOf(CAP.DIM) !== -1;
     var hasWcState = capIds.indexOf(CAP.WC_STATE) !== -1 && capIds.indexOf(CAP.WC_SET) === -1;
-    var isSpeaker = d.class === 'speaker' || d.class === 'mediaplayer';
-    var isOn      = hasOnOff && caps[CAP.ONOFF] && caps[CAP.ONOFF].value === true;
+    var isSpeaker    = d.class === 'speaker' || d.class === 'mediaplayer';
+    var isThermostat = capIds.indexOf(CAP.TARGET_TEMP) !== -1;
+    var isOn         = hasOnOff && caps[CAP.ONOFF] && caps[CAP.ONOFF].value === true;
     var alarmCap  = hasAlarm ? getAlarmCapability(d) : null;
     var isArmed   = alarmCap ? alarmIsArmed(alarmCap.value) : false;
     var wcState   = hasWcState && caps[CAP.WC_STATE] ? caps[CAP.WC_STATE].value : null;
@@ -1132,7 +1135,18 @@
       }(d.id));
     }
 
-    if (!isSpeaker && (hasAlarm || (hasOnOff && !hasDim))) {
+    // Thermostat → Modal öffnen
+    if (isThermostat) {
+      card.classList.add('clickable');
+      (function (deviceId) {
+        card.addEventListener('click', function (e) {
+          if (e.target.classList.contains('device-toggle')) return;
+          openThermostatModal(deviceId);
+        });
+      }(d.id));
+    }
+
+    if (!isSpeaker && !isThermostat && (hasAlarm || (hasOnOff && !hasDim))) {
       card.classList.add('clickable');
       (function (deviceId) {
         card.addEventListener('click', function (e) {
@@ -1258,6 +1272,16 @@
       if (wcVal === 'down') return 'Closed';
       if (wcVal === 'idle') return 'Stopped';
       return '';
+    }
+    // Thermostat / Heizung
+    if (capIds.indexOf(CAP.TARGET_TEMP) !== -1) {
+      var target = caps[CAP.TARGET_TEMP] && caps[CAP.TARGET_TEMP].value;
+      var hasOO  = capIds.indexOf(CAP.ONOFF) !== -1;
+      var isOff  = hasOO && !(caps[CAP.ONOFF] && caps[CAP.ONOFF].value);
+      if (isOff) return 'Off';
+      var mode = caps[CAP.THERMOSTAT_MODE] && caps[CAP.THERMOSTAT_MODE].value;
+      var modeStr = (mode && mode !== 'heat') ? ' · ' + mode : '';
+      return '→ ' + (target !== null && target !== undefined ? target.toFixed(1) + ' °C' : '—') + modeStr;
     }
     if (hasOnOff) {
       var isOn = caps[CAP.ONOFF] && caps[CAP.ONOFF].value === true;
@@ -1491,6 +1515,8 @@
 
     // Speaker-Modal live aktualisieren wenn offen
     if (_speakerModalId === deviceId) _updateSpeakerModal();
+    // Thermostat-Modal live aktualisieren wenn offen
+    if (_thermostatModalId === deviceId) _updateThermostatModal();
 
     // Alarme (dot-Index muss mit buildValueElements übereinstimmen)
     var dots = card.querySelectorAll('.alarm-dot');
@@ -1975,6 +2001,110 @@
     var muted = ((devices[_speakerModalId].capabilitiesObj || {})[CAP.VOLUME_MUTE] || {}).value === true;
     setCapability(_speakerModalId, CAP.VOLUME_MUTE, !muted);
   }
+
+  // ── Thermostat-Modal ──────────────────────────────
+  var _thermostatModalId = null;
+
+  function openThermostatModal(deviceId) {
+    _thermostatModalId = deviceId;
+    var d = devices[deviceId];
+    if (!d) return;
+    document.getElementById('thermostat-modal-name').textContent = d.name;
+    document.getElementById('thermostat-modal').style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+    _updateThermostatModal();
+  }
+
+  function closeThermostatModal() {
+    document.getElementById('thermostat-modal').style.display = 'none';
+    document.body.style.overflow = '';
+    _thermostatModalId = null;
+  }
+
+  function _updateThermostatModal() {
+    if (!_thermostatModalId) return;
+    var d = devices[_thermostatModalId];
+    if (!d) return;
+    var caps   = d.capabilitiesObj || {};
+    var capIds = d.capabilities    || [];
+
+    // Aktuelle Temperatur
+    var cur = caps[CAP.MEASURE_TEMP] && caps[CAP.MEASURE_TEMP].value;
+    document.getElementById('thermostat-current-temp').textContent =
+      (cur !== null && cur !== undefined) ? cur.toFixed(1) + ' °C' : '—';
+
+    // Zieltemperatur
+    var tgt = caps[CAP.TARGET_TEMP] && caps[CAP.TARGET_TEMP].value;
+    var tgtText = (tgt !== null && tgt !== undefined) ? tgt.toFixed(1) + ' °C' : '—';
+    document.getElementById('thermostat-target-temp').textContent = tgtText;
+
+    // on/off toggle
+    var hasOO   = capIds.indexOf(CAP.ONOFF) !== -1;
+    var isOn    = hasOO && caps[CAP.ONOFF] && caps[CAP.ONOFF].value === true;
+    var onOffEl = document.getElementById('thermostat-onoff-btn');
+    if (hasOO) {
+      onOffEl.style.display = 'flex';
+      onOffEl.classList.toggle('on', isOn);
+      onOffEl.textContent = isOn ? 'On' : 'Off';
+    } else {
+      onOffEl.style.display = 'none';
+    }
+
+    // Modus-Buttons
+    var modeCap  = caps[CAP.THERMOSTAT_MODE];
+    var modesEl  = document.getElementById('thermostat-modes');
+    if (modeCap) {
+      modesEl.style.display = 'flex';
+      var curMode = modeCap.value;
+      var vals    = (modeCap.values && modeCap.values.length) ? modeCap.values
+                  : [{id:'heat',title:{en:'Heat'}},{id:'cool',title:{en:'Cool'}},
+                     {id:'auto',title:{en:'Auto'}},{id:'off', title:{en:'Off'}}];
+      var modeIcons = {heat:'🔥', cool:'❄️', auto:'🔄', off:'○'};
+      modesEl.innerHTML = '';
+      vals.forEach(function (v) {
+        var btn = createElement('button', 'thermostat-mode-btn');
+        btn.textContent = (modeIcons[v.id] || '') + ' ' +
+          (v.title ? (v.title.en || v.id) : v.id);
+        if (v.id === curMode) btn.classList.add('active');
+        (function (modeId) {
+          btn.addEventListener('click', function () { thermostatSetMode(modeId); });
+        }(v.id));
+        modesEl.appendChild(btn);
+      });
+    } else {
+      modesEl.style.display = 'none';
+    }
+  }
+
+  function thermostatAdjust(delta) {
+    if (!_thermostatModalId) return;
+    var caps = (devices[_thermostatModalId] || {}).capabilitiesObj || {};
+    var cur  = (caps[CAP.TARGET_TEMP] && caps[CAP.TARGET_TEMP].value) || 20;
+    var step = delta > 0 ? 0.5 : -0.5;
+    var nv   = Math.round((cur + step) * 2) / 2; // snap to 0.5 steps
+    var cap  = caps[CAP.TARGET_TEMP] || {};
+    if (cap.min !== undefined && nv < cap.min) nv = cap.min;
+    if (cap.max !== undefined && nv > cap.max) nv = cap.max;
+    setCapability(_thermostatModalId, CAP.TARGET_TEMP, nv);
+  }
+
+  function thermostatSetMode(mode) {
+    if (!_thermostatModalId) return;
+    setCapability(_thermostatModalId, CAP.THERMOSTAT_MODE, mode);
+  }
+
+  function thermostatToggleOnOff() {
+    if (!_thermostatModalId) return;
+    var caps = (devices[_thermostatModalId] || {}).capabilitiesObj || {};
+    var cur  = caps[CAP.ONOFF] && caps[CAP.ONOFF].value === true;
+    setCapability(_thermostatModalId, CAP.ONOFF, !cur);
+  }
+
+  window.openThermostatModal  = openThermostatModal;
+  window.closeThermostatModal = closeThermostatModal;
+  window.thermostatAdjust     = thermostatAdjust;
+  window.thermostatSetMode    = thermostatSetMode;
+  window.thermostatToggleOnOff= thermostatToggleOnOff;
 
   window.openSpeakerModal     = openSpeakerModal;
   window.closeSpeakerModal    = closeSpeakerModal;

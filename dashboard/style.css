@@ -1328,6 +1328,207 @@ html, body {
   .speaker-btn-play   { width: 68px; height: 68px; }
 }
 
+/* ── Thermostat-Modal ─────────────────────────────── */
+.thermostat-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.65);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  z-index: 1100;
+}
+
+.thermostat-modal-inner {
+  background: var(--surface);
+  border-radius: 22px 22px 0 0;
+  width: 100%;
+  max-width: 480px;
+  box-shadow: 0 -4px 32px rgba(0,0,0,0.3);
+}
+
+.thermostat-modal-header {
+  display: flex;
+  align-items: center;
+  padding: 14px 16px 12px;
+  border-bottom: 1px solid var(--border);
+  gap: 10px;
+}
+
+.thermostat-modal-name {
+  flex: 1;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.thermostat-onoff-btn {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  background: var(--bg);
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s, color 0.15s, border-color 0.15s, transform 0.1s;
+  -webkit-tap-highlight-color: transparent;
+  flex-shrink: 0;
+}
+.thermostat-onoff-btn:active { transform: scale(0.91); background: var(--border); }
+.thermostat-onoff-btn.on {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+
+.thermostat-modal-close {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 18px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+.thermostat-modal-close:hover { background: var(--border); }
+
+.thermostat-body {
+  padding: 24px 20px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+/* Current → Target */
+.thermostat-temps {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+}
+
+.thermostat-temp-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.thermostat-temp-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.7px;
+  color: var(--text-muted);
+}
+
+.thermostat-temp-current {
+  font-size: 40px;
+  font-weight: 200;
+  color: var(--text-muted);
+  letter-spacing: -1px;
+  line-height: 1;
+}
+
+.thermostat-temp-target {
+  font-size: 40px;
+  font-weight: 600;
+  color: var(--accent);
+  letter-spacing: -1px;
+  line-height: 1;
+}
+
+.thermostat-arrow {
+  font-size: 22px;
+  color: var(--border);
+  margin-top: 18px;
+  flex-shrink: 0;
+}
+
+/* +/- buttons */
+.thermostat-adjust {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 32px;
+}
+
+.thermostat-adj-btn {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 32px;
+  font-weight: 300;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.12s, transform 0.1s;
+  -webkit-tap-highlight-color: transparent;
+  line-height: 1;
+}
+.thermostat-adj-btn:active { transform: scale(0.91); background: var(--border); }
+.thermostat-adj-btn:hover  { background: var(--border); }
+
+/* Mode selector */
+.thermostat-modes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  padding-bottom: 4px;
+}
+
+.thermostat-mode-btn {
+  padding: 8px 16px;
+  border-radius: 20px;
+  border: 1.5px solid var(--border);
+  background: var(--bg);
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+  -webkit-tap-highlight-color: transparent;
+  white-space: nowrap;
+}
+.thermostat-mode-btn:active { transform: scale(0.95); }
+.thermostat-mode-btn.active {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+
+/* Vollbild auf kleinen Displays (Shelly 480×480) */
+@media (max-width: 499px) and (max-height: 499px) {
+  .thermostat-modal { align-items: stretch; }
+  .thermostat-modal-inner {
+    border-radius: 0;
+    max-width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+  .thermostat-body    { flex: 1; justify-content: space-evenly; gap: 0; padding: 12px 16px; }
+  .thermostat-temp-current,
+  .thermostat-temp-target  { font-size: 48px; }
+  .thermostat-adj-btn      { width: 88px; height: 88px; font-size: 38px; }
+  .thermostat-onoff-btn    { width: 88px; height: 88px; font-size: 14px; }
+}
+
 /* ── Responsive ───────────────────────────────── */
 @media (max-width: 360px) {
   .device-grid {

@@ -107,7 +107,7 @@ Homey App (com.walldisplay.dashboard)
 
 ## Settings
 
-The settings page is organised into four tabs:
+The settings page is organised into three tabs:
 
 ### General
 
@@ -134,15 +134,18 @@ The settings page is organised into four tabs:
 | **Flow Tile Width** | **Dynamic** — tiles size to their content. **Same as devices** — match device tile width. | Dynamic |
 | **Flow Position** | Show flow buttons above or below device tiles | Above |
 
-### Devices
+### Profiles
 
-Choose which devices appear on the dashboard. Devices are grouped by room. Use the All / None buttons per room for quick selection.
+Configure what each display shows. Every profile has two collapsible sections — **Devices** and **Flows** — that let you choose exactly what appears on that display.
 
-### Flows
+**Default profile** — always present, applies to all displays that have no matching IP profile.
 
-| Setting | Description |
+**IP profiles** — add one per Shelly Wall Display. The display is matched by its IP address. Each IP profile overrides the default for that specific display.
+
+| Section | Options |
 |---|---|
-| **Flow selection** | Select which manually-triggerable flows appear as buttons on the dashboard. Flows are grouped by folder. |
+| **Devices** | *All* (no filter) · *None* (hide all devices) · individual device selection grouped by room |
+| **Flows** | *All* (no filter) · *None* (hide all flows) · individual flow selection |
 
 > **Note on flow triggering:** Due to a Homey platform restriction, apps cannot trigger flows using their internal token. A **Personal Access Token** (set in the General tab) is required. Create one at [my.homey.app](https://my.homey.app) under Account → Developer → API Keys with full permissions.
 
@@ -214,7 +217,7 @@ com.walldisplay.dashboard/
 │   ├── style.css           # Touch-optimised styles (dark/light mode, tile sizes, flow tiles)
 │   └── device-icons/       # SVG device icons served locally
 └── settings/
-    └── index.html          # Settings UI — tabs: General, Design, Devices, Flows
+    └── index.html          # Settings UI — tabs: General, Design, Profiles
 ```
 
 ---

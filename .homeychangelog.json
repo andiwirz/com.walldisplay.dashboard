@@ -1,4 +1,8 @@
 {
+  "1.3.1": {
+    "en": "Display profiles: select individual devices and flows per display by IP address; default profile applies to all displays; Geräte and Flows tabs replaced by unified Profiles tab",
+    "de": "Display-Profile: Geräte und Flows pro Display per IP-Adresse auswählen; Standard-Profil gilt für alle Displays; Geräte- und Flows-Tab durch einheitlichen Profil-Tab ersetzt"
+  },
   "1.0.0": {
     "en": "Initial release",
     "de": "Erstveroeffentlichung"
@@ -48,6 +52,10 @@
   "1.2.7": {
     "en": "Flow tiles can be reordered by long-press drag & drop",
     "de": "Flow-Kacheln können per Langes-Drücken-Drag&Drop neu angeordnet werden"
+  },
+  "1.3.0": {
+    "en": "Thermostat/heater modal: tap any thermostat tile to open controls — shows current and target temperature, +/− adjustment in 0.5°C steps, mode selector (heat/cool/auto/off), on/off toggle",
+    "de": "Thermostat-Modal: Thermostat-Kachel antippen öffnet Steuerung — aktuelle und Zieltemperatur, ±0,5°C-Anpassung, Modusauswahl (Heizen/Kühlen/Auto/Aus), Ein/Aus-Schalter"
   },
   "1.2.9": {
     "en": "Speaker/media player modal: album art, track info below cover, smooth cover fade transition, volume slider spanning full cover height, centered layout",

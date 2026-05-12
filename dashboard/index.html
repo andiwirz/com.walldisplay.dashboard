@@ -104,6 +104,35 @@
     </div>
   </div>
 
+  <!-- Thermostat-Modal -->
+  <div id="thermostat-modal" class="thermostat-modal" style="display:none" onclick="if(event.target===this)closeThermostatModal()">
+    <div class="thermostat-modal-inner">
+      <div class="thermostat-modal-header">
+        <span id="thermostat-modal-name" class="thermostat-modal-name"></span>
+        <button class="thermostat-modal-close" onclick="closeThermostatModal()">✕</button>
+      </div>
+      <div class="thermostat-body">
+        <div class="thermostat-temps">
+          <div class="thermostat-temp-block">
+            <div class="thermostat-temp-label">Current</div>
+            <div class="thermostat-temp-current" id="thermostat-current-temp">—</div>
+          </div>
+          <div class="thermostat-arrow">→</div>
+          <div class="thermostat-temp-block">
+            <div class="thermostat-temp-label">Target</div>
+            <div class="thermostat-temp-target" id="thermostat-target-temp">—</div>
+          </div>
+        </div>
+        <div class="thermostat-adjust">
+          <button id="thermostat-onoff-btn" class="thermostat-onoff-btn" onclick="thermostatToggleOnOff()" style="display:none">Off</button>
+          <button class="thermostat-adj-btn" onclick="thermostatAdjust(0.5)">＋</button>
+          <button class="thermostat-adj-btn thermostat-adj-minus" onclick="thermostatAdjust(-0.5)">－</button>
+        </div>
+        <div class="thermostat-modes" id="thermostat-modes"></div>
+      </div>
+    </div>
+  </div>
+
   <!-- Speaker-Modal -->
   <div id="speaker-modal" class="speaker-modal" style="display:none" onclick="if(event.target===this)closeSpeakerModal()">
     <div class="speaker-modal-inner">

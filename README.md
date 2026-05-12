@@ -78,7 +78,7 @@ Homey App (com.walldisplay.dashboard)
 |---|---|---|---|
 | Light | 💡 | On/Off, Dim | — |
 | Socket | 🔌 | On/Off | Power (W) |
-| Thermostat | 🌡️ | — | Temperature, Humidity |
+| Thermostat | 🌡️ | Target Temp, On/Off, Mode (via modal) | Temperature |
 | Sensor | 📡 | — | Temperature, Humidity, CO₂ |
 | Lock | 🔒 | On/Off | — |
 | Blinds / Curtain / Window Coverings | 🪟 | On/Off, Position | — |
@@ -90,8 +90,9 @@ Homey App (com.walldisplay.dashboard)
 | Solar Panel | ☀️ | — | Power (W) |
 | Camera | 📷 | — | Snapshot image |
 | Doorbell | 🔔 | — | Snapshot image |
-| Speaker / Media Player | 🔊 🎵 | — | — |
+| Speaker / Media Player | 🔊 🎵 | Play/Pause, Skip, Volume (via modal) | Track info |
 | Button / Remote | 🔘 🕹️ | — | — |
+| Car | 🚗 | — | — |
 
 ---
 

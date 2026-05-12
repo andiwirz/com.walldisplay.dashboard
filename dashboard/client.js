@@ -1864,14 +1864,16 @@
     _speakerModalId = null;
   }
 
-  // Nach Next/Prev: alle 1.5 s pollen bis Track wechselt (max. 15 Versuche = ~22 s)
+  // Nach Next/Prev: pollen bis Track wechselt (max. 15 Versuche).
+  // Sofortiger erster Poll + danach alle 1.5 s als Fallback falls SSE-Event fehlt.
   function _startSpeakerPoll() {
     _stopSpeakerPoll();
     _speakerPollCount = 0;
     var d = devices[_speakerModalId];
     _speakerPollTrack = (d && d.capabilitiesObj && d.capabilitiesObj[CAP.SPEAKER_TRACK]
                          && d.capabilitiesObj[CAP.SPEAKER_TRACK].value) || '';
-    _speakerPollTimer = setInterval(function () {
+
+    function _doPoll() {
       if (!_speakerModalId) { _stopSpeakerPoll(); return; }
       if (++_speakerPollCount > 15) { _stopSpeakerPoll(); return; }
       xhr('GET', '/api/device/' + _speakerModalId + '/caps', null, function (err, raw) {
@@ -1892,7 +1894,10 @@
           }
         } catch (_) {}
       });
-    }, 1500);
+    }
+
+    _doPoll(); // Sofort, ohne Wartezeit
+    _speakerPollTimer = setInterval(_doPoll, 1500);
   }
 
   function _stopSpeakerPoll() {
@@ -1976,12 +1981,12 @@
   function speakerPrev() {
     if (!_speakerModalId) return;
     setCapability(_speakerModalId, CAP.SPEAKER_PREV, true);
-    setTimeout(_startSpeakerPoll, 800); // kurz warten bis Sonos reagiert
+    _startSpeakerPoll();
   }
   function speakerNext() {
     if (!_speakerModalId) return;
     setCapability(_speakerModalId, CAP.SPEAKER_NEXT, true);
-    setTimeout(_startSpeakerPoll, 800);
+    _startSpeakerPoll();
   }
   function speakerToggleShuffle() {
     if (!_speakerModalId) return;

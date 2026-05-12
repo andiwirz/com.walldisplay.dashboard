@@ -14,9 +14,21 @@ class ShellyWallDisplayApp extends Homey.App {
   async onInit() {
     this.log('Shelly Wall Display App gestartet');
     this.sseClients = new Set();
-    // #17 Device-Cache (3 s TTL) â€“ vermeidet Doppel-Fetch bei eng aufeinanderfolgenden Requests
-    this._deviceCache  = null;
+    // Device-Cache (60 s TTL, sofort invalidiert durch device.update-Events)
+    this._deviceCache   = null;
     this._deviceCacheTs = 0;
+    // Zones-Cache (5 min TTL — Zonen ändern sich selten)
+    this._zonesCache   = null;
+    this._zonesCacheTs = 0;
+    // Static-File-Cache — Dateien einmal von Disk lesen, dann im Memory halten
+    this._staticCache = new Map();
+    // Owner-Token-Cache (5 min TTL — Token ändert sich selten)
+    this._ownerToken   = null;
+    this._ownerTokenTs = 0;
+    // Einmaliger HTTPS-Agent für Flow-Trigger (Connection-Pool-Reuse)
+    this._httpsAgent = new (require('https').Agent)({ rejectUnauthorized: false });
+    // node-fetch einmal laden
+    this._nodeFetch = require('node-fetch');
 
     // Standardwerte für neue Settings vorbelegen, damit Homey.get() nie auf null trifft
     const settingDefaults = {
@@ -59,7 +71,12 @@ class ShellyWallDisplayApp extends Homey.App {
       this.log('Homey API verbunden');
 
       this.homeyApi.devices.on('device.update', (device) => {
-        this._deviceCache = null; // #17 Cache invalidieren bei GerÃ¤tezustand-Ã„nderung
+        // Nur das geänderte Gerät im Cache patchen — nicht den gesamten Cache wegwerfen.
+        // Verhindert ständige Voll-Fetches bei häufigen Sensor-/Steckdosen-Updates.
+        if (this._deviceCache && this._deviceCache[device.id]) {
+          this._deviceCache[device.id].capabilitiesObj = device.capabilitiesObj;
+          this._deviceCache[device.id].available       = device.available;
+        }
         this._broadcastSSE({
           type: 'device.update',
           device: {
@@ -70,10 +87,15 @@ class ShellyWallDisplayApp extends Homey.App {
         });
       });
 
-      // GerÃ¤te-/Zonen-Liste in Homey-Settings cachen, damit die Settings-Seite
-      // sie via Homey.get() laden kann â€“ funktioniert auch ohne lokales Netzwerk.
-      this.homeyApi.devices.on('device.create', () => this._updateDeviceSettingsCache());
-      this.homeyApi.devices.on('device.delete', () => this._updateDeviceSettingsCache());
+      // Gerät hinzugefügt/entfernt: Cache komplett invalidieren + Settings aktualisieren
+      this.homeyApi.devices.on('device.create', () => {
+        this._deviceCache = null;
+        this._updateDeviceSettingsCache();
+      });
+      this.homeyApi.devices.on('device.delete', () => {
+        this._deviceCache = null;
+        this._updateDeviceSettingsCache();
+      });
 
       // Initiales BefÃ¼llen des Caches (ohne await â€” App soll nicht blockieren)
       this._updateDeviceSettingsCache().catch((e) =>
@@ -179,6 +201,13 @@ class ShellyWallDisplayApp extends Homey.App {
     // WebSocket-Server (HA-Protokoll) auf demselben Port
     this.wss = new WebSocket.Server({ server: this.server });
     this.wss.on('connection', (ws, req) => this._handleWebSocket(ws, req));
+    // Globaler SSE-Heartbeat — ein einziger Timer für alle verbundenen Clients
+    if (this._sseHeartbeat) clearInterval(this._sseHeartbeat);
+    this._sseHeartbeat = setInterval(() => {
+      for (const client of this.sseClients) {
+        try { client.write(':\n\n'); } catch (_) { this.sseClients.delete(client); }
+      }
+    }, 25000);
     this.log(`Dashboard lÃ¤uft auf: ${url}`);
     this.homey.settings.set('currentUrl', url);
   }
@@ -484,40 +513,16 @@ class ShellyWallDisplayApp extends Homey.App {
 
       // GET /api/zones
       if (url.pathname === '/api/zones' && req.method === 'GET') {
-        const zones = await this.homeyApi.zones.getZones();
+        const zones = await this._getZonesCache();
         res.writeHead(200);
-        res.end(JSON.stringify(Object.values(zones)));
+        res.end(JSON.stringify(zones));
         return;
       }
 
-      // GET /api/flows â€” alle auslösbaren Flows für das Dashboard
+      // GET /api/flows â€” alle auslösbaren Flows für das Dashboard (aus Settings-Cache)
       if (url.pathname === '/api/flows' && req.method === 'GET') {
-        const flows = [];
-        let folderMap = {};
-        try {
-          const folders = await this.homeyApi.flow.getFlowFolders();
-          for (const f of Object.values(folders)) folderMap[f.id] = f.name;
-        } catch (_) {}
-
-        try {
-          const basicFlows = await this.homeyApi.flow.getFlows();
-          for (const f of Object.values(basicFlows)) {
-            if (f.triggerable !== false) {
-              flows.push({ id: f.id, name: f.name, folder: (f.folder && folderMap[f.folder]) || null, type: 'flow' });
-            }
-          }
-        } catch (_) {}
-
-        try {
-          const advFlows = await this.homeyApi.flow.getAdvancedFlows();
-          for (const f of Object.values(advFlows)) {
-            if (f.triggerable !== false) {
-              flows.push({ id: f.id, name: f.name, folder: (f.folder && folderMap[f.folder]) || null, type: 'advancedflow' });
-            }
-          }
-        } catch (_) {}
-
-        flows.sort((a, b) => a.name.localeCompare(b.name));
+        const cached = this.homey.settings.get('cachedFlows') || [];
+        const flows  = cached.filter((f) => f.triggerable !== false);
         res.writeHead(200);
         res.end(JSON.stringify(flows));
         return;
@@ -570,10 +575,6 @@ class ShellyWallDisplayApp extends Homey.App {
             this.error(lastError);
           } else {
             try {
-              const nodeFetch = require('node-fetch');
-              const https = require('https');
-              const agent = new https.Agent({ rejectUnauthorized: false });
-
               const endpoints = flowType === 'advancedflow'
                 ? [`/api/manager/flow/advancedflow/${flowId}/trigger`]
                 : flowType === 'flow'
@@ -585,11 +586,11 @@ class ShellyWallDisplayApp extends Homey.App {
                 const triggerUrl = `${this.homeyBaseUrl}${endpoint}`;
                 this.log('PAT HTTP-Request:', triggerUrl);
                 try {
-                  const r = await nodeFetch(triggerUrl, {
+                  const r = await this._nodeFetch(triggerUrl, {
                     method: 'POST',
                     headers: { 'Authorization': `Bearer ${pat}`, 'Content-Type': 'application/json' },
                     body: '{}',
-                    agent: triggerUrl.startsWith('https') ? agent : undefined,
+                    agent: triggerUrl.startsWith('https') ? this._httpsAgent : undefined,
                   });
                   if (r.ok || r.status === 204) {
                     triggered = true;
@@ -637,7 +638,7 @@ class ShellyWallDisplayApp extends Homey.App {
           res.writeHead(403); res.end(); return;
         }
         const iconMod = iconParsed.protocol === 'https:' ? require('https') : require('http');
-        const token = await this.homey.api.getOwnerApiToken().catch(() => null);
+        const token = await this._getOwnerToken();
         const headers = token ? { Authorization: `Bearer ${token}` } : {};
         iconMod.get(iconParsed.href, { headers }, (iconRes) => {
           res.setHeader('Content-Type', iconRes.headers['content-type'] || 'image/svg+xml');
@@ -681,7 +682,7 @@ class ShellyWallDisplayApp extends Homey.App {
             } catch (e) { logs.push({ sdkError2: e.message }); }
           }
           // Methode 3: HTTP direkt
-          const token = await this.homey.api.getOwnerApiToken().catch(() => null);
+          const token = await this._getOwnerToken();
           const headers = token ? { Authorization: `Bearer ${token}` } : {};
           const logsUrl = `${this.homeyBaseUrl}/api/manager/insights/log?uri=homey:device:${deviceId}`;
           const httpLogs = await new Promise((resolve) => {
@@ -734,7 +735,11 @@ class ShellyWallDisplayApp extends Homey.App {
         const deviceId = deviceCapsMatch[1];
         try {
           const device = await this.homeyApi.devices.getDevice({ id: deviceId });
-          this._deviceCache = null; // globalen Cache invalidieren
+          // Cache-Eintrag dieses Geräts aktualisieren statt gesamten Cache löschen
+          if (this._deviceCache && this._deviceCache[device.id]) {
+            this._deviceCache[device.id].capabilitiesObj = device.capabilitiesObj || {};
+            this._deviceCache[device.id].available       = device.available;
+          }
           res.writeHead(200, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({
             id:              device.id,
@@ -776,7 +781,7 @@ class ShellyWallDisplayApp extends Homey.App {
           res.end(JSON.stringify({ error: 'Keine Kamerabilder verfÃ¼gbar' }));
           return;
         }
-        const token = await this.homey.api.getOwnerApiToken().catch(() => null);
+        const token = await this._getOwnerToken();
         const imageUrl = `${this.homeyBaseUrl}/api/image/${imageId}`;
         const imgMod = imageUrl.startsWith('https') ? require('https') : require('http');
         const headers = token ? { Authorization: `Bearer ${token}` } : {};
@@ -946,7 +951,7 @@ class ShellyWallDisplayApp extends Homey.App {
         // Hilfsfunktion: Insights-Rohdaten per direktem HTTP holen (umgeht SDK-Probleme).
         // Gibt { data, status, bodySnippet } zurÃ¼ck, damit getDailyKwh Debug-Info aufzeichnen kann.
         const getInsightsHttp = async (deviceId, capId, resolution) => {
-          const token = await this.homey.api.getOwnerApiToken().catch(() => null);
+          const token = await this._getOwnerToken();
           const headers = token ? { Authorization: `Bearer ${token}` } : {};
           const resParam = resolution ? `?resolution=${resolution}` : '';
 
@@ -1114,7 +1119,7 @@ class ShellyWallDisplayApp extends Homey.App {
           if (data) { hasData = true; data.forEach((v, i) => { if (v !== null) solarKwh[i] += v; }); }
         }
 
-        const dbgToken = await this.homey.api.getOwnerApiToken().catch(() => null);
+        const dbgToken = await this._getOwnerToken();
         this.log(`Energy history: ${gridDevices.length} Grid, ${solarDevices.length} Solar, hasData=${hasData}`);
         res.writeHead(200);
         res.end(JSON.stringify({
@@ -1239,16 +1244,8 @@ class ShellyWallDisplayApp extends Homey.App {
     res.setHeader('Connection', 'keep-alive');
     res.writeHead(200);
     res.write('data: {"type":"connected"}\n\n');
-
-    const heartbeat = setInterval(() => {
-      res.write(':\n\n'); // SSE-Kommentar als Heartbeat
-    }, 25000);
-
     this.sseClients.add(res);
-    req.on('close', () => {
-      clearInterval(heartbeat);
-      this.sseClients.delete(res);
-    });
+    req.on('close', () => this.sseClients.delete(res));
   }
 
   _broadcastSSE(data) {
@@ -1278,13 +1275,24 @@ class ShellyWallDisplayApp extends Homey.App {
       '.ico': 'image/x-icon',
     };
 
+    // In-Memory-Cache: Datei einmal lesen, danach aus dem Speicher bedienen
+    if (this._staticCache.has(filePath)) {
+      const { data, ct } = this._staticCache.get(filePath);
+      res.setHeader('Content-Type', ct);
+      res.writeHead(200);
+      res.end(data);
+      return;
+    }
+
     fs.readFile(filePath, (err, data) => {
       if (err) {
         res.writeHead(404);
         res.end('Not Found');
         return;
       }
-      res.setHeader('Content-Type', contentTypes[ext] || 'application/octet-stream');
+      const ct = contentTypes[ext] || 'application/octet-stream';
+      this._staticCache.set(filePath, { data, ct });
+      res.setHeader('Content-Type', ct);
       res.writeHead(200);
       res.end(data);
     });
@@ -1361,9 +1369,9 @@ class ShellyWallDisplayApp extends Homey.App {
     let zones = [];
     if (this.homeyApi) {
       try {
-        const devMap = await this.homeyApi.devices.getDevices();
+        const devMap = await this._getDevicesCache();
         devices = Object.values(devMap).map((d) => ({
-          id: d.id,
+          id:   d.id,
           name: d.name,
           zone: d.zone,
           class: d.class,
@@ -1371,12 +1379,7 @@ class ShellyWallDisplayApp extends Homey.App {
         }));
       } catch (_) {}
       try {
-        const zoneMap = await this.homeyApi.zones.getZones();
-        zones = Object.values(zoneMap).map((z) => ({
-          id: z.id,
-          name: z.name,
-          parent: z.parent || null,
-        }));
+        zones = await this._getZonesCache();
       } catch (_) {}
     }
 
@@ -1415,16 +1418,61 @@ class ShellyWallDisplayApp extends Homey.App {
     } catch (_) { return false; }
   }
 
-  // #17 Device-Cache mit 3 s TTL â€“ verhindert Doppel-Fetch bei /api/devices + /api/alldevices
+  // Device-Cache mit 60 s TTL — wird sofort durch device.update-Events invalidiert.
+  // Speichert nur Plain-Objects (nicht die rohen SDK-DeviceInstance-Objekte),
+  // um Prototype-Ketten, EventEmitter-Referenzen und internen SDK-State zu vermeiden.
   async _getDevicesCache() {
     const now = Date.now();
-    if (this._deviceCache && now - this._deviceCacheTs < 3000) {
+    if (this._deviceCache && now - this._deviceCacheTs < 60000) {
       return this._deviceCache;
     }
-    const devices = await this.homeyApi.devices.getDevices();
-    this._deviceCache  = devices;
+    const raw = await this.homeyApi.devices.getDevices();
+    const devices = {};
+    for (const [id, d] of Object.entries(raw)) {
+      devices[id] = {
+        id:              d.id,
+        name:            d.name,
+        zone:            d.zone,
+        class:           d.class,
+        virtualClass:    d.virtualClass || null,
+        available:       d.available,
+        capabilities:    d.capabilities,
+        capabilitiesObj: d.capabilitiesObj,
+        energy:          d.energy || null,
+        iconOverride:    d.iconOverride || null,
+        iconObj:         d.iconObj     || null,
+        images:          d.images      || null,
+      };
+    }
+    this._deviceCache   = devices;
     this._deviceCacheTs = now;
     return devices;
+  }
+
+  // Zones-Cache mit 5 min TTL — Zonen ändern sich sehr selten.
+  async _getZonesCache() {
+    const now = Date.now();
+    if (this._zonesCache && now - this._zonesCacheTs < 300000) {
+      return this._zonesCache;
+    }
+    const raw = await this.homeyApi.zones.getZones();
+    this._zonesCache   = Object.values(raw).map((z) => ({
+      id:     z.id,
+      name:   z.name,
+      parent: z.parent || null,
+    }));
+    this._zonesCacheTs = now;
+    return this._zonesCache;
+  }
+
+  // Owner-API-Token mit 5 min TTL cachen — wird an mehreren Stellen benötigt,
+  // ändert sich aber selten. Vermeidet wiederholte API-Calls pro Request.
+  async _getOwnerToken() {
+    const now = Date.now();
+    if (this._ownerToken && now - this._ownerTokenTs < 300000) return this._ownerToken;
+    this._ownerToken   = await this.homey.api.getOwnerApiToken().catch(() => null);
+    this._ownerTokenTs = now;
+    return this._ownerToken;
   }
 
   // Gibt die LAN-IP der Homey zurÃ¼ck (bevorzugt 10.x / 192.168.x, Ã¼berspringt Loopback + Docker)
@@ -1450,6 +1498,7 @@ class ShellyWallDisplayApp extends Homey.App {
   }
 
   async onUninit() {
+    if (this._sseHeartbeat) clearInterval(this._sseHeartbeat);
     if (this.wss) this.wss.close();
     if (this.server) this.server.close();
   }

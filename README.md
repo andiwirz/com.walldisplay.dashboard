@@ -140,7 +140,7 @@ Configure what each display shows. Every profile has two collapsible sections �
 
 **Default profile** — always present, applies to all displays that have no matching IP profile.
 
-**IP profiles** — add one per Shelly Wall Display. The display is matched by its IP address. Each IP profile overrides the default for that specific display.
+**IP profiles** — add one per Shelly Wall Display. The display is matched by its IP address. Each IP profile overrides the default for that specific display. Profiles can be deleted with a two-click confirmation (click ✕, then confirm).
 
 | Section | Options |
 |---|---|

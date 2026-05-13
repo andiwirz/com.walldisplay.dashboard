@@ -595,6 +595,14 @@
         </label>
       </div>
       <p class="toggle-hint" data-i18n="energyHint">When disabled, the ⚡ button is hidden on the dashboard.</p>
+      <div class="toggle-row" style="margin-top:10px;">
+        <span class="toggle-label" data-i18n="batteryInvertLabel">Invert battery sign</span>
+        <label class="toggle-switch">
+          <input type="checkbox" id="battery-invert-toggle" onchange="saveBatteryInvert()">
+          <span class="toggle-track"></span>
+        </label>
+      </div>
+      <p class="toggle-hint" data-i18n="batteryInvertHint">Enable if your battery shows "Charging" when it should show "Discharging" (e.g. GoodWe, some Fronius systems).</p>
       <div class="status" id="energy-status"></div>
     </div>
 
@@ -721,6 +729,8 @@
         energyLabel:      'Show Energy button in header',
         energyHint:       'When disabled, the ⚡ button is hidden on the dashboard.',
         energySaved:      'Setting saved',
+        batteryInvertLabel: 'Invert battery sign',
+        batteryInvertHint:  'Enable if your battery shows "Charging" when it should show "Discharging" (e.g. GoodWe, some Fronius systems).',
         pinTitle:         'Alarm PIN',
         pinLabel:         'PIN for alarm tiles (4 digits, empty = disabled)',
         pinHint:          'Required when arming or disarming the alarm.',
@@ -826,6 +836,8 @@
         energyLabel:      '⚡-Schaltfläche in der Kopfzeile anzeigen',
         energyHint:       'Wenn deaktiviert, wird der ⚡-Button ausgeblendet.',
         energySaved:      'Einstellung gespeichert',
+        batteryInvertLabel: 'Batterie-Vorzeichen invertieren',
+        batteryInvertHint:  'Aktivieren wenn die Batterie "Charging" zeigt obwohl sie entlädt (z.B. GoodWe, manche Fronius-Systeme).',
         pinTitle:         'Alarm-PIN',
         pinLabel:         'PIN für Alarm-Kacheln (4 Ziffern, leer = kein PIN)',
         pinHint:          'Beim Scharfschalten/Entschärfen wird dieser PIN abgefragt.',
@@ -1023,7 +1035,8 @@
         var legacyDevices = await hGetSafe('enabledDevices', null);
         defaultDevices = Array.isArray(legacyDevices) ? legacyDevices : [];
       }
-      var energyEnabled  = await hGetSafe('energyEnabled', true);
+      var energyEnabled      = await hGetSafe('energyEnabled', true);
+      var batteryInvertSign  = await hGetSafe('batteryInvertSign', false);
       var tileSize       = await hGetSafe('tileSize', 3);
       var savedPin       = await hGetSafe('alarmPin', '');
       var savedPat            = await hGetSafe('homeyToken', '');
@@ -1053,6 +1066,7 @@
       document.getElementById('view-btn-toggle').checked = !savedViewBtnHidden;
       setViewDefault(savedViewDefault, true);
       document.getElementById('energy-toggle').checked = energyEnabled !== false;
+      document.getElementById('battery-invert-toggle').checked = batteryInvertSign === true;
       updateTileLabel(tileSize);
 
       if (storedUrl) {
@@ -1293,6 +1307,14 @@
       var enabled = document.getElementById('energy-toggle').checked;
       try {
         await hSet('energyEnabled', enabled);
+        showStatus('energy-status', T.energySaved, true);
+      } catch (e) { showStatus('energy-status', T.errorPrefix + e.message, false); }
+    }
+
+    async function saveBatteryInvert() {
+      var invert = document.getElementById('battery-invert-toggle').checked;
+      try {
+        await hSet('batteryInvertSign', invert);
         showStatus('energy-status', T.energySaved, true);
       } catch (e) { showStatus('energy-status', T.errorPrefix + e.message, false); }
     }

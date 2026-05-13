@@ -436,7 +436,7 @@ class ShellyWallDisplayApp extends Homey.App {
       if (url.pathname === '/api/settings' && req.method === 'POST') {
         const body = await this._readBody(req);
         const { key, value } = JSON.parse(body);
-        const allowed = ['port', 'enabledDevices', 'alarmPin', 'energyEnabled', 'tileSize', 'enabledFlows', 'homeyToken', 'flowTileWidth', 'dashboardTitle', 'fontSize', 'accentColor', 'tileRadius', 'headerHidden', 'viewDefault', 'viewBtnHidden', 'defaultProfileZones', 'defaultProfileDevices'];
+        const allowed = ['port', 'enabledDevices', 'alarmPin', 'energyEnabled', 'batteryInvertSign', 'tileSize', 'enabledFlows', 'homeyToken', 'flowTileWidth', 'dashboardTitle', 'fontSize', 'accentColor', 'tileRadius', 'headerHidden', 'viewDefault', 'viewBtnHidden', 'defaultProfileZones', 'defaultProfileDevices'];
         if (!allowed.includes(key)) {
           res.writeHead(400);
           res.end(JSON.stringify({ error: 'Not allowed' }));
@@ -1253,8 +1253,13 @@ class ShellyWallDisplayApp extends Homey.App {
 
           if (!type) continue;
 
-          const power = caps.measure_power
+          let power = caps.measure_power
             ? Math.round(caps.measure_power.value || 0) : null;
+          // Batterie-Vorzeichen invertieren wenn das Gerät positive Werte beim Entladen
+          // meldet (z.B. GoodWe SMILE-G3, Fronius Symo Hybrid).
+          if (type === 'battery' && power !== null && this.homey.settings.get('batteryInvertSign') === true) {
+            power = -power;
+          }
           const soc = caps.measure_battery
             ? Math.round(caps.measure_battery.value || 0) : null;
 

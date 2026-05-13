@@ -1,4 +1,12 @@
 {
+  "1.3.3": {
+    "en": "Performance: RAF fallback for older WebViews; icon cache size limit (200 entries); single XHR for icons (no double-fetch); parallel Insights queries with concurrency limit (max 4); CSS contain on device tiles; static file cache with mtime invalidation; JS/CSS served with ETag + no-cache for instant freshness after updates; zones cache TTL 30 min; search field in profile device list; sticky Save button in profile editor",
+    "de": "Performance: RAF-Fallback für ältere WebViews; Icon-Cache-Größenlimit (200 Einträge); Einzel-XHR für Icons (kein Doppel-Request); parallele Insights-Abfragen mit Concurrency-Limit (max. 4); CSS contain auf Gerätekacheln; Static-File-Cache mit mtime-Invalidierung; JS/CSS mit ETag + no-cache für sofortige Aktualität nach Updates; Zonen-Cache TTL 30 Min.; Suchfeld in Profil-Geräteliste; Sticky Speichern-Button im Profil-Editor"
+  },
+  "1.3.2": {
+    "en": "Camera, Energy and Thermostat modals redesigned as centered cards matching the speaker style; 7-day energy chart: outlier filter removes initialization artifacts (inflated kWh values); 'Show all flows' profile option fixed; device type shown in profile device list",
+    "de": "Kamera-, Energie- und Thermostat-Modals als zentrierte Cards neu gestaltet (wie Speaker-Modal); 7-Tage-Energiediagramm: Ausreisser-Filter entfernt Initialisierungs-Artefakte (überhöhte kWh-Werte); 'Alle Flows anzeigen' im Profil behoben; Gerätetyp in Profil-Geräteliste angezeigt"
+  },
   "1.3.1": {
     "en": "Display profiles: select individual devices and flows per display by IP address; default profile applies to all displays; Geräte and Flows tabs replaced by unified Profiles tab",
     "de": "Display-Profile: Geräte und Flows pro Display per IP-Adresse auswählen; Standard-Profil gilt für alle Displays; Geräte- und Flows-Tab durch einheitlichen Profil-Tab ersetzt"

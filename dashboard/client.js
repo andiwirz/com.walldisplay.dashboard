@@ -54,6 +54,89 @@
   // #2 SSE-Aktivitäts-Flag (für adaptives Polling)
   var _sseActive = false;
 
+  // ── Batch-SSE: RAF-basierte Update-Queue ───────────────
+  // Mehrere SSE-Events im selben Frame (z.B. Dimmer-Sliding) werden
+  // gesammelt und einmal pro requestAnimationFrame gerendert.
+  // #1 RAF-Fallback für ältere WebViews ohne requestAnimationFrame
+  var _raf = (typeof requestAnimationFrame !== 'undefined')
+    ? requestAnimationFrame.bind(window)
+    : function (cb) { setTimeout(cb, 16); };
+  var _pendingUpdates  = {};   // id → true
+  var _rafScheduled    = false;
+  function _scheduleCardUpdate(id) {
+    _pendingUpdates[id] = true;
+    if (!_rafScheduled) {
+      _rafScheduled = true;
+      _raf(function () {
+        _rafScheduled = false;
+        var ids = Object.keys(_pendingUpdates);
+        _pendingUpdates = {};
+        for (var i = 0; i < ids.length; i++) updateCard(ids[i]);
+      });
+    }
+  }
+
+  // ── Icon-Cache (localStorage) ──────────────────────────
+  // Icons werden beim ersten Load normal per Proxy geladen (sofortige Anzeige).
+  // Im Hintergrund speichert ein XHR das Icon als Data-URL in localStorage —
+  // ab dem zweiten Load kein Netzwerk-Request mehr nötig.
+  var _ICON_CACHE_VER = '2';
+  var _ICON_LS_PREFIX = 'hd_ic_';
+  var _iconMemCache   = {};  // url-hash → dataURL (Session-Speicher, verhindert doppelte LS-Reads)
+
+  // Version prüfen — alte Einträge löschen wenn Cache-Format geändert wurde
+  try {
+    if (localStorage.getItem('hd_ic_ver') !== _ICON_CACHE_VER) {
+      var _toRemove = [];
+      for (var _ki = 0; _ki < localStorage.length; _ki++) {
+        var _k = localStorage.key(_ki);
+        if (_k && _k.startsWith(_ICON_LS_PREFIX)) _toRemove.push(_k);
+      }
+      _toRemove.forEach(function (k) { localStorage.removeItem(k); });
+      localStorage.setItem('hd_ic_ver', _ICON_CACHE_VER);
+    }
+  } catch (_) {}
+
+  function _iconKey(url) {
+    // Einfacher djb2-Hash → kurzer alphanumerischer Schlüssel
+    var h = 5381;
+    for (var i = 0; i < url.length; i++) h = ((h << 5) + h) ^ url.charCodeAt(i);
+    return _ICON_LS_PREFIX + (h >>> 0).toString(36);
+  }
+
+  // #2 Memory-Cache-Größe begrenzen: ältesten Eintrag verdrängen wenn > 200 Einträge
+  function _iconMemCacheSet(key, val) {
+    var keys = Object.keys(_iconMemCache);
+    if (keys.length >= 200) { delete _iconMemCache[keys[0]]; }
+    _iconMemCache[key] = val;
+  }
+
+  // #3 Einzel-XHR: Icon wird einmal als Blob geholt, als Data-URL gezeigt UND gecacht.
+  // Kein Doppel-Request mehr (früher: Browser-Fetch + separater XHR für Cache).
+  function _fetchAndCacheIcon(proxyUrl, cacheKey, onReady) {
+    try {
+      var xhr = new XMLHttpRequest();
+      xhr.open('GET', proxyUrl);
+      xhr.responseType = 'blob';
+      xhr.onload = function () {
+        if (xhr.status !== 200) { onReady(null); return; }
+        var reader = new FileReader();
+        reader.onloadend = function () {
+          var dataUrl = reader.result;
+          if (!dataUrl) { onReady(null); return; }
+          if (dataUrl.length <= 200000) { // #2 >150 KB überspringen
+            _iconMemCacheSet(cacheKey, dataUrl);
+            try { localStorage.setItem(cacheKey, dataUrl); } catch (_) {}
+          }
+          onReady(dataUrl);
+        };
+        reader.readAsDataURL(xhr.response);
+      };
+      xhr.onerror = function () { onReady(null); };
+      xhr.send();
+    } catch (_) { onReady(null); }
+  }
+
   // ── Energy Modal ───────────────────────────────────
   var _energyTimer = null;
   var _energyTab   = 'live'; // 'live' | 'history'
@@ -192,12 +275,17 @@
       if ((exp[i]   || 0)   > maxVal) maxVal = exp[i];
       if ((solar[i] || 0)   > maxVal) maxVal = solar[i]; // gelber Balken darf Y-Achse nicht übersteigen
     }
+    // Schöne Y-Achsen-Obergrenze: nah am Maximum, aber auf runde Zahl
     var niceMax = maxVal <= 5  ? Math.ceil(maxVal) :
-                  maxVal <= 20 ? Math.ceil(maxVal / 5) * 5 :
-                  Math.ceil(maxVal / 10) * 10;
-    // Headroom: wenn maxVal sehr nah an niceMax liegt, eine Stufe höher (Label-Platz sichern)
+                  maxVal <= 20 ? Math.ceil(maxVal / 5)  * 5  :
+                  maxVal <= 100 ? Math.ceil(maxVal / 10) * 10 :
+                  maxVal <= 500 ? Math.ceil(maxVal / 50) * 50 :
+                  Math.ceil(maxVal / 100) * 100;
+    // Headroom: wenn maxVal sehr nah an niceMax liegt, eine Stufe höher
     if (niceMax < maxVal * 1.05) {
-      niceMax = maxVal <= 20 ? niceMax + 5 : niceMax + 10;
+      niceMax = maxVal <= 20  ? niceMax + 5  :
+                maxVal <= 100 ? niceMax + 10 :
+                maxVal <= 500 ? niceMax + 50 : niceMax + 100;
     }
 
     // Drei Balken pro Tag:  Gelb (Solar gesamt) | Grün+Orange (Heimverbrauch) | Blau (Einspeisung)
@@ -217,16 +305,22 @@
       'xmlns="http://www.w3.org/2000/svg" ' +
       'style="font-family:system-ui,-apple-system,sans-serif;overflow:visible">';
 
+    // Y-Label-Formatter: ab 1000 kWh → MWh-Kurzform
+    function fmtYLbl(v) {
+      if (v >= 1000) return (v / 1000).toFixed(v % 1000 === 0 ? 0 : 1) + 'k';
+      if (v >= 10)   return Math.round(v).toString();
+      return Number.isInteger(v) ? v.toString() : v.toFixed(1);
+    }
+
     // ── Horizontale Hilfslinien ──
     var yTicks = [0.25, 0.5, 0.75, 1.0];
     for (var t = 0; t < yTicks.length; t++) {
       var yVal = niceMax * yTicks[t];
       var yPx  = padTop + chartH - barH(yVal);
-      var lbl  = yVal >= 10 ? Math.round(yVal) : (Number.isInteger(yVal) ? yVal : yVal.toFixed(1));
       svg += '<line x1="' + padL + '" y1="' + yPx + '" x2="' + (W - padR) + '" y2="' + yPx +
         '" stroke="#8E8E93" stroke-width="0.5" stroke-dasharray="3 3" opacity="0.4"/>';
       svg += '<text x="' + (padL - 6) + '" y="' + (yPx + 4) + '" text-anchor="end" ' +
-        'font-size="10" fill="#8E8E93">' + lbl + '</text>';
+        'font-size="10" fill="#8E8E93">' + fmtYLbl(yVal) + '</text>';
     }
     svg += '<text x="' + (padL - 6) + '" y="' + (padTop - 8) + '" text-anchor="end" ' +
       'font-size="9" fill="#8E8E93" opacity="0.8">kWh</text>';
@@ -369,10 +463,26 @@
 
   var _ENERGY_FALLBACK_ICONS = { solar: '☀️', battery: '🔋', grid: '⚡', ev: '🚗', consumer: '🔌' };
 
-  function _energyIconHtml(d) {
+  function _energyIconHtml(d, imgEl) {
+    // imgEl: optionaler <img>-DOM-Knoten, der nachträglich befüllt wird (async Pfad)
     if (d.icon) {
-      var src = d.icon.startsWith('/') ? d.icon : '/api/icon-proxy?url=' + encodeURIComponent(d.icon);
-      return '<img src="' + src + '" class="energy-device-icon-img" alt="">';
+      var proxyUrl = d.icon.startsWith('/') ? d.icon : '/api/icon-proxy?url=' + encodeURIComponent(d.icon);
+      var cacheKey = _iconKey(d.icon);
+      var cached = _iconMemCache[cacheKey];
+      if (!cached) { try { cached = localStorage.getItem(cacheKey); } catch (_) {} }
+      if (cached) { _iconMemCacheSet(cacheKey, cached); }
+      if (cached) {
+        return '<img src="' + cached + '" class="energy-device-icon-img" alt="">';
+      }
+      // #3 Einzel-XHR – Icon wird gecacht und danach in imgEl eingetragen wenn vorhanden
+      if (imgEl) {
+        _fetchAndCacheIcon(proxyUrl, cacheKey, function (dataUrl) {
+          imgEl.src = dataUrl || proxyUrl;
+        });
+      } else {
+        _fetchAndCacheIcon(proxyUrl, cacheKey, function () {});
+      }
+      return '<img src="' + proxyUrl + '" class="energy-device-icon-img" alt="">';
     }
     return '<span class="energy-device-icon-emoji">' + (_ENERGY_FALLBACK_ICONS[d.type] || '⚡') + '</span>';
   }
@@ -628,14 +738,32 @@
   function buildIconElement(d) {
     var span = createElement('span', 'device-icon');
     if (d.icon) {
+      var proxyUrl = d.icon.startsWith('/') ? d.icon : '/api/icon-proxy?url=' + encodeURIComponent(d.icon);
+      var cacheKey = _iconKey(d.icon);
       var img = document.createElement('img');
       img.className = 'device-icon-img';
       img.alt = '';
-      img.src = d.icon.startsWith('/') ? d.icon : '/api/icon-proxy?url=' + encodeURIComponent(d.icon);
       img.onerror = function () {
-        span.removeChild(img);
+        if (span.contains(img)) span.removeChild(img);
         span.textContent = getIcon(d.class);
       };
+
+      // Aus Cache laden (Memory → localStorage)
+      var cached = _iconMemCache[cacheKey];
+      if (!cached) {
+        try { cached = localStorage.getItem(cacheKey); } catch (_) {}
+        if (cached) _iconMemCacheSet(cacheKey, cached);
+      }
+
+      if (cached) {
+        img.src = cached; // Cache-Hit: kein Netzwerk-Request
+      } else {
+        // #3 Einzel-XHR: einmal holen → anzeigen + cachen (kein Doppel-Request)
+        _fetchAndCacheIcon(proxyUrl, cacheKey, function (dataUrl) {
+          img.src = dataUrl || proxyUrl; // Fallback auf Proxy-URL wenn XHR scheitert
+        });
+      }
+
       span.appendChild(img);
     } else {
       span.textContent = getIcon(d.class);
@@ -676,10 +804,11 @@
         var tilePx = [90, 110, 130, 165, 210];
         var ts = (cfg.tileSize >= 1 && cfg.tileSize <= 5) ? cfg.tileSize : 3;
         document.documentElement.style.setProperty('--tile-min', tilePx[ts - 1] + 'px');
-        // Flow-IDs merken
-        // false = gespeichert mit "kein Flow", null = noch nie gespeichert → beides = keine Flows anzeigen
-        _enabledFlows = Array.isArray(cfg.enabledFlows) && cfg.enabledFlows.length
-          ? cfg.enabledFlows : null;
+        // Flow-Filter merken — Server-Semantik beibehalten:
+        //   null  = alle Flows zeigen
+        //   []    = keine Flows zeigen  (__none__ wird serverseitig zu [] konvertiert)
+        //   [ids] = nur diese Flows zeigen
+        _enabledFlows = Array.isArray(cfg.enabledFlows) ? cfg.enabledFlows : null;
         // Flow-Tile-Breite: 'match' = wie Gerätekacheln, sonst dynamisch
         _flowTileMatch = cfg.flowTileWidth === 'match';
         // Flow-Bestätigung und Position
@@ -910,9 +1039,14 @@
     // Flows vom Server laden (Namen + Typen)
     xhr('GET', '/api/flows', null, function (err, flows) {
       if (err || !flows) return;
-      // Nur ausgewählte Flows zeigen
-      var enabledSet = new Set(_enabledFlows || []);
-      var visible = flows.filter(function (f) { return enabledSet.has(f.id); });
+      // null = alle zeigen, [] = keine, [ids] = Filter
+      var visible;
+      if (_enabledFlows === null) {
+        visible = flows; // alle
+      } else {
+        var enabledSet = new Set(_enabledFlows);
+        visible = flows.filter(function (f) { return enabledSet.has(f.id); });
+      }
       if (!visible.length) {
         section.style.display = 'none';
         return;
@@ -958,12 +1092,14 @@
 
   function _showFlowConfirm(flowId, tileEl) {
     var f = _flowsData[flowId];
+    // #4 Guard: Flow-Daten noch nicht geladen → direkt auslösen
+    if (!f) { _doTriggerFlow(flowId, tileEl); return; }
     var nameEl  = document.getElementById('flow-confirm-name');
     var modal   = document.getElementById('flow-confirm-modal');
     var okBtn   = document.getElementById('flow-confirm-ok');
     var cancelBtn = document.getElementById('flow-confirm-cancel');
     if (!modal) { _doTriggerFlow(flowId, tileEl); return; }
-    if (nameEl) nameEl.textContent = f ? f.name : '';
+    if (nameEl) nameEl.textContent = f.name;
     modal.style.display = 'flex';
 
     // Handler einmalig setzen (vorherige entfernen)
@@ -1020,7 +1156,8 @@
     var container = document.getElementById('zones-container');
     container.innerHTML = '';
 
-    var showFlows = _enabledFlows && _enabledFlows.length;
+    // null = alle anzeigen, [] = keine, [ids] = spezifische
+    var showFlows = _enabledFlows === null || (_enabledFlows && _enabledFlows.length > 0);
 
     // Flows-Sektion oben (Standard)
     if (showFlows && _flowPosition !== 'bottom') {
@@ -1572,7 +1709,7 @@
               devices[id].capabilitiesObj = data.device.capabilitiesObj;
             }
             devices[id].available = data.device.available;
-            updateCard(id);
+            _scheduleCardUpdate(id); // Batch: mehrere Updates im selben Frame zusammenführen
           }
         }
       } catch (_) {}
@@ -1605,7 +1742,7 @@
             if (devices[d.id]) {
               devices[d.id].capabilitiesObj = d.capabilitiesObj;
               devices[d.id].available = d.available;
-              updateCard(d.id);
+              _scheduleCardUpdate(d.id); // Batch: alle Poll-Updates in einem RAF-Frame
             }
           });
         }

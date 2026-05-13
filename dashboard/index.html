@@ -62,8 +62,8 @@
   </div>
 
   <!-- Energy Modal -->
-  <div id="energy-modal" class="energy-modal" style="display:none">
-    <div class="energy-modal-inner">
+  <div id="energy-modal" class="energy-modal" style="display:none" onclick="closeEnergyModal()">
+    <div class="energy-modal-inner" onclick="event.stopPropagation()">
       <div class="energy-modal-hdr">
         <span class="energy-modal-title">⚡ Energy</span>
         <div class="energy-tabs">
@@ -94,7 +94,7 @@
   <div id="camera-modal" class="camera-modal" style="display:none" onclick="closeCameraModal()">
     <div class="camera-modal-inner" onclick="event.stopPropagation()">
       <div class="camera-modal-header">
-        <span id="camera-modal-title"></span>
+        <span id="camera-modal-title" class="camera-modal-name"></span>
         <button class="camera-modal-close" onclick="closeCameraModal()">✕</button>
       </div>
       <div class="camera-modal-body">

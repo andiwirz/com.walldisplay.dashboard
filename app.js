@@ -5,6 +5,7 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
+const crypto = require('crypto');
 const WebSocket = require('ws');
 
 const DEFAULT_PORT = 7575;
@@ -63,8 +64,8 @@ class ShellyWallDisplayApp extends Homey.App {
         const newPort = this.homey.settings.get('port') || DEFAULT_PORT;
         this._restartServer(newPort).catch((e) => this.error('Server-Neustart fehlgeschlagen:', e.message));
       }
-      // SSE-Filter neu berechnen wenn sich Profile oder Geräteauswahl ändern
-      if (key === 'displayProfiles' || key === 'defaultProfileDevices') {
+      // SSE-Filter neu berechnen wenn sich Profile oder Geräteauswahl ändern (#9)
+      if (key === 'displayProfiles' || key === 'defaultProfileDevices' || key === 'enabledDevices') {
         this._buildRelevantDeviceIds();
       }
     });
@@ -274,7 +275,7 @@ class ShellyWallDisplayApp extends Homey.App {
       return this._handleAPI(req, res, url);
     }
 
-    return this._serveStatic(res, url.pathname);
+    return this._serveStatic(res, url.pathname, req);
   }
 
   async _handleAPI(req, res, url) {
@@ -399,10 +400,12 @@ class ShellyWallDisplayApp extends Homey.App {
         const settingsProfiles    = this.homey.settings.get('displayProfiles') || [];
         const settingsProfile     = settingsProfiles.find((p) => p.ip === settingsClientIp);
         const globalEnabledFlows  = this.homey.settings.get('enabledFlows') || null;
-        const rawEffectiveFlows = (settingsProfile && Array.isArray(settingsProfile.flows) && settingsProfile.flows.length > 0)
-          ? settingsProfile.flows
+        // Profil gefunden → dessen flows verwenden (auch [] = "alle"), sonst globale Einstellung.
+        // Wichtig: .length > 0 NICHT prüfen — [] bedeutet "alle Flows", nicht "kein Override".
+        const rawEffectiveFlows = settingsProfile
+          ? (Array.isArray(settingsProfile.flows) ? settingsProfile.flows : null)
           : globalEnabledFlows;
-        // ['__none__'] = explicitly no flows → send empty array; client treats [] as "no flows"
+        // ['__none__'] = explizit keine Flows → leeres Array; Client wertet [] als "keine Flows"
         const effectiveEnabledFlows = Array.isArray(rawEffectiveFlows) && rawEffectiveFlows.includes('__none__')
           ? []
           : rawEffectiveFlows;
@@ -488,8 +491,10 @@ class ShellyWallDisplayApp extends Homey.App {
         const legacyEnabledDevices  = this.homey.settings.get('enabledDevices');
         const defaultDeviceFallback = Array.isArray(defaultProfileDevices) ? defaultProfileDevices
           : (Array.isArray(legacyEnabledDevices) ? legacyEnabledDevices : []);
-        const activeDevices = displayProfile && Array.isArray(displayProfile.devices) && displayProfile.devices.length > 0
-          ? displayProfile.devices
+        // Profil gefunden → dessen devices verwenden (auch [] = "alle"), sonst Default-Fallback.
+        // Wichtig: .length > 0 NICHT prüfen — [] bedeutet "alle Geräte", nicht "kein Override".
+        const activeDevices = displayProfile
+          ? (Array.isArray(displayProfile.devices) ? displayProfile.devices : [])
           : defaultDeviceFallback;
         const noDevices      = activeDevices.includes('__none__');
         const profileDevices = !noDevices && activeDevices.length > 0 ? new Set(activeDevices) : null;
@@ -658,6 +663,9 @@ class ShellyWallDisplayApp extends Homey.App {
         iconMod.get(iconParsed.href, { headers }, (iconRes) => {
           res.setHeader('Content-Type', iconRes.headers['content-type'] || 'image/svg+xml');
           res.setHeader('Cache-Control', 'public, max-age=86400');
+          // #10 ETag weiterleiten — ermöglicht 304-Antworten bei unverändertem Icon
+          if (iconRes.headers['etag'])          res.setHeader('ETag', iconRes.headers['etag']);
+          if (iconRes.headers['last-modified']) res.setHeader('Last-Modified', iconRes.headers['last-modified']);
           res.writeHead(iconRes.statusCode);
           iconRes.pipe(res);
         }).on('error', () => { res.writeHead(502); res.end(); });
@@ -1089,7 +1097,7 @@ class ShellyWallDisplayApp extends Homey.App {
           }
             this.log('maxPerDay:', JSON.stringify(maxPerDay));
 
-            // TÃ¤gliche Deltas berechnen
+            // Tägliche Deltas berechnen
             const result = [];
             for (let i = 0; i < dayBuckets.length; i++) {
               const dayStr  = new Date(dayBuckets[i].ts).toLocaleDateString('en-CA');
@@ -1097,11 +1105,36 @@ class ShellyWallDisplayApp extends Homey.App {
               const vEnd    = maxPerDay[dayStr];
               const vStart  = maxPerDay[prevStr];
               if (vEnd !== undefined && vStart !== undefined && vEnd >= vStart) {
-                result.push(parseFloat((vEnd - vStart).toFixed(2)));
+                const delta = parseFloat((vEnd - vStart).toFixed(2));
+                // Initialisierungs-Artefakt: Insights startete bei 0 obwohl der physische
+                // Zähler schon bei einem hohen Wert war → erstes Delta = kumulativer Zählerstand.
+                // Erkennbar: vStart < 1 (Insights-Reset) aber delta riesig (> 1000 kWh).
+                if (vStart < 1 && delta > 1000) {
+                  this.log(`getDailyKwh: Init-Artefakt gefiltert ${dayStr}: vStart=${vStart}, delta=${delta}`);
+                  result.push(null);
+                } else {
+                  result.push(delta);
+                }
               } else {
                 result.push(null);
               }
             }
+
+            // Ausreisser-Filter: Werte die >100× den Median überschreiten sind
+            // wahrscheinlich Mess-Artefakte (Reset, Überlauf o.ä.)
+            const nonNull = result.filter(v => v !== null && v > 0);
+            if (nonNull.length >= 2) {
+              const sorted = [...nonNull].sort((a, b) => a - b);
+              const median = sorted[Math.floor(sorted.length / 2)];
+              const capVal = Math.max(median * 100, 10000); // 100× Median oder abs. 10 000 kWh
+              for (let i = 0; i < result.length; i++) {
+                if (result[i] !== null && result[i] > capVal) {
+                  this.log(`getDailyKwh: Ausreisser gefiltert Tag ${i}: ${result[i]} > ${capVal} (Median ${median})`);
+                  result[i] = null;
+                }
+              }
+            }
+
             this.log(`getDailyKwh OK: ${deviceId}/${capId}`, dbgLog.join(' '));
             return { data: result, dbg: dbgLog }; // Erster erfolgreicher Kandidat gewinnt
           }
@@ -1111,27 +1144,59 @@ class ShellyWallDisplayApp extends Homey.App {
           return { data: null, dbg: dbgLog };
         };
 
-        // Aggregieren
+        // #7 Aggregieren — alle Geräte parallel abfragen (Promise.all)
         const gridKwh   = new Array(numDays).fill(0);
         const exportKwh = new Array(numDays).fill(0);
         const solarKwh  = new Array(numDays).fill(0);
         let hasData = false;
         const debugLog = [];
 
-        for (const d of gridDevices) {
-          const { data, dbg } = await getDailyKwh(d.id, d.capList);
-          debugLog.push({ type: 'grid', capList: d.capList, logIds: d.logIds, dbg });
-          if (data) { hasData = true; data.forEach((v, i) => { if (v !== null) gridKwh[i] += v; }); }
-          // Einspeisung (Grid-Export) vom selben Geraet holen
-          if (d.exportCapList && d.exportCapList.length) {
-            const { data: expData } = await getDailyKwh(d.id, d.exportCapList);
-            if (expData) { hasData = true; expData.forEach((v, i) => { if (v !== null) exportKwh[i] += v; }); }
+        // Aufgaben-Liste aufbauen: [{ type, device }]
+        const tasks = [
+          ...gridDevices.map((d) => ({ type: 'grid',   device: d, capList: d.capList })),
+          ...gridDevices
+            .filter((d) => d.exportCapList && d.exportCapList.length)
+            .map((d) => ({ type: 'export', device: d, capList: d.exportCapList })),
+          ...solarDevices.map((d) => ({ type: 'solar',  device: d, capList: d.capList })),
+        ];
+
+        // #B Concurrency-Limit: max. 4 parallele Insights-Queries
+        // verhindert Rate-Limiting der Homey Insights-API bei vielen Geräten
+        const _pLimit = (n) => {
+          let active = 0;
+          const queue = [];
+          const run = () => {
+            while (active < n && queue.length) {
+              active++;
+              const { fn, resolve, reject } = queue.shift();
+              fn().then(resolve, reject).finally(() => { active--; run(); });
+            }
+          };
+          return (fn) => new Promise((resolve, reject) => {
+            queue.push({ fn, resolve, reject });
+            run();
+          });
+        };
+        const limit = _pLimit(4);
+
+        const taskResults = await Promise.all(
+          tasks.map((t) => limit(async () => {
+            const result = await getDailyKwh(t.device.id, t.capList);
+            return { type: t.type, device: t.device, ...result };
+          }))
+        );
+
+        for (const r of taskResults) {
+          const { type, device, data, dbg } = r;
+          if (type === 'grid') {
+            debugLog.push({ type: 'grid', capList: device.capList, logIds: device.logIds, dbg });
+            if (data) { hasData = true; data.forEach((v, i) => { if (v !== null) gridKwh[i] += v; }); }
+          } else if (type === 'export') {
+            if (data) { hasData = true; data.forEach((v, i) => { if (v !== null) exportKwh[i] += v; }); }
+          } else if (type === 'solar') {
+            debugLog.push({ type: 'solar', capList: device.capList, logIds: device.logIds, dbg });
+            if (data) { hasData = true; data.forEach((v, i) => { if (v !== null) solarKwh[i] += v; }); }
           }
-        }
-        for (const d of solarDevices) {
-          const { data, dbg } = await getDailyKwh(d.id, d.capList);
-          debugLog.push({ type: 'solar', capList: d.capList, logIds: d.logIds, dbg });
-          if (data) { hasData = true; data.forEach((v, i) => { if (v !== null) solarKwh[i] += v; }); }
         }
 
         const dbgToken = await this._getOwnerToken();
@@ -1274,7 +1339,7 @@ class ShellyWallDisplayApp extends Homey.App {
     }
   }
 
-  _serveStatic(res, pathname) {
+  _serveStatic(res, pathname, req) {
     if (pathname === '/' || pathname === '') {
       pathname = '/index.html';
     }
@@ -1290,12 +1355,49 @@ class ShellyWallDisplayApp extends Homey.App {
       '.ico': 'image/x-icon',
     };
 
-    // In-Memory-Cache: Datei einmal lesen, danach aus dem Speicher bedienen
-    if (this._staticCache.has(filePath)) {
-      const { data, ct } = this._staticCache.get(filePath);
+    // #6 Cache-Control nach Dateityp:
+    // JS/CSS: no-cache (Browser validiert immer via ETag → 304 wenn unverändert,
+    //   sofort frisch nach App-Update ohne langen max-age-Stale-Window)
+    // Bilder: 24 h (ändern sich praktisch nie)
+    const cacheControl = {
+      '.html': 'no-cache',
+      '.css':  'no-cache',
+      '.js':   'no-cache',
+      '.png':  'public, max-age=86400',
+      '.svg':  'public, max-age=86400',
+      '.ico':  'public, max-age=86400',
+    };
+
+    const _sendStatic = (data, ct, etag, cc) => {
+      // #6 ETag-basierte 304-Antwort
+      if (etag && req && req.headers && req.headers['if-none-match'] === etag) {
+        res.writeHead(304);
+        res.end();
+        return;
+      }
       res.setHeader('Content-Type', ct);
+      if (cc) res.setHeader('Cache-Control', cc);
+      if (etag) res.setHeader('ETag', etag);
       res.writeHead(200);
       res.end(data);
+    };
+
+    // #H In-Memory-Cache mit mtime-Invalidierung:
+    // Beim ersten Treffer wird die Datei-Änderungszeit (mtime) geprüft.
+    // Ändert sich die mtime (z.B. nach homey app run hot-reload), wird die
+    // gecachte Version verworfen und die Datei neu gelesen.
+    if (this._staticCache.has(filePath)) {
+      const cached = this._staticCache.get(filePath);
+      fs.stat(filePath, (statErr, stat) => {
+        if (!statErr && stat && stat.mtimeMs !== cached.mtime) {
+          // Datei hat sich verändert → Cache-Eintrag löschen und neu einlesen
+          this._staticCache.delete(filePath);
+          this._serveStatic(res, pathname, req);
+          return;
+        }
+        const cc = cacheControl[ext] || 'no-cache';
+        _sendStatic(cached.data, cached.ct, cached.etag, cc);
+      });
       return;
     }
 
@@ -1305,11 +1407,14 @@ class ShellyWallDisplayApp extends Homey.App {
         res.end('Not Found');
         return;
       }
-      const ct = contentTypes[ext] || 'application/octet-stream';
-      this._staticCache.set(filePath, { data, ct });
-      res.setHeader('Content-Type', ct);
-      res.writeHead(200);
-      res.end(data);
+      const ct   = contentTypes[ext] || 'application/octet-stream';
+      const etag = '"' + crypto.createHash('md5').update(data).digest('hex').slice(0, 16) + '"';
+      const cc   = cacheControl[ext] || 'no-cache';
+      // mtime parallel zur Datei speichern für spätere Invalidierungs-Checks (#H)
+      fs.stat(filePath, (sErr, stat) => {
+        this._staticCache.set(filePath, { data, ct, etag, mtime: stat ? stat.mtimeMs : 0 });
+      });
+      _sendStatic(data, ct, etag, cc);
     });
   }
 
@@ -1464,10 +1569,10 @@ class ShellyWallDisplayApp extends Homey.App {
     return devices;
   }
 
-  // Zones-Cache mit 5 min TTL — Zonen ändern sich sehr selten.
+  // Zones-Cache mit 30 min TTL — Zonen ändern sich sehr selten. (#11)
   async _getZonesCache() {
     const now = Date.now();
-    if (this._zonesCache && now - this._zonesCacheTs < 300000) {
+    if (this._zonesCache && now - this._zonesCacheTs < 1800000) {
       return this._zonesCache;
     }
     const raw = await this.homeyApi.zones.getZones();

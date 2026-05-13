@@ -275,10 +275,21 @@
       background: #F5A623; color: #000; border: none;
       border-radius: 8px; padding: 11px 20px;
       font-size: 14px; font-weight: 600; cursor: pointer;
-      width: 100%; margin-top: 12px;
+      width: 100%;
     }
     .save-list-btn:hover { background: #e09518; }
     .save-list-btn:disabled { background: #ccc; cursor: default; }
+
+    /* #O Sticky Save-Bereich — klebt am unteren Rand beim Scrollen durch die Profilliste */
+    .profiles-sticky-footer {
+      position: sticky;
+      bottom: 0;
+      background: #fff;
+      padding: 10px 0 4px;
+      margin-top: 14px;
+      border-top: 1px solid #f0f0f0;
+      z-index: 5;
+    }
 
     /* Segmented Button */
     .seg-btn-group {
@@ -671,8 +682,11 @@
       <div id="default-profile-container"></div>
       <div id="profiles-list"></div>
       <button class="add-profile-btn" onclick="addProfile()" data-i18n="displaysAdd">＋ Add IP profile</button>
-      <button class="save-list-btn" id="save-profiles-btn" onclick="saveProfiles()" style="margin-top:14px;" data-i18n="displaysSave">Save profiles</button>
-      <div class="status" id="profiles-status"></div>
+      <!-- #O Sticky Save-Footer: bleibt beim Scrollen durch lange Profillisten sichtbar -->
+      <div class="profiles-sticky-footer">
+        <button class="save-list-btn" id="save-profiles-btn" onclick="saveProfiles()" data-i18n="displaysSave">Save profiles</button>
+        <div class="status" id="profiles-status"></div>
+      </div>
     </div>
 
   </div><!-- /panel-displays -->
@@ -1070,7 +1084,8 @@
       // ── Flows (from cache or HTTP) ─────────────────────────────────
       var cachedFlows = await hGet('cachedFlows');
       if (cachedFlows && cachedFlows.length) {
-        _allFlows = cachedFlows.filter(function(f) { return f.triggerable !== false; });
+        // #5 cachedFlows enthält bereits nur triggerbare Flows — kein filter() nötig
+        _allFlows = cachedFlows;
         renderProfiles();
       } else {
         dashboardGet('/api/flows')
@@ -1531,6 +1546,16 @@
       noneLabel.appendChild(noneCb); noneLabel.appendChild(noneSpan);
       body.appendChild(noneLabel);
 
+      // #18 Suchfeld über der Geräteliste
+      var searchWrap = document.createElement('div');
+      searchWrap.style.cssText = 'position:sticky;top:0;background:var(--bg,#fff);padding:4px 0 6px;z-index:1;';
+      var searchInput = document.createElement('input');
+      searchInput.type = 'search';
+      searchInput.placeholder = lang === 'de' ? 'Geräte suchen…' : 'Search devices…';
+      searchInput.style.cssText = 'width:100%;box-sizing:border-box;padding:6px 10px;border:1px solid #ddd;border-radius:8px;font-size:13px;outline:none;';
+      searchWrap.appendChild(searchInput);
+      body.appendChild(searchWrap);
+
       // Devices grouped by zone
       var deviceSet = new Set(profile.devices || []);
       var byZone = {}, noZone = [];
@@ -1546,6 +1571,17 @@
       if (noZone.length) sortedZoneIds.push('__nozone__');
       byZone['__nozone__'] = noZone;
 
+      var clsMap = {
+        light:'Light', socket:'Socket', thermostat:'Thermostat', sensor:'Sensor',
+        lock:'Lock', windowcoverings:'Blind', fan:'Fan', heater:'Heater',
+        homealarm:'Alarm', tv:'TV', vacuumcleaner:'Vacuum', solarpanel:'Solar',
+        camera:'Camera', doorbell:'Doorbell', speaker:'Speaker', button:'Button',
+        remote:'Remote', car:'Car', other:'Other'
+      };
+
+      // Alle Zone-Sektionen (Header + Grid) merken für die Suchfunktion
+      var zoneSections = []; // [{ hdr, rows: [{row, searchText}] }]
+
       sortedZoneIds.forEach(function(zoneId) {
         var zoneDevs = byZone[zoneId];
         if (!zoneDevs || !zoneDevs.length) return;
@@ -1558,6 +1594,7 @@
 
         var grid = document.createElement('div');
         grid.className = 'profile-zone-grid';
+        var sectionRows = [];
         zoneDevs.sort(function(a, b) { return a.name.localeCompare(b.name); });
         zoneDevs.forEach(function(d) {
           var row = document.createElement('label');
@@ -1569,12 +1606,36 @@
           cb.onchange = function() { if (this.checked) uncheckDeviceSpecial(); };
           var sp = document.createElement('span');
           sp.textContent = d.name;
-          sp.style.cssText = 'overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
-          row.appendChild(cb); row.appendChild(sp);
+          sp.style.cssText = 'overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;flex:1;';
+          var cls = d.virtualClass || d.class || '';
+          var clsLabel = clsMap[cls] || cls;
+          var typeSp = document.createElement('span');
+          typeSp.textContent = '(' + clsLabel + ')';
+          typeSp.style.cssText = 'font-size:11px;color:#bbb;white-space:nowrap;flex-shrink:0;';
+          row.appendChild(cb); row.appendChild(sp); row.appendChild(typeSp);
           grid.appendChild(row);
+          // Suchtext: Gerätename + Typ (case-insensitive)
+          sectionRows.push({ row: row, searchText: (d.name + ' ' + clsLabel).toLowerCase() });
         });
         body.appendChild(grid);
+        zoneSections.push({ hdr: zoneHdr, grid: grid, rows: sectionRows });
       });
+
+      // #18 Echtzeit-Filter beim Tippen
+      searchInput.oninput = function() {
+        var q = searchInput.value.trim().toLowerCase();
+        zoneSections.forEach(function(sec) {
+          var anyVisible = false;
+          sec.rows.forEach(function(r) {
+            var visible = !q || r.searchText.indexOf(q) !== -1;
+            r.row.style.display = visible ? '' : 'none';
+            if (visible) anyVisible = true;
+          });
+          // Zone-Header und Grid ausblenden wenn keine Treffer in der Zone
+          sec.hdr.style.display  = anyVisible ? '' : 'none';
+          sec.grid.style.display = anyVisible ? '' : 'none';
+        });
+      };
 
       card.appendChild(toggle); card.appendChild(body);
     }

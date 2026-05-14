@@ -1,4 +1,8 @@
 {
+  "1.3.5": {
+    "en": "Energy Dashboard redesigned",
+    "de": "Energie-Dashboard neu gestaltet"
+  },
   "1.3.4": {
     "en": "Energy Dashboard: 'Invert battery sign' option for systems that report positive power when discharging (e.g. GoodWe SMILE, some Fronius inverters)",
     "de": "Energie-Dashboard: Option 'Batterie-Vorzeichen invertieren' für Systeme die beim Entladen positive Werte melden (z.B. GoodWe SMILE, manche Fronius-Wechselrichter)"

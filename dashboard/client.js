@@ -139,7 +139,8 @@
 
   // ── Energy Modal ───────────────────────────────────
   var _energyTimer = null;
-  var _energyTab   = 'live'; // 'live' | 'history'
+  var _energyTab   = 'live'; // 'live' | 'devices' | 'history'
+  var _lastEnergyData = null; // cached for tab switching
 
   function openEnergyModal() {
     _energyTab = 'live';
@@ -155,6 +156,7 @@
     document.getElementById('energy-modal').style.display = 'none';
     if (_energyTimer) { clearInterval(_energyTimer); _energyTimer = null; }
     _lastEnergySummaryKey = null;
+    _lastEnergyData = null;
     _energyTab = 'live';
   }
   window.closeEnergyModal = closeEnergyModal;
@@ -162,6 +164,10 @@
   function switchEnergyTab(tab) {
     _energyTab = tab;
     _setEnergyTab(tab);
+    if (tab === 'devices') {
+      _renderEnergyDevicesTab();
+      return;
+    }
     if (tab === 'history') {
       if (_energyTimer) { clearInterval(_energyTimer); _energyTimer = null; }
       _fetchEnergyHistory();
@@ -175,7 +181,20 @@
 
   function _setEnergyTab(tab) {
     document.getElementById('energy-tab-live').classList.toggle('active',    tab === 'live');
+    document.getElementById('energy-tab-devices').classList.toggle('active', tab === 'devices');
     document.getElementById('energy-tab-history').classList.toggle('active', tab === 'history');
+  }
+
+  function _renderEnergyDevicesTab() {
+    var body = document.getElementById('energy-body');
+    if (!body) return;
+    if (_lastEnergyData) {
+      body.innerHTML = '<div class="energy-scroll-body">' + _buildEnergyDeviceCardsHtml(_lastEnergyData.devices) + '</div>';
+    } else {
+      body.innerHTML = '<div class="energy-spinner"><div class="spinner"></div></div>';
+      // Fetch live data once to populate device list
+      _fetchEnergy();
+    }
   }
 
   // #3 Energy Error Handling
@@ -488,98 +507,157 @@
   }
 
   function _renderEnergyFlowSVG(s, hasBattery) {
-    var W    = 320;
-    var R    = 38;
-    var svgH = hasBattery ? 253 : 157;
+    var W  = 320;
+    var R  = 36;
+    // T-junction layout: Solar top-center, Grid bottom-left, Home bottom-right
+    // Solar label sits ABOVE its circle → extra top margin (sy=72)
+    var jx = 160, jy = 147;   // T-junction (same y as Grid & Home → straight horizontal line)
+    var sx = 160, sy = 60;    // Solar (top center)
+    var gx = 52,  gy = 147;   // Grid  (bottom left)
+    var hx = 268, hy = 147;   // Home  (bottom right)
+    var bx = 160, by = 228;   // Battery (bottom center, 10 px up)
+    var svgH = hasBattery ? 312 : 212;
 
     var solarC = _energyColor('solar',   s.solarW);
     var gridC  = _energyColor('grid',    s.gridW);
     var batC   = _energyColor('battery', s.batteryW);
     var homeC  = '#F5A623';
+    // Use CSS custom properties so dark/light mode is respected automatically
+    var bg0      = 'var(--surface)';     // circle interior = modal card surface
+    var bgBack   = 'var(--bg)';          // SVG backdrop = page background
+    var inactive = 'var(--text-muted)';  // ring/icon colour when no flow
 
-    var sx=75, sy=42, gx=245, gy=42, hx=160, hy=110, bx=160, by=210;
+    var solarOn = Math.abs(s.solarW  || 0) > 5;
+    var gridOn  = Math.abs(s.gridW   || 0) > 5;
+    var homeOn  = Math.abs(s.homeW   || 0) > 5;
+    var batOn   = Math.abs(s.batteryW|| 0) > 5;
 
-    function hexAlpha(hex, a) {
-      var r=parseInt(hex.slice(1,3),16), g=parseInt(hex.slice(3,5),16), b=parseInt(hex.slice(5,7),16);
-      return 'rgba('+r+','+g+','+b+','+a+')';
-    }
+    function lineW(w) { return Math.max(1.5, Math.min(3.5, 1.5 + Math.abs(w||0) / 500)); }
 
-    function edgePt(cx1, cy1, cx2, cy2) {
-      var dx=cx2-cx1, dy=cy2-cy1, d=Math.sqrt(dx*dx+dy*dy);
-      return { x: Math.round(cx1+dx/d*R), y: Math.round(cy1+dy/d*R) };
-    }
-
-    function lineW(w) { return Math.max(1.5, Math.min(5, 1.5+Math.abs(w||0)/400)); }
-
-    function flowLine(x1, y1, x2, y2, color, watt, reverse) {
-      if (Math.abs(watt||0) <= 5) {
-        return '<line x1="'+x1+'" y1="'+y1+'" x2="'+x2+'" y2="'+y2+'" stroke="#ADADB8" stroke-width="1.5" stroke-dasharray="5 4" opacity="0.3"/>';
+    // Static connector line segment
+    function segLine(x1, y1, x2, y2, color, on) {
+      if (!on) {
+        return '<line x1="'+x1+'" y1="'+y1+'" x2="'+x2+'" y2="'+y2+
+               '" stroke="var(--border)" stroke-width="1.5" stroke-dasharray="5 4"/>';
       }
-      var lw  = lineW(watt);
-      var pd  = reverse ? 'M '+x2+','+y2+' L '+x1+','+y1 : 'M '+x1+','+y1+' L '+x2+','+y2;
-      var dist = Math.sqrt(Math.pow(x2-x1,2)+Math.pow(y2-y1,2));
-      var dur  = (dist/65).toFixed(2)+'s';
-      var half = (parseFloat(dur)/2).toFixed(2)+'s';
-      return '<line x1="'+x1+'" y1="'+y1+'" x2="'+x2+'" y2="'+y2+'" stroke="'+color+'" stroke-width="'+lw+'" opacity="0.4"/>'+
-        '<circle r="5" fill="'+color+'"><animateMotion dur="'+dur+'" repeatCount="indefinite" path="'+pd+'"/></circle>'+
-        '<circle r="3.5" fill="'+color+'" opacity="0.55"><animateMotion dur="'+dur+'" begin="-'+half+'" repeatCount="indefinite" path="'+pd+'"/></circle>';
+      return '<line x1="'+x1+'" y1="'+y1+'" x2="'+x2+'" y2="'+y2+
+             '" stroke="'+color+'" stroke-width="1.5" opacity="0.55"/>';
     }
 
-    function node(cx, cy, color, iconSvg, label, value, sub) {
-      var bg = hexAlpha(color, 0.11);
+    // Animated dot (drawn before node circles so the dot is occluded on arrival)
+    function segDot(x1, y1, x2, y2, color, on, reverse) {
+      if (!on) return '';
+      var len = Math.sqrt(Math.pow(x2-x1,2)+Math.pow(y2-y1,2));
+      var dur = Math.max(0.8, len/75).toFixed(1)+'s';
+      var pd  = reverse ? 'M '+x2+','+y2+' L '+x1+','+y1 : 'M '+x1+','+y1+' L '+x2+','+y2;
+      return '<circle r="5" fill="'+color+'"><animateMotion dur="'+dur+'" repeatCount="indefinite" path="'+pd+'"/></circle>';
+    }
+
+    // Node: themed circle fill + colored (or muted) ring.
+    // labelAbove=true  → label rendered above the circle (Solar)
+    // labelAbove=false → label rendered below the circle (Grid/Home/Battery)
+    // When inactive: ring & icon use --text-muted, value/sub text hidden.
+    function node(cx, cy, color, iconSvg, label, value, sub, labelAbove, on) {
+      var rc = on ? color : inactive;
+      var ic = on ? color : inactive;
+      var ly = labelAbove ? (cy - R - 10) : (cy + R + 17);
       return (
-        '<circle cx="'+cx+'" cy="'+cy+'" r="'+R+'" fill="'+bg+'" stroke="'+color+'" stroke-width="2"/>'+
-        '<text x="'+cx+'" y="'+(cy-27)+'" text-anchor="middle" font-size="8" fill="'+color+'" font-weight="700" letter-spacing="0.8" opacity="0.85">'+label+'</text>'+
-        '<g transform="translate('+cx+','+(cy-8)+')" fill="'+color+'" stroke="'+color+'">'+iconSvg+'</g>'+
-        '<text x="'+cx+'" y="'+(cy+20)+'" text-anchor="middle" font-size="13" font-weight="700" fill="'+color+'" letter-spacing="-0.2">'+value+'</text>'+
-        (sub ? '<text x="'+cx+'" y="'+(cy+33)+'" text-anchor="middle" font-size="9" fill="'+color+'" opacity="0.7">'+sub+'</text>' : '')
+        '<circle cx="'+cx+'" cy="'+cy+'" r="'+R+'" fill="'+bg0+'" stroke="'+rc+'" stroke-width="1.8"/>'+
+        '<g transform="translate('+cx+','+(on ? (cy-10) : (cy-2))+')" fill="'+ic+'" stroke="'+ic+'">'+iconSvg+'</g>'+
+        (on ? '<text x="'+cx+'" y="'+(cy+18)+'" text-anchor="middle" font-size="13" font-weight="700" fill="'+color+'">'+value+'</text>' : '')+
+        (on && sub ? '<text x="'+cx+'" y="'+(cy+30)+'" text-anchor="middle" font-size="8.5" fill="'+color+'" opacity="0.7">'+sub+'</text>' : '')+
+        '<text x="'+cx+'" y="'+ly+'" text-anchor="middle" font-size="11" fill="var(--text-muted)" font-weight="500" letter-spacing="0.2">'+label+'</text>'
       );
     }
 
+    // ── Icons (solid / filled style, inspired by Tesla Powerwall app) ──
+
+    // Solar: filled PV panel with cell grid cut by --surface lines + mount
     var iSolar =
-      '<circle r="5.5" stroke="none"/>'+
-      '<g fill="none" stroke-width="2" stroke-linecap="round">'+
-      '<line x1="0" y1="-9" x2="0" y2="-12"/>'+
-      '<line x1="0" y1="9" x2="0" y2="12"/>'+
-      '<line x1="9" y1="0" x2="12" y2="0"/>'+
-      '<line x1="-9" y1="0" x2="-12" y2="0"/>'+
-      '<line x1="6.4" y1="-6.4" x2="8.5" y2="-8.5"/>'+
-      '<line x1="-6.4" y1="-6.4" x2="-8.5" y2="-8.5"/>'+
-      '<line x1="6.4" y1="6.4" x2="8.5" y2="8.5"/>'+
-      '<line x1="-6.4" y1="6.4" x2="-8.5" y2="8.5"/>'+
-      '</g>';
+      // Panel body (filled)
+      '<rect x="-10" y="-10" width="20" height="15" rx="2" stroke="none"/>'+
+      // Cell dividers — use the circle's background colour to "cut" the grid
+      '<line x1="-3.5" y1="-10" x2="-3.5" y2="5"  stroke="var(--surface)" stroke-width="1.3"/>'+
+      '<line x1="3.5"  y1="-10" x2="3.5"  y2="5"  stroke="var(--surface)" stroke-width="1.3"/>'+
+      '<line x1="-10"  y1="-2"  x2="10"   y2="-2" stroke="var(--surface)" stroke-width="1.3"/>'+
+      // Mounting post
+      '<rect x="-1.5" y="5"  width="3" height="5" rx="1" stroke="none"/>'+
+      '<rect x="-5"   y="10" width="10" height="2" rx="1" stroke="none"/>';
 
-    var iGrid = '<path d="M4,-12 L-2,1 L2,1 L-4,12 L10,0 L5,0 L8,-12 Z" stroke="none"/>';
+    // Grid: filled transmission pylon silhouette
+    //   top spike → wide crossarm → tapered body → narrow crossarm → A-frame legs
+    var iGrid =
+      // Top mast spike
+      '<rect x="-1" y="-13" width="2" height="5" rx="1" stroke="none"/>'+
+      // Wide top crossarm
+      '<rect x="-10" y="-9" width="20" height="2" rx="1" stroke="none"/>'+
+      // Tapered tower body
+      '<polygon points="-1.5,-7 1.5,-7 2.5,3 -2.5,3" stroke="none"/>'+
+      // Lower narrower crossarm
+      '<rect x="-7" y="1.5" width="14" height="2" rx="1" stroke="none"/>'+
+      // Left A-frame leg
+      '<polygon points="-2.5,3 0,3 -2.5,12 -4.5,12" stroke="none"/>'+
+      // Right A-frame leg
+      '<polygon points="2.5,3 0,3 2.5,12 4.5,12" stroke="none"/>'+
+      // Insulator dots — top crossarm
+      '<circle cx="-10" cy="-8" r="1.6" stroke="none"/>'+
+      '<circle cx="10"  cy="-8" r="1.6" stroke="none"/>'+
+      // Insulator dots — lower crossarm
+      '<circle cx="-7"  cy="2.5" r="1.3" stroke="none"/>'+
+      '<circle cx="7"   cy="2.5" r="1.3" stroke="none"/>';
 
+    // Home: filled roof + walls, door cut by --surface
     var iHome =
-      '<polygon points="0,-12 -10,-1 10,-1" stroke="none"/>'+
-      '<rect x="-8" y="-2" width="16" height="12" rx="1" fill="none" stroke-width="1.8"/>'+
-      '<rect x="-3.5" y="3" width="7" height="7" rx="1" stroke="none" opacity="0.55"/>';
+      // Roof (filled triangle)
+      '<polygon points="0,-13 -12,-1 12,-1" stroke="none"/>'+
+      // Walls (filled rect)
+      '<rect x="-9" y="-1.5" width="18" height="13" rx="1" stroke="none"/>'+
+      // Door (surface colour = looks punched out)
+      '<rect x="-3.5" y="5" width="7" height="6.5" rx="1" fill="var(--surface)" stroke="none"/>';
 
     var bLvl   = s.batterySoc !== null ? Math.max(0, Math.min(1, s.batterySoc/100)) : 0.45;
-    var bBodyH = 17, bFillH = Math.max(1, Math.round(bLvl*bBodyH)), bFillY = -8+bBodyH-bFillH;
+    var bBodyH = 18, bFillH = Math.max(1, Math.round(bLvl*bBodyH)), bFillY = -9+bBodyH-bFillH;
     var iBat =
-      '<rect x="-7" y="-8" width="14" height="17" rx="2" fill="none" stroke-width="1.8"/>'+
-      '<rect x="-4" y="-11" width="8" height="4" rx="1.5" stroke="none" opacity="0.85"/>'+
+      '<rect x="-7" y="-9" width="14" height="18" rx="2" fill="none" stroke-width="1.8"/>'+
+      '<rect x="-4" y="-12" width="8" height="4" rx="1.5" stroke="none" opacity="0.85"/>'+
       '<rect x="-5.5" y="'+bFillY+'" width="11" height="'+bFillH+'" rx="1.5" stroke="none" opacity="0.45"/>';
 
-    var svg = '<svg class="energy-flow-svg" viewBox="0 0 '+W+' '+svgH+'" xmlns="http://www.w3.org/2000/svg" style="font-family:system-ui,-apple-system,sans-serif">';
+    // ── SVG assembly ───────────────────────────────────
+    var svg = '<svg class="energy-flow-svg" viewBox="0 0 '+W+' '+svgH+'" xmlns="http://www.w3.org/2000/svg"'+
+              ' style="font-family:system-ui,-apple-system,sans-serif">';
 
-    var sc=edgePt(sx,sy,hx,hy), hsc=edgePt(hx,hy,sx,sy);
-    svg += flowLine(sc.x,sc.y,hsc.x,hsc.y, solarC, s.solarW, false);
+    // No backdrop — SVG is transparent, modal background shows through
 
-    var gc=edgePt(gx,gy,hx,hy), hgc=edgePt(hx,hy,gx,gy);
-    svg += flowLine(gc.x,gc.y,hgc.x,hgc.y, gridC, s.gridW, s.gridW < 0);
-
+    // 2. Connector lines (static, drawn behind everything)
+    svg += segLine(sx,    sy+R, jx,    jy,    solarC, solarOn); // Solar ↓ junction
+    svg += segLine(gx+R,  gy,   jx,    jy,    gridC,  gridOn);  // Grid  → junction
+    svg += segLine(jx,    jy,   hx-R,  hy,    homeC,  homeOn);  // junction → Home
     if (hasBattery) {
-      var hbc=edgePt(hx,hy,bx,by), bhc=edgePt(bx,by,hx,hy);
-      svg += flowLine(hbc.x,hbc.y,bhc.x,bhc.y, batC, s.batteryW, s.batteryW < 0);
+      svg += segLine(jx, jy, bx, by-R, batC, batOn);            // junction ↓ Battery
     }
 
-    svg += node(sx, sy, solarC, iSolar, 'SOLAR',  _fmtW(s.solarW), null);
-    svg += node(gx, gy, gridC,  iGrid,  s.gridW < 0 ? 'EXPORT' : 'IMPORT', _fmtW(s.gridW), null);
-    svg += node(hx, hy, homeC,  iHome,  'HOME',   _fmtW(s.homeW),  null);
-    if (hasBattery) svg += node(bx, by, batC, iBat, 'BATTERY', _fmtW(s.batteryW), s.batterySoc !== null ? s.batterySoc+'% SoC' : null);
+    // 3. Animated dots (behind node circles; visually "absorbed" on arrival)
+    svg += segDot(sx,   sy+R, jx,   jy,   solarC, solarOn, false);
+    svg += segDot(gx+R, gy,   jx,   jy,   gridC,  gridOn,  s.gridW < 0);
+    svg += segDot(jx,   jy,   hx-R, hy,   homeC,  homeOn,  false);
+    if (hasBattery) {
+      svg += segDot(jx, jy, bx, by-R, batC, batOn, s.batteryW < 0);
+    }
+
+    // 4. Junction dot
+    svg += '<circle cx="'+jx+'" cy="'+jy+'" r="3.5" fill="var(--bg)" stroke="var(--border)" stroke-width="1.5"/>';
+
+    // 5. Nodes (on top — solid fill occludes the animated dots on arrival)
+    //    Solar: label ABOVE;  Grid / Home / Battery: label BELOW
+    svg += node(sx, sy, solarC, iSolar, 'Solar',  _fmtW(s.solarW),   null, true,  solarOn);
+    svg += node(gx, gy, gridC,  iGrid,  s.gridW < 0 ? 'Export' : 'Grid', _fmtW(s.gridW), null, false, gridOn);
+    svg += node(hx, hy, homeC,  iHome,  'Home',   _fmtW(s.homeW),    null, false, homeOn);
+    if (hasBattery) {
+      svg += node(bx, by, batC, iBat, 'Battery',
+        _fmtW(s.batteryW),
+        s.batterySoc !== null ? s.batterySoc+'%' : null,
+        false, batOn);
+    }
 
     svg += '</svg>';
     return svg;
@@ -616,26 +694,25 @@
   }
 
   function _renderEnergy(data) {
-    var s       = data.summary;
+    _lastEnergyData = data; // cache for Devices tab
+
+    // If the Devices tab is currently shown, refresh it with new data
+    if (_energyTab === 'devices') {
+      _renderEnergyDevicesTab();
+      return;
+    }
+    if (_energyTab !== 'live') return;
+
+    var s      = data.summary;
     var devList = data.devices;
     var hasBat  = devList.some(function (d) { return d.type === 'battery'; });
+    var body    = document.getElementById('energy-body');
+    var svgKey  = JSON.stringify(s) + (hasBat ? '1' : '0');
 
-    var now = new Date();
-    var ts  = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0') + ':' + now.getSeconds().toString().padStart(2,'0');
-
-    var body   = document.getElementById('energy-body');
-    var svgKey = JSON.stringify(s) + (hasBat ? '1' : '0');
-
-    // #4 SVG nur neu aufbauen wenn sich Werte geändert haben
+    // Only rebuild SVG when values have changed
     if (svgKey !== _lastEnergySummaryKey) {
       _lastEnergySummaryKey = svgKey;
-      var html = '<div class="energy-flow-container">' + _renderEnergyFlowSVG(s, hasBat) + '</div>';
-      html    += '<div class="energy-scroll-body">' + _buildEnergyDeviceCardsHtml(devList) + '</div>';
-      body.innerHTML = html;
-    } else {
-      // SVG unverändert – nur Device-Cards aktualisieren
-      var scrollBody = body.querySelector('.energy-scroll-body');
-      if (scrollBody) scrollBody.innerHTML = _buildEnergyDeviceCardsHtml(devList);
+      body.innerHTML = '<div class="energy-flow-container">' + _renderEnergyFlowSVG(s, hasBat) + '</div>';
     }
   }
 

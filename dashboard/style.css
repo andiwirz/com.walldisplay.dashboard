@@ -663,9 +663,8 @@ html, body {
 
 .energy-body {
   flex: 1;
-  overflow-y: auto;
+  overflow: hidden;
   padding: 6px 14px 10px;
-  scrollbar-gutter: stable both-edges;
 }
 
 .energy-flow-container {

@@ -32,15 +32,20 @@ The app runs a local HTTP/WebSocket server on your Homey that emulates the Home 
 - **Clock** — live clock in the header, drift-corrected
 
 ### Energy Dashboard
-- **Flow diagram** — animated SVG showing real-time energy flows between solar panels, the power grid, your home, and battery storage
-- **Solar total bar** — 7-day history chart with a yellow bar for total solar production alongside grid import and home consumption
-- **Animated flow lines** — travelling dots indicate direction and magnitude of each energy flow
-- **Device cards** — individual power readings for each solar, grid, battery, and EV-charger device
+- **Flow diagram** — Tesla-style animated SVG with dark circular nodes and colored rings showing real-time energy flows between Solar, Grid, Home, and Battery
+- **T-junction layout** — Solar top-center, Grid bottom-left, Home bottom-right, Battery bottom-center; orthogonal connectors with a single animated dot per active line
+- **Inactive nodes** — nodes with no active flow are shown in grey (no value, dimmed icon) so you can instantly see what is producing or consuming
+- **Three tabs** — *Live* (flow diagram), *Devices* (per-device power cards), *7 Days* (bar chart with solar production and grid import)
+- **7-day history chart** — bar chart with solar production and grid import per day
+- **Animated flow lines** — travelling dots indicate direction; inactive connections shown as dashed lines
+- **Invert battery sign** — option for systems that report positive power when discharging (e.g. GoodWe SMILE, some Fronius inverters)
 - **Exclude support** — devices marked as "Exclude from Energy" in Homey are automatically hidden
 - **Enable / disable** — the ⚡ Energy button can be hidden via the settings page
 
-### Reliability
-- **SSE + polling** — Server-Sent Events for instant updates; polling every 10 s (30 s when SSE is active) as a safety net for capabilities Homey does not push via realtime events
+### Reliability & Performance
+- **Instant capability updates** — per-device `makeCapabilityInstance` subscriptions (homey-api V3) fire the moment Homey commits any capability value change; physical switch presses appear on the dashboard in under 1 second
+- **SSE fast path** — capability changes are broadcast over Server-Sent Events immediately; the card updates within a single animation frame
+- **Fallback polling** — full device state poll every 10 s (SSE active) / 5 s (SSE inactive) as a safety net
 - **SSE reconnect backoff** — exponential backoff (1 s → 2 s → 4 s → … → 30 s) after connection loss
 - **Auto-refresh** — full data reload every 5 minutes and on header logo tap
 - **XHR timeout** — all requests time out after 10 seconds to prevent a frozen UI
@@ -129,6 +134,7 @@ The settings page is organised into three tabs:
 | **Tile Shape** | Corner radius of tiles: Sharp / Rounded / Pill | Rounded |
 | **Header** | Show or hide the header bar (title, clock, buttons) | Enabled |
 | **Energy Dashboard** | Show or hide the ⚡ Energy button in the dashboard header | Enabled |
+| **Invert battery sign** | Flip the sign of battery power readings for inverters that report positive = discharging | Disabled |
 | **View Toggle Button** | Show or hide the Rooms / All button; set the default view | Enabled / All |
 | **Font Size** | Text size on device and flow tiles (1–5) | 1 |
 | **Tile Size** | Size of device tiles: XS / S / M / L / XL | M |

@@ -81,14 +81,12 @@ class ShellyWallDisplayApp extends Homey.App {
       this.homeyBaseUrl = await this.homey.api.getLocalUrl();
       this.log('Homey API verbunden');
 
+      // ── Full device-object changes (name, zone, available …) ────────────────
       this.homeyApi.devices.on('device.update', (device) => {
-        // Nur das geänderte Gerät im Cache patchen — nicht den gesamten Cache wegwerfen.
         if (this._deviceCache && this._deviceCache[device.id]) {
           this._deviceCache[device.id].capabilitiesObj = device.capabilitiesObj;
           this._deviceCache[device.id].available       = device.available;
         }
-        // SSE-Filter: nur Geräte broadcasten die in mindestens einem Profil sichtbar sind.
-        // _relevantDeviceIds === null bedeutet "kein Filter" (mind. ein Profil zeigt alle Geräte).
         if (this._relevantDeviceIds !== null && !this._relevantDeviceIds.has(device.id)) return;
         this._broadcastSSE({
           type: 'device.update',
@@ -104,14 +102,22 @@ class ShellyWallDisplayApp extends Homey.App {
       this._buildRelevantDeviceIds();
 
       // Gerät hinzugefügt/entfernt: Cache invalidieren + Settings mit Debounce aktualisieren
-      this.homeyApi.devices.on('device.create', () => {
+      this.homeyApi.devices.on('device.create', async (device) => {
         this._deviceCache = null;
         this._scheduleDeviceCacheUpdate();
+        this._subscribeDeviceCapabilities(device);
       });
       this.homeyApi.devices.on('device.delete', () => {
         this._deviceCache = null;
         this._scheduleDeviceCacheUpdate();
       });
+
+      // ── Per-device capability subscriptions (real-time fast path) ────────────
+      // device.on('capability') fires immediately on any value change.
+      // Manager-level 'device.capability.update' does NOT exist in homey-api V3.
+      this._subscribeAllDeviceCapabilities().catch((e) =>
+        this.error('Capability-Subscriptions Fehler:', e.message)
+      );
 
       // Initiales BefÃ¼llen des Caches (ohne await â€” App soll nicht blockieren)
       this._updateDeviceSettingsCache().catch((e) =>
@@ -1608,6 +1614,44 @@ class ShellyWallDisplayApp extends Homey.App {
       () => this._updateDeviceSettingsCache().catch((e) => this.error('Device-Cache Fehler:', e.message)),
       3000
     );
+  }
+
+  // ── Per-device capability subscriptions ──────────────────────────────────────
+  // homey-api V3 does NOT have a manager-level capability-value event.
+  // Real-time updates require device.makeCapabilityInstance(capId, cb) which
+  // activates the per-device socket subscription (homey:device:<UUID>).
+  // Without makeCapabilityInstance the socket namespace is never joined and
+  // no capability events arrive — only the 30-second fallback poll would fire.
+
+  _subscribeDeviceCapabilities(device) {
+    const caps = Object.keys(device.capabilitiesObj || {});
+    for (const capabilityId of caps) {
+      try {
+        device.makeCapabilityInstance(capabilityId, (value) => {
+          // Patch device cache in-place
+          const cached = this._deviceCache && this._deviceCache[device.id];
+          if (cached && cached.capabilitiesObj && cached.capabilitiesObj[capabilityId]) {
+            cached.capabilitiesObj[capabilityId].value = value;
+          }
+          // SSE filter — skip devices not visible in any profile
+          if (this._relevantDeviceIds !== null && !this._relevantDeviceIds.has(device.id)) return;
+          this._broadcastSSE({ type: 'device.capability.update', deviceId: device.id, capabilityId, value });
+        });
+      } catch (_) {
+        // Some capabilities don't support makeCapabilityInstance — skip silently
+      }
+    }
+  }
+
+  async _subscribeAllDeviceCapabilities() {
+    if (!this.homeyApi) return;
+    const devMap = await this.homeyApi.devices.getDevices();
+    let devCount = 0;
+    for (const device of Object.values(devMap)) {
+      this._subscribeDeviceCapabilities(device);
+      devCount++;
+    }
+    this.log(`Capability subscriptions active for ${devCount} devices`);
   }
 
   // Berechnet die Vereinigungsmenge aller Geräte die in irgendeinem Profil sichtbar sind.

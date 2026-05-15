@@ -1779,6 +1779,17 @@
       _sseBackoff = 1000; // Backoff zurücksetzen bei erfolgreicher Nachricht
       try {
         var data = JSON.parse(e.data);
+        // Fast path: single capability value changed (on/off, dim, temp …)
+        if (data.type === 'device.capability.update') {
+          var d = devices[data.deviceId];
+          if (d) {
+            if (!d.capabilitiesObj) d.capabilitiesObj = {};
+            if (!d.capabilitiesObj[data.capabilityId]) d.capabilitiesObj[data.capabilityId] = {};
+            d.capabilitiesObj[data.capabilityId].value = data.value;
+            _scheduleCardUpdate(data.deviceId);
+          }
+        }
+        // Full update: availability change or metadata update
         if (data.type === 'device.update' && data.device) {
           var id = data.device.id;
           if (devices[id]) {
@@ -1786,7 +1797,7 @@
               devices[id].capabilitiesObj = data.device.capabilitiesObj;
             }
             devices[id].available = data.device.available;
-            _scheduleCardUpdate(id); // Batch: mehrere Updates im selben Frame zusammenführen
+            _scheduleCardUpdate(id);
           }
         }
       } catch (_) {}
@@ -1823,8 +1834,8 @@
             }
           });
         }
-        // Längeres Intervall wenn SSE aktiv und Daten liefert
-        _schedulePoll(_sseActive ? 30000 : 10000);
+        // Kürzeres Intervall wenn SSE nicht aktiv (kein Echtzeit-Push)
+        _schedulePoll(_sseActive ? 10000 : 5000);
       });
     }, delay);
   }

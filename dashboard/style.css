@@ -14,8 +14,9 @@
   --shadow:      0 2px 8px rgba(0,0,0,0.07), 0 0 1px rgba(0,0,0,0.04);
   --shadow-on:   0 2px 10px rgba(245,166,35,0.18), 0 0 1px rgba(245,166,35,0.25);
   --radius:      14px;
-  --header-h:    62px;
+  --header-h:    50px;
   --font-scale:  1;
+  --tile-h:      100px;
 }
 
 /* ── Dark Mode ────────────────────────────────── */
@@ -239,7 +240,7 @@ html, body {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  min-height: 100px;
+  min-height: var(--tile-h);
   transition: background 0.2s, box-shadow 0.2s;
   position: relative;
   overflow: hidden;
@@ -378,8 +379,11 @@ html, body {
   color: var(--text);
   line-height: 1.3;
   word-break: break-word;
-  margin-top: auto;
-  padding-top: 4px;
+  padding-top: 2px;
+}
+
+.device-spacer {
+  flex: 1;
 }
 
 .device-status {
@@ -725,7 +729,7 @@ html, body {
   border: 1px solid var(--border);
 }
 
-.energy-device-icon { font-size: 22px; line-height: 1; width: 28px; height: 28px; display: flex; align-items: center; }
+.energy-device-icon { font-size: calc(22px * var(--font-scale)); line-height: 1; width: 28px; height: 28px; display: flex; align-items: center; }
 
 .energy-device-icon-img {
   width: 28px;
@@ -734,14 +738,14 @@ html, body {
   filter: brightness(0) opacity(0.65);
 }
 
-.energy-device-icon-emoji { font-size: 22px; line-height: 1; }
+.energy-device-icon-emoji { font-size: calc(22px * var(--font-scale)); line-height: 1; }
 
 [data-theme="dark"] .energy-device-icon-img {
   filter: brightness(0) invert(1) opacity(0.6);
 }
 
 .energy-device-name {
-  font-size: 12px;
+  font-size: calc(12px * var(--font-scale));
   font-weight: 600;
   color: var(--text);
   margin-top: 4px;
@@ -751,7 +755,7 @@ html, body {
 }
 
 .energy-device-power {
-  font-size: 18px;
+  font-size: calc(18px * var(--font-scale));
   font-weight: 300;
   color: var(--text);
   letter-spacing: -0.5px;
@@ -759,15 +763,15 @@ html, body {
 }
 
 .energy-device-power span {
-  font-size: 11px;
+  font-size: calc(11px * var(--font-scale));
   color: var(--text-muted);
   font-weight: 400;
 }
 
-.energy-device-sub { font-size: 11px; color: var(--text-muted); }
+.energy-device-sub { font-size: calc(11px * var(--font-scale)); color: var(--text-muted); }
 
 .energy-device-status {
-  font-size: 11px;
+  font-size: calc(11px * var(--font-scale));
   font-weight: 600;
   border-radius: 4px;
   padding: 1px 6px;
@@ -1152,9 +1156,11 @@ html, body {
   background: var(--surface);
   border-radius: 18px;
   width: 100%;
+  min-width: 380px;
   max-width: 380px;
-  padding-bottom: 16px;
+  padding-bottom: 10px;
   box-shadow: 0 8px 48px rgba(0,0,0,0.35);
+  overflow: hidden;
 }
 
 .speaker-modal-header {
@@ -1189,7 +1195,7 @@ html, body {
   grid-template-columns: 46px 1fr 46px;
   align-items: start;
   gap: 0;
-  padding: 14px 8px 6px;
+  padding: 14px 8px 5px;
 }
 
 /* Cover + Track-Info gestapelt, horizontal zentriert */
@@ -1203,17 +1209,18 @@ html, body {
 
 /* Reserviert feste Grösse — verhindert Layout-Sprünge beim Cover-Wechsel */
 .speaker-cover-wrap {
-  width: 180px;
-  height: 180px;
+  width: 200px;
+  height: 200px;
   border-radius: 14px;
   background: rgba(128,128,128,0.15);
   flex-shrink: 0;
   overflow: hidden;
+  cursor: pointer;
 }
 
 .speaker-cover {
-  width: 180px;
-  height: 180px;
+  width: 200px;
+  height: 200px;
   border-radius: 0;
   object-fit: cover;
   background: var(--border);
@@ -1231,7 +1238,7 @@ html, body {
 }
 
 .speaker-track-name {
-  font-size: 16px;
+  font-size: calc(16px * var(--font-scale));
   font-weight: 700;
   color: var(--text);
   white-space: nowrap;
@@ -1241,7 +1248,7 @@ html, body {
 }
 
 .speaker-track-artist {
-  font-size: 14px;
+  font-size: calc(14px * var(--font-scale));
   color: var(--accent);
   font-weight: 600;
   white-space: nowrap;
@@ -1252,7 +1259,7 @@ html, body {
 }
 
 .speaker-track-album {
-  font-size: 12px;
+  font-size: calc(12px * var(--font-scale));
   color: var(--text-muted);
   white-space: nowrap;
   overflow: hidden;
@@ -1312,7 +1319,7 @@ html, body {
   align-items: center;
   justify-content: center;
   gap: 4px;
-  padding: 8px 16px 4px;
+  padding: 7px 16px 4px;
 }
 
 .speaker-btn {
@@ -1370,7 +1377,7 @@ html, body {
 .speaker-vol-rotate-wrap {
   position: relative;
   width: 46px;
-  height: 240px; /* cover(180) + gap(10) + track-info(~50) */
+  height: 290px;
   overflow: visible;
 }
 
@@ -1378,7 +1385,7 @@ html, body {
   position: absolute;
   left: 50%;
   top: 50%;
-  width: 240px;
+  width: 290px;
   transform: translate(-50%, -50%) rotate(-90deg);
   -webkit-appearance: none;
   height: 6px;
@@ -1406,25 +1413,25 @@ html, body {
     height: 100%;
     display: flex;
     flex-direction: column;
-    padding-bottom: 10px;
+    padding-bottom: 4px;
   }
   .speaker-modal-header { padding: 10px 16px 9px; }
-  .speaker-modal-body   { padding: 10px 8px 6px; flex: 1; overflow: visible; }
+  .speaker-modal-body   { padding: 10px 8px 0; flex: 0 0 auto; overflow: visible; }
 
   /* Cover etwas grösser auf dem kleinen Display */
-  .speaker-cover-wrap { width: 200px; height: 200px; }
-  .speaker-cover      { width: 200px; height: 200px; }
+  .speaker-cover-wrap { width: 220px; height: 220px; }
+  .speaker-cover      { width: 220px; height: 220px; }
 
-  /* Slider-Länge passend zu grösserem Cover: 200 + 8 + 62 ≈ 270 px */
-  .speaker-vol-rotate-wrap { height: 270px; }
+  /* Slider-Länge auf kleinem Display */
+  .speaker-vol-rotate-wrap { height: 290px; }
   .speaker-vol-col-sm .speaker-vol-slider-h {
-    width: 270px;
+    width: 290px;
     transform: translate(-50%, -50%) rotate(-90deg);
   }
   .speaker-vol-col-sm .speaker-vol-slider-h::-webkit-slider-thumb { width: 28px; height: 28px; }
 
   /* Controls kompakter */
-  .speaker-controls { padding: 6px 12px 2px; gap: 2px; }
+  .speaker-controls { padding: 0 12px 2px; gap: 2px; }
   .speaker-btn        { width: 48px; height: 48px; }
   .speaker-btn-prev,
   .speaker-btn-next   { width: 54px; height: 54px; }

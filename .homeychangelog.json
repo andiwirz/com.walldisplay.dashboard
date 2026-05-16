@@ -1,4 +1,8 @@
 {
+  "1.3.11": {
+    "en": "Device tiles: values, status and name aligned to the bottom; name always at the very bottom; tile height setting added (Auto or same as width); font size setting now applies to Energy modal and speaker modal; speaker modal: tap album art to open fullscreen immediately, cover enlarged, slider contained within card",
+    "de": "Gerätekacheln: Werte, Status und Name unten ausgerichtet; Name immer ganz unten; Kachelhöhe-Einstellung hinzugefügt (Auto oder wie Breite); Schriftgrösse gilt jetzt auch für Energie-Modal und Speaker-Modal; Speaker-Modal: Albumcover antippen öffnet sofort Vollbild, Cover vergrössert, Slider innerhalb der Karte"
+  },
   "1.3.10": {
     "en": "Room order: drag-and-drop sorting in Design settings applies to the 'By rooms' view; tap a room title to collapse/expand its tiles; speaker modal: album art fills the screen after a configurable idle delay (default 20 s, Ken Burns zoom), tap to return — enabled by default, adjustable in Design settings",
     "de": "Raumreihenfolge: Drag-and-drop-Sortierung in den Design-Einstellungen für die 'Nach Räumen'-Ansicht; Raumtitel antippen klappt Kacheln ein/aus; Speaker-Modal: Albumcover füllt nach einstellbarer Leerlaufzeit (Standard 20 s, Ken-Burns-Zoom) den Bildschirm, Tippen kehrt zum Player zurück — standardmässig aktiv, in den Design-Einstellungen anpassbar"

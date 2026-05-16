@@ -423,6 +423,7 @@ class ShellyWallDisplayApp extends Homey.App {
           alarmPin: this.homey.settings.get('alarmPin') || '',
           energyEnabled: energyEnabled === false ? false : true,
           tileSize: (tileSize >= 1 && tileSize <= 5) ? tileSize : 3,
+          tileHeight: this.homey.settings.get('tileHeight') || 'auto',
           enabledFlows: effectiveEnabledFlows,
           flowTileWidth: this.homey.settings.get('flowTileWidth') || 'auto',
           flowConfirm: this.homey.settings.get('flowConfirm') === true,
@@ -445,7 +446,7 @@ class ShellyWallDisplayApp extends Homey.App {
       if (url.pathname === '/api/settings' && req.method === 'POST') {
         const body = await this._readBody(req);
         const { key, value } = JSON.parse(body);
-        const allowed = ['port', 'enabledDevices', 'alarmPin', 'energyEnabled', 'batteryInvertSign', 'tileSize', 'enabledFlows', 'homeyToken', 'flowTileWidth', 'dashboardTitle', 'fontSize', 'accentColor', 'tileRadius', 'headerHidden', 'viewDefault', 'viewBtnHidden', 'zoneOrder', 'coverFullscreen', 'coverFullscreenDelay', 'defaultProfileZones', 'defaultProfileDevices'];
+        const allowed = ['port', 'enabledDevices', 'alarmPin', 'energyEnabled', 'batteryInvertSign', 'tileSize', 'tileHeight', 'enabledFlows', 'homeyToken', 'flowTileWidth', 'dashboardTitle', 'fontSize', 'accentColor', 'tileRadius', 'headerHidden', 'viewDefault', 'viewBtnHidden', 'zoneOrder', 'coverFullscreen', 'coverFullscreenDelay', 'defaultProfileZones', 'defaultProfileDevices'];
         if (!allowed.includes(key)) {
           res.writeHead(400);
           res.end(JSON.stringify({ error: 'Not allowed' }));

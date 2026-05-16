@@ -730,6 +730,17 @@
       <div class="status" id="tile-size-status"></div>
     </div>
 
+    <!-- Tile Height -->
+    <div class="card">
+      <div class="card-title" data-i18n="tileHeightTitle">Tile Height</div>
+      <div class="seg-btn-group" id="tile-height-group">
+        <button class="seg-btn active" data-value="auto"   onclick="setTileHeight('auto')"   data-i18n="tileHeightAuto">Auto</button>
+        <button class="seg-btn"        data-value="square" onclick="setTileHeight('square')" data-i18n="tileHeightSquare">Same as width</button>
+      </div>
+      <p class="hint" data-i18n="tileHeightHint">Auto: height follows content. Same as width: tiles are at least as tall as wide (square).</p>
+      <div class="status" id="tile-height-status"></div>
+    </div>
+
     <!-- Flow Tile Width -->
     <div class="card">
       <div class="card-title" data-i18n="flowTileWidthTitle">Flow Tile Width</div>
@@ -799,9 +810,14 @@
         save:             'Save',
         invalidPort:      'Invalid port (1024–65535)',
         portSaved:        'Saved. Server is restarting…',
-        tileSizeTitle:    'Tile Size',
-        tileSizeHint:     'Adjusts device tile size on the dashboard. Default: M',
-        tileSizeSaved:    'Size saved',
+        tileSizeTitle:    'Tile Width',
+        tileSizeHint:     'Adjusts device tile width on the dashboard. Default: M',
+        tileSizeSaved:    'Width saved',
+        tileHeightTitle:  'Tile Height',
+        tileHeightAuto:   'Auto',
+        tileHeightSquare: 'Same as width',
+        tileHeightHint:   'Auto: height follows content. Same as width: tiles are at least as tall as wide.',
+        tileHeightSaved:  'Height saved',
         energyTitle:      'Energy Dashboard',
         energyLabel:      'Show Energy button in header',
         energyHint:       'When disabled, the ⚡ button is hidden on the dashboard.',
@@ -915,9 +931,14 @@
         save:             'Speichern',
         invalidPort:      'Ungültiger Port (1024–65535)',
         portSaved:        'Gespeichert. Server wird neu gestartet…',
-        tileSizeTitle:    'Kachelgrösse',
-        tileSizeHint:     'Passt die Grösse der Gerätekacheln an. Standard: M',
-        tileSizeSaved:    'Grösse gespeichert',
+        tileSizeTitle:    'Kachelbreite',
+        tileSizeHint:     'Passt die Breite der Gerätekacheln an. Standard: M',
+        tileSizeSaved:    'Breite gespeichert',
+        tileHeightTitle:  'Kachelhöhe',
+        tileHeightAuto:   'Auto',
+        tileHeightSquare: 'Wie Breite',
+        tileHeightHint:   'Auto: Höhe passt sich dem Inhalt an. Wie Breite: Kacheln sind mindestens so hoch wie breit.',
+        tileHeightSaved:  'Höhe gespeichert',
         energyTitle:      'Energy-Dashboard',
         energyLabel:      '⚡-Schaltfläche in der Kopfzeile anzeigen',
         energyHint:       'Wenn deaktiviert, wird der ⚡-Button ausgeblendet.',
@@ -1136,6 +1157,7 @@
       var savedPin       = await hGetSafe('alarmPin', '');
       var savedPat            = await hGetSafe('homeyToken', '');
       var savedFlowTileWidth  = await hGetSafe('flowTileWidth', 'auto');
+      var savedTileHeight     = await hGetSafe('tileHeight', 'auto');
       var savedFlowConfirm    = await hGetSafe('flowConfirm', false);
       var savedFlowPosition   = await hGetSafe('flowPosition', 'top');
       var savedDashboardTitle = await hGetSafe('dashboardTitle', '');
@@ -1154,6 +1176,7 @@
       document.getElementById('pat-input').value  = savedPat;
       document.getElementById('dashboard-title-input').value = savedDashboardTitle;
       setFlowTileWidth(savedFlowTileWidth, true);
+      setTileHeight(savedTileHeight, true);
       document.getElementById('flow-confirm-toggle').checked = savedFlowConfirm === true;
       setFlowPosition(savedFlowPosition, true);
       updateFontLabel(savedFontSize);
@@ -1253,6 +1276,17 @@
         await hSet('alarmPin', pin);
         showStatus('pin-status', pin ? T.pinSaved : T.pinRemoved, true);
       } catch (e) { showStatus('pin-status', T.errorPrefix + e.message, false); }
+    }
+
+    async function setTileHeight(value, silent) {
+      document.querySelectorAll('#tile-height-group .seg-btn').forEach(function(btn) {
+        btn.classList.toggle('active', btn.getAttribute('data-value') === value);
+      });
+      if (silent) return;
+      try {
+        await hSet('tileHeight', value);
+        showStatus('tile-height-status', T.tileHeightSaved, true);
+      } catch (e) { showStatus('tile-height-status', T.errorPrefix + e.message, false); }
     }
 
     async function setFlowTileWidth(value, silent) {

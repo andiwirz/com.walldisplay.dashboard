@@ -887,6 +887,9 @@
         var tilePx = [90, 110, 130, 165, 210];
         var ts = (cfg.tileSize >= 1 && cfg.tileSize <= 5) ? cfg.tileSize : 3;
         document.documentElement.style.setProperty('--tile-min', tilePx[ts - 1] + 'px');
+        // Kachelhöhe: 'square' = min-height gleich wie Breite, 'auto' = content-driven (100px min)
+        var tileH = cfg.tileHeight === 'square' ? tilePx[ts - 1] + 'px' : '100px';
+        document.documentElement.style.setProperty('--tile-h', tileH);
         // Flow-Filter merken — Server-Semantik beibehalten:
         //   null  = alle Flows zeigen
         //   []    = keine Flows zeigen  (__none__ wird serverseitig zu [] konvertiert)
@@ -932,7 +935,7 @@
           root.style.setProperty('--header-h', '0px');
         } else {
           if (header) header.style.display = '';
-          root.style.setProperty('--header-h', '62px');
+          root.style.setProperty('--header-h', '50px');
         }
       }
     });
@@ -1474,17 +1477,20 @@
 
     card.appendChild(header);
 
-    var name = createElement('div', 'device-name');
-    name.textContent = d.name;
-    card.appendChild(name);
+    // Spacer pushes values/status/name to the bottom of the tile
+    card.appendChild(createElement('div', 'device-spacer'));
+
+    var values = buildValueElements(d);
+    if (values) card.appendChild(values);
 
     var statusEl = createElement('div', 'device-status');
     statusEl.id = 'status-' + d.id;
     statusEl.textContent = buildStatusText(d);
     card.appendChild(statusEl);
 
-    var values = buildValueElements(d);
-    if (values) card.appendChild(values);
+    var name = createElement('div', 'device-name');
+    name.textContent = d.name;
+    card.appendChild(name);
 
     return card;
   }
@@ -2166,6 +2172,15 @@
     _updateSpeakerModal();
     document.getElementById('speaker-modal').style.display = 'flex';
     document.body.style.overflow = 'hidden';
+
+    // Tap auf Cover → sofort Vollbild (wie automatischer Timer)
+    var coverWrap = document.getElementById('speaker-cover-wrap');
+    if (coverWrap) {
+      coverWrap.onclick = function () {
+        _clearCoverFsTimer();
+        _showCoverFullscreen();
+      };
+    }
   }
 
   function closeSpeakerModal() {

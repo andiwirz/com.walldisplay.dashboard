@@ -25,9 +25,12 @@ The app runs a local HTTP/WebSocket server on your Homey that emulates the Home 
 - **Adjustable tile width** — flow tiles can use their natural width (dynamic) or match the width of device tiles exactly
 
 ### Navigation & Layout
-- **Room grouping** — devices organised by Homey zones, with a toggle to view all devices in a flat list
+- **Room grouping** — devices organised by Homey zones, with a toggle to view all devices in a flat list; tap a room title to collapse or expand its tiles
+- **Room order** — drag and drop rooms into any order via the Design settings
 - **Drag & drop reordering** — long-press a tile to drag it to a new position; order is saved across reloads
-- **Adjustable tile size** — choose from XS / S / M (default) / L / XL via the settings page
+- **Adjustable tile width** — choose from XS / S / M (default) / L / XL via the settings page
+- **Adjustable tile height** — Auto (content-driven) or Same as width (square tiles)
+- **Tile layout** — values, status and device name always aligned to the bottom of each tile for a clean, consistent look
 - **Dark / light mode** — toggle between themes via the header button; preference is saved per browser
 - **Clock** — live clock in the header, drift-corrected
 
@@ -95,7 +98,7 @@ Homey App (com.walldisplay.dashboard)
 | Solar Panel | ☀️ | — | Power (W) |
 | Camera | 📷 | — | Snapshot image |
 | Doorbell | 🔔 | — | Snapshot image |
-| Speaker / Media Player | 🔊 🎵 | Play/Pause, Skip, Volume (via modal) | Track info |
+| Speaker / Media Player | 🔊 🎵 | Play/Pause, Skip, Volume (via modal); album art fullscreen with Ken Burns zoom | Track info |
 | Button / Remote | 🔘 🕹️ | — | — |
 | Car | 🚗 | — | — |
 
@@ -137,7 +140,8 @@ The settings page is organised into three tabs:
 | **Invert battery sign** | Flip the sign of battery power readings for inverters that report positive = discharging | Disabled |
 | **View Toggle Button** | Show or hide the Rooms / All button; set the default view | Enabled / All |
 | **Font Size** | Text size on device and flow tiles (1–5) | 1 |
-| **Tile Size** | Size of device tiles: XS / S / M / L / XL | M |
+| **Tile Width** | Width of device tiles: XS / S / M / L / XL | M |
+| **Tile Height** | **Auto** — height follows content. **Same as width** — tiles are at least as tall as wide. | Auto |
 | **Flow Tile Width** | **Dynamic** — tiles size to their content. **Same as devices** — match device tile width. | Dynamic |
 | **Flow Position** | Show flow buttons above or below device tiles | Above |
 
@@ -165,7 +169,10 @@ Configure what each display shows. Every profile has two collapsible sections �
 | Tap tile | Toggle device on/off (where supported) |
 | Tap dimmer / blind tile | Adjust slider |
 | Long-press tile (400 ms) | Start drag & drop to reorder |
+| Tap room title | Collapse / expand room tiles |
 | Tap camera / doorbell tile | Open live snapshot |
+| Tap speaker / media player tile | Open media player modal |
+| Tap album art in media player | Open album art fullscreen immediately |
 | Tap flow button | Trigger the flow immediately |
 | ⊞ All / ⊟ Rooms button | Switch between flat list and room-grouped view |
 | ☀️ / 🌙 button | Toggle dark / light mode |

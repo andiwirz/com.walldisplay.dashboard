@@ -781,45 +781,136 @@ class ShellyWallDisplayApp extends Homey.App {
         return;
       }
 
-      // GET /api/camera/:deviceId â€” aktuelles Kamerabild (Snapshot) proxyen
+      // GET /api/camera/:deviceId — proxy current camera snapshot
       const cameraMatch = url.pathname.match(/^\/api\/camera\/([^/]+)$/);
       if (cameraMatch && req.method === 'GET') {
         const deviceId = cameraMatch[1];
-        // Image-ID direkt aus der device.images-Property lesen.
-        // device.images ist ein Array von Image-Objekten mit {id, ownerUri, url, ...}.
-        // Der ownerUri zeigt auf die App (nicht das GerÃ¤t), daher kÃ¶nnen wir nicht
-        // Ã¼ber images.getImages() filtern â€” stattdessen das GerÃ¤t direkt abfragen.
-        let imageId = null;
+
+        // Helper: is a string a real UUID (not a slot name like “main”/”snapshot”)
+        const isUuid = (s) => typeof s === 'string' && s.length > 20 && s.includes('-');
+
+        let imageId  = null;   // UUID of the image (for constructing the URL)
+        let imageUrl = null;   // Resolved absolute URL
+
+        // ── Strategy 1: device.images array ──────────────────────────────────
+        // Structure varies by driver:
+        //   [{id:”main”, imageObj:{id:”<uuid>”, url:”/api/image/<uuid>”}}]  — most common
+        //   [{id:”<uuid>”, url:”...”}]                                       — some drivers
+        //   [“<uuid>”]                                                        — plain string
         try {
           const device = await this.homeyApi.devices.getDevice({ id: deviceId });
           const imgs = device.images;
+          this.log(`Camera ${deviceId} device.images:`, JSON.stringify(imgs));
+
           if (Array.isArray(imgs) && imgs.length > 0) {
-            const first = imgs[0];
-            if (typeof first === 'object' && first !== null) {
-              // imageObj.id ist die echte UUID; first.id ist nur der Slot-Name ("main")
-              imageId = (first.imageObj && first.imageObj.id) ? first.imageObj.id : first.id;
-            } else {
-              imageId = first;
+            for (const entry of imgs) {
+              if (typeof entry === 'string' && isUuid(entry)) {
+                imageId  = entry;
+                imageUrl = `${this.homeyBaseUrl}/api/image/${entry}`;
+                break;
+              }
+              if (typeof entry === 'object' && entry !== null) {
+                // Priority 1: imageObj.id — a real UUID; imageObj.url may be relative.
+                if (entry.imageObj && isUuid(entry.imageObj.id)) {
+                  imageId  = entry.imageObj.id;
+                  imageUrl = `${this.homeyBaseUrl}/api/image/${imageId}`;
+                  break;
+                }
+                // Priority 2: entry.id — only if UUID-like (not “main”/”snapshot”)
+                if (isUuid(entry.id)) {
+                  imageId  = entry.id;
+                  imageUrl = `${this.homeyBaseUrl}/api/image/${imageId}`;
+                  break;
+                }
+                // Priority 3: absolute URL from imageObj or entry
+                const directUrl = (entry.imageObj && entry.imageObj.url) || entry.url || '';
+                if (directUrl.startsWith('http')) {
+                  imageUrl = directUrl;
+                  break;
+                }
+              }
             }
           }
         } catch (e) {
-          this.log('Camera device error:', e.message);
+          this.log('Camera device.images error:', e.message);
         }
-        if (!imageId) {
+
+        // ── Strategy 2: images.getImages() — match by UUID or deviceId ───────
+        // Handles cases where ownerUri is an app URI (e.g. UniFi Protect:
+        // ownerUri = “homey:app:com.ubnt.unifiprotect”), not a device URI.
+        if (!imageUrl) {
+          try {
+            const allImages = await this.homeyApi.images.getImages();
+            this.log(`Camera ${deviceId} fallback: searching ${Object.keys(allImages).length} images`);
+            // Match by: (a) the UUID we already know, (b) ownerUri containing deviceId
+            const found = Object.values(allImages).find(
+              (img) => (imageId && img.id === imageId) ||
+                       (img.ownerUri && img.ownerUri.includes(deviceId))
+            );
+            if (found) {
+              imageId  = found.id;
+              imageUrl = `${this.homeyBaseUrl}/api/image/${found.id}`;
+              this.log('Camera: found via getImages():', imageUrl);
+            }
+          } catch (e) {
+            this.log('Camera getImages fallback error:', e.message);
+          }
+        }
+
+        if (!imageUrl) {
+          this.log(`Camera ${deviceId}: no image found`);
           res.writeHead(404);
-          res.end(JSON.stringify({ error: 'Keine Kamerabilder verfÃ¼gbar' }));
+          res.end(JSON.stringify({ error: 'No camera image available' }));
           return;
         }
+
+        // ── Fetch the image from Homey ────────────────────────────────────────
+        // Uses node-fetch so we can: (a) log the status code for diagnosis,
+        // (b) disable TLS verification for self-signed certs on Homey Pro,
+        // (c) fall back to query-param auth if Bearer header returns 401/403.
         const token = await this._getOwnerToken();
-        const imageUrl = `${this.homeyBaseUrl}/api/image/${imageId}`;
-        const imgMod = imageUrl.startsWith('https') ? require('https') : require('http');
-        const headers = token ? { Authorization: `Bearer ${token}` } : {};
-        imgMod.get(imageUrl, { headers }, (imgRes) => {
-          res.setHeader('Content-Type', imgRes.headers['content-type'] || 'image/jpeg');
+        this.log(`Camera fetching: ${imageUrl} (token=${token ? 'yes' : 'NO'})`);
+
+        const fetchImage = async (url, useBearer) => {
+          const fetchOpts = {
+            headers: (useBearer && token) ? { Authorization: `Bearer ${token}` } : {},
+            // Disable TLS cert verification — Homey Pro may use a self-signed cert
+            agent: url.startsWith('https')
+              ? new (require('https').Agent)({ rejectUnauthorized: false })
+              : undefined,
+          };
+          return this._nodeFetch(url, fetchOpts);
+        };
+
+        try {
+          let imgRes = await fetchImage(imageUrl, true);
+          this.log(`Camera response status: ${imgRes.status} for ${imageUrl}`);
+
+          // If Bearer auth failed, retry with token as query param
+          if ((imgRes.status === 401 || imgRes.status === 403) && token) {
+            const sep = imageUrl.includes('?') ? '&' : '?';
+            const urlWithToken = `${imageUrl}${sep}authorization=${encodeURIComponent(token)}`;
+            this.log(`Camera retrying with query-param token: ${urlWithToken}`);
+            imgRes = await fetchImage(urlWithToken, false);
+            this.log(`Camera retry response status: ${imgRes.status}`);
+          }
+
+          if (!imgRes.ok) {
+            this.log(`Camera fetch failed with status ${imgRes.status}`);
+            res.writeHead(502);
+            res.end(JSON.stringify({ error: `Homey returned ${imgRes.status}` }));
+            return;
+          }
+
+          res.setHeader('Content-Type', imgRes.headers.get('content-type') || 'image/jpeg');
           res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-          res.writeHead(imgRes.statusCode);
-          imgRes.pipe(res);
-        }).on('error', () => { res.writeHead(502); res.end(); });
+          res.writeHead(200);
+          imgRes.body.pipe(res);
+        } catch (e) {
+          this.log('Camera fetch error:', e.message);
+          res.writeHead(502);
+          res.end();
+        }
         return;
       }
 

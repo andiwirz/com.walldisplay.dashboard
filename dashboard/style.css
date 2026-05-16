@@ -779,8 +779,9 @@ html, body {
 .camera-modal-inner {
   background: var(--surface);
   border-radius: 18px;
-  width: 100%;
-  max-width: 420px;
+  width: fit-content;       /* shrink/grow to actual image width */
+  min-width: 280px;
+  max-width: 92vw;
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -822,10 +823,12 @@ html, body {
 }
 
 .camera-modal-img {
-  width: 100%;
-  max-height: 72vh;
-  object-fit: contain;
   display: block;
+  width: auto;                     /* natural image width — no artificial stretch */
+  height: auto;
+  max-width: 92vw;                 /* never overflow the viewport */
+  max-height: calc(92vh - 50px);  /* 50 px = header height */
+  object-fit: contain;
 }
 
 .camera-modal-error {
@@ -842,10 +845,15 @@ html, body {
   .camera-modal { align-items: stretch; }
   .camera-modal-inner {
     border-radius: 0;
+    width: 100%;
     max-width: 100%;
     height: 100%;
   }
-  .camera-modal-img { max-height: calc(100vh - 50px); }
+  .camera-modal-img {
+    width: 100%;
+    max-width: 100%;
+    max-height: calc(100vh - 50px);
+  }
 }
 
 /* ── Energy History Chart ─────────────────────── */

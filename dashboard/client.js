@@ -738,6 +738,12 @@
   // ── View-Modus ('zones' | 'all') ───────────────────
   var _viewDefault   = 'all';   // aus Settings, wird in loadData gesetzt
   var _viewBtnHidden = false;   // aus Settings
+  var _zoneOrder     = [];      // gespeicherte Reihenfolge der Räume (Array von Zone-IDs)
+  var _collapsedZones = {};     // {zoneName: true} — eingeklappte Räume, in localStorage
+  try {
+    var _czRaw = JSON.parse(localStorage.getItem('collapsedZones') || '{}');
+    if (_czRaw && typeof _czRaw === 'object') _collapsedZones = _czRaw;
+  } catch (_) {}
   var viewMode = 'all';
   try {
     var _stored = localStorage.getItem('viewMode');
@@ -901,6 +907,9 @@
         // Ansicht-Standard + Button-Sichtbarkeit
         _viewDefault   = cfg.viewDefault   || 'all';
         _viewBtnHidden = cfg.viewBtnHidden === true;
+        _zoneOrder     = Array.isArray(cfg.zoneOrder) ? cfg.zoneOrder : [];
+        _coverFullscreen      = cfg.coverFullscreen === true;
+        _coverFullscreenDelay = (cfg.coverFullscreenDelay > 0) ? cfg.coverFullscreenDelay : 20;
         // Nur anwenden wenn der Nutzer noch keine eigene Wahl getroffen hat
         if (!localStorage.getItem('viewMode')) {
           viewMode = _viewDefault;
@@ -1270,9 +1279,17 @@
       }
     });
 
-    Object.keys(byZone).sort(function (a, b) {
-      return zones[a].name.localeCompare(zones[b].name);
-    }).forEach(function (zoneId) {
+    // Reihenfolge: gespeicherte _zoneOrder zuerst, danach alphabetisch für neue Räume
+    var zoneIds = Object.keys(byZone);
+    zoneIds.sort(function (a, b) {
+      var ia = _zoneOrder.indexOf(a);
+      var ib = _zoneOrder.indexOf(b);
+      if (ia === -1 && ib === -1) return zones[a].name.localeCompare(zones[b].name);
+      if (ia === -1) return 1;
+      if (ib === -1) return -1;
+      return ia - ib;
+    });
+    zoneIds.forEach(function (zoneId) {
       container.appendChild(buildZoneSection(zones[zoneId].name, byZone[zoneId]));
     });
 
@@ -1293,8 +1310,23 @@
 
   function buildZoneSection(zoneName, deviceList) {
     var section = createElement('div', 'zone-section');
+
+    // Collapsed-Zustand aus localStorage wiederherstellen
+    if (_collapsedZones[zoneName]) {
+      section.classList.add('collapsed');
+    }
+
     var title = createElement('div', 'zone-title');
     title.textContent = zoneName;
+
+    title.addEventListener('click', function () {
+      var isNowCollapsed = section.classList.toggle('collapsed');
+      _collapsedZones[zoneName] = isNowCollapsed || undefined;
+      // Sauber aufräumen: nicht-eingeklappte Räume aus dem Objekt entfernen
+      if (!isNowCollapsed) delete _collapsedZones[zoneName];
+      try { localStorage.setItem('collapsedZones', JSON.stringify(_collapsedZones)); } catch (_) {}
+    });
+
     section.appendChild(title);
 
     var grid = createElement('div', 'device-grid');
@@ -2035,10 +2067,67 @@
   window.closeCameraModal = closeCameraModal;
 
   // ── Speaker-Modal ─────────────────────────────────
-  var _speakerModalId  = null;
+  var _speakerModalId   = null;
   var _speakerPollTimer = null;
   var _speakerPollCount = 0;
   var _speakerPollTrack = '';
+  var _speakerWasPlaying = false;   // play/pause Zustandsverfolgung
+
+  // ── Cover Fullscreen ───────────────────────────────
+  var _coverFullscreen      = true;  // aus Settings geladen (Default: aktiv)
+  var _coverFullscreenDelay = 20;    // Sekunden, aus Settings
+  var _coverFsTimer         = null;
+  var _coverFsActive        = false;
+
+  function _startCoverFsTimer() {
+    _clearCoverFsTimer();
+    if (!_coverFullscreen || !_speakerModalId) return;
+    var coverImg = document.getElementById('speaker-cover');
+    if (!coverImg || !coverImg.classList.contains('loaded')) return;
+    _coverFsTimer = setTimeout(_showCoverFullscreen, _coverFullscreenDelay * 1000);
+  }
+
+  function _clearCoverFsTimer() {
+    if (_coverFsTimer) { clearTimeout(_coverFsTimer); _coverFsTimer = null; }
+  }
+
+  function _showCoverFullscreen() {
+    if (!_speakerModalId) return;
+    var coverImg = document.getElementById('speaker-cover');
+    if (!coverImg || !coverImg.classList.contains('loaded') || !coverImg.src) return;
+
+    var overlay  = document.getElementById('cover-fullscreen');
+    var bg       = document.getElementById('cover-fullscreen-bg');
+    var trackEl  = document.getElementById('cover-fs-track');
+    var artistEl = document.getElementById('cover-fs-artist');
+
+    bg.style.backgroundImage = 'url("' + coverImg.src + '")';
+    if (trackEl)  trackEl.textContent  = document.getElementById('speaker-track-name').textContent || '';
+    if (artistEl) artistEl.textContent = document.getElementById('speaker-track-artist').textContent || '';
+
+    overlay.style.display = 'flex';
+    // Double rAF so transition fires after display:flex is painted
+    requestAnimationFrame(function () {
+      requestAnimationFrame(function () { overlay.classList.add('visible'); });
+    });
+    _coverFsActive = true;
+  }
+
+  function _dismissCoverFullscreen() {
+    if (!_coverFsActive) return;
+    var overlay = document.getElementById('cover-fullscreen');
+    overlay.classList.remove('visible');
+    _coverFsActive = false;
+    setTimeout(function () { if (!_coverFsActive) overlay.style.display = 'none'; }, 620);
+  }
+
+  // Called from onclick on the overlay
+  window.dismissCoverFullscreen = function () {
+    _dismissCoverFullscreen();
+    _clearCoverFsTimer();
+    // Restart the idle timer so it re-enters fullscreen after another delay
+    _startCoverFsTimer();
+  };
 
   // SVG-Icons für die Transport-Controls
   var _SI = {
@@ -2073,12 +2162,15 @@
     var volSliderRow = document.getElementById('speaker-vol-slider-row');
     volSliderRow.oninput  = function () { this.style.setProperty('--val', this.value + '%'); };
     volSliderRow.onchange = _volChange;
+    _speakerWasPlaying = false;
     _updateSpeakerModal();
     document.getElementById('speaker-modal').style.display = 'flex';
     document.body.style.overflow = 'hidden';
   }
 
   function closeSpeakerModal() {
+    _clearCoverFsTimer();
+    _dismissCoverFullscreen();
     document.getElementById('speaker-modal').style.display = 'none';
     document.body.style.overflow = '';
     var coverImg = document.getElementById('speaker-cover');
@@ -2086,7 +2178,8 @@
     coverImg.removeAttribute('data-track');
     coverImg.classList.remove('loaded');
     _stopSpeakerPoll();
-    _speakerModalId = null;
+    _speakerModalId    = null;
+    _speakerWasPlaying = false;
   }
 
   // Nach Next/Prev: pollen bis Track wechselt (max. 15 Versuche).
@@ -2148,12 +2241,16 @@
     var prevTrack = coverImg.getAttribute('data-track') || '';
     if (track !== prevTrack) {
       coverImg.setAttribute('data-track', track);
-      // Sanft ausblenden, dann neues Cover laden
       coverImg.classList.remove('loaded');
+      _clearCoverFsTimer();
+      _dismissCoverFullscreen();
       var coverSrc = '/api/camera/' + _speakerModalId + '?t=' + Date.now();
-      coverImg.onload  = function () { this.classList.add('loaded'); };
+      coverImg.onload  = function () {
+        this.classList.add('loaded');
+        // Cover geladen → Timer starten falls gerade gespielt wird
+        if (_speakerWasPlaying) _startCoverFsTimer();
+      };
       coverImg.onerror = function () { this.classList.remove('loaded'); };
-      // Kurz warten, damit CSS-Transition greift, dann src wechseln
       setTimeout(function () { coverImg.src = coverSrc; }, 150);
     }
 
@@ -2196,6 +2293,17 @@
     var muteBtnRow = document.getElementById('speaker-mute-btn-row');
     muteBtnRow.innerHTML = volIcon;
     muteBtnRow.classList.toggle('muted', muted);
+
+    // ── Cover Fullscreen Timer: Play/Pause-Transitions ─────────────
+    if (playing && !_speakerWasPlaying) {
+      // Gerade gestartet → Timer beginnen (falls Cover schon geladen)
+      _startCoverFsTimer();
+    } else if (!playing && _speakerWasPlaying) {
+      // Pausiert → Timer stoppen, Fullscreen schliessen
+      _clearCoverFsTimer();
+      _dismissCoverFullscreen();
+    }
+    _speakerWasPlaying = playing;
   }
 
   function speakerPlayPause() {

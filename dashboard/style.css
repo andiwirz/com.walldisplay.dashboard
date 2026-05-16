@@ -196,14 +196,32 @@ html, body {
   display: flex;
   align-items: center;
   gap: 4px;
+  cursor: pointer;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .zone-title::after {
-  content: '›';
+  content: '⌄';
   font-size: 20px;
   font-weight: 400;
   color: var(--text-muted);
   margin-top: -1px;
+  display: inline-block;
+  transition: transform 0.2s ease;
+}
+
+/* Collapsed state: chevron points right, grid hidden */
+.zone-section.collapsed .zone-title::after {
+  transform: rotate(-90deg);
+}
+
+.zone-section.collapsed .device-grid {
+  display: none;
+}
+
+.zone-section.collapsed {
+  margin-bottom: 8px;
 }
 
 .device-grid {
@@ -1043,6 +1061,76 @@ html, body {
   color: #fff;
 }
 .confirm-btn-ok:hover { opacity: 0.88; }
+
+/* ── Cover Fullscreen Overlay ─────────────────── */
+.cover-fullscreen {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;            /* above speaker-modal (1100) */
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  opacity: 0;
+  transition: opacity 0.6s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.cover-fullscreen.visible { opacity: 1; }
+
+/* Background with Ken Burns zoom */
+.cover-fullscreen-bg {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  animation: coverZoom 25s ease-in-out infinite alternate;
+  will-change: transform;
+}
+@keyframes coverZoom {
+  from { transform: scale(1.00); }
+  to   { transform: scale(1.18); }
+}
+
+/* Track info at bottom */
+.cover-fullscreen-info {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  padding: 20px 28px 10px;
+  background: linear-gradient(transparent, rgba(0,0,0,0.72));
+  color: #fff;
+  text-align: left;
+}
+.cover-fs-track {
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.2;
+  text-shadow: 0 1px 8px rgba(0,0,0,0.6);
+  margin-bottom: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cover-fs-artist {
+  font-size: 15px;
+  opacity: 0.82;
+  text-shadow: 0 1px 6px rgba(0,0,0,0.5);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cover-fullscreen-hint {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  padding: 10px 28px 20px;
+  background: rgba(0,0,0,0.72);
+  color: rgba(255,255,255,0.45);
+  font-size: 12px;
+  text-align: center;
+  letter-spacing: 0.05em;
+}
 
 /* ── Speaker-Modal ────────────────────────────── */
 .speaker-modal {

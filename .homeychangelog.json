@@ -1,4 +1,8 @@
 {
+  "1.3.10": {
+    "en": "Room order: drag-and-drop sorting in Design settings applies to the 'By rooms' view; tap a room title to collapse/expand its tiles; speaker modal: album art fills the screen after a configurable idle delay (default 20 s, Ken Burns zoom), tap to return — enabled by default, adjustable in Design settings",
+    "de": "Raumreihenfolge: Drag-and-drop-Sortierung in den Design-Einstellungen für die 'Nach Räumen'-Ansicht; Raumtitel antippen klappt Kacheln ein/aus; Speaker-Modal: Albumcover füllt nach einstellbarer Leerlaufzeit (Standard 20 s, Ken-Burns-Zoom) den Bildschirm, Tippen kehrt zum Player zurück — standardmässig aktiv, in den Design-Einstellungen anpassbar"
+  },
   "1.3.9": {
     "en": "Camera fix: image proxy now uses node-fetch (logs HTTP status, handles self-signed TLS certs on Homey Pro, retries with query-param token on 401/403, matches UniFi Protect cameras by UUID); camera modal now expands to the image's natural size on large screens instead of being capped at 420 px",
     "de": "Kamera-Fix: Image-Proxy verwendet nun node-fetch (loggt HTTP-Status, unterstützt selbstsignierte TLS-Zertifikate auf Homey Pro, wiederholt mit Token als Query-Parameter bei 401/403, erkennt UniFi Protect Kameras per UUID); Kamera-Modal passt sich jetzt auf grossen Bildschirmen der natürlichen Bildgrösse an statt bei 420 px abzuschneiden"

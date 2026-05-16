@@ -169,6 +169,54 @@
     }
     .save-btn:hover { background: #e09518; }
 
+    /* ── Zone Order List ──────────────────────────── */
+    .zone-order-list {
+      list-style: none;
+      margin: 10px 0 4px;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .zone-order-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: #f5f5f5;
+      border: 1.5px solid #e0e0e0;
+      border-radius: 8px;
+      padding: 9px 12px;
+      cursor: grab;
+      user-select: none;
+      touch-action: none;   /* required: lets pointer events fire on touch */
+      transition: background 0.15s, box-shadow 0.15s;
+    }
+    .zone-order-item:hover { background: #eeeeee; }
+    .zone-order-item.drag-over {
+      border-color: #F5A623;
+      box-shadow: 0 0 0 2px rgba(245,166,35,0.25);
+    }
+    .zone-order-item.dragging {
+      opacity: 0.4;
+      cursor: grabbing;
+    }
+    .zone-order-handle {
+      color: #aaa;
+      font-size: 16px;
+      line-height: 1;
+      flex-shrink: 0;
+    }
+    .zone-order-name {
+      font-size: 13px;
+      font-weight: 600;
+      color: #333;
+      flex: 1;
+    }
+    .zone-order-badge {
+      font-size: 11px;
+      color: #999;
+    }
+
     /* ── Status ───────────────────────────────────── */
     .status {
       text-align: center;
@@ -625,6 +673,35 @@
       <div class="status" id="view-toggle-status"></div>
     </div>
 
+    <!-- Room Order -->
+    <div class="card">
+      <div class="card-title" data-i18n="roomOrderTitle">Room Order</div>
+      <p class="hint" data-i18n="roomOrderHint">Drag to reorder. Only applies to the "By rooms" view.</p>
+      <ul id="zone-order-list" class="zone-order-list"></ul>
+      <div class="status" id="zone-order-status"></div>
+    </div>
+
+    <!-- Cover Fullscreen -->
+    <div class="card">
+      <div class="card-title" data-i18n="coverFsTitle">Cover Fullscreen</div>
+      <div class="toggle-row">
+        <span class="toggle-label" data-i18n="coverFsLabel">Show album art in fullscreen when playing</span>
+        <label class="toggle-switch">
+          <input type="checkbox" id="cover-fs-toggle" onchange="saveCoverFs()">
+          <span class="toggle-track"></span>
+        </label>
+      </div>
+      <p class="toggle-hint" data-i18n="coverFsHint">When enabled, the album cover fills the screen after the set delay. Tap the cover to return to the player.</p>
+      <div id="cover-fs-delay-row" style="display:none; margin-top:12px;">
+        <div class="card-title" data-i18n="coverFsDelayTitle">Delay (seconds)</div>
+        <input type="number" id="cover-fs-delay-input" min="5" max="300" value="20"
+               style="width:80px;padding:6px 10px;border:1.5px solid #ddd;border-radius:8px;font-size:14px;margin-top:6px;"
+               onchange="saveCoverFsDelay(this.value)">
+        <p class="hint" data-i18n="coverFsDelayHint">Time of inactivity before fullscreen appears. Default: 20 s</p>
+      </div>
+      <div class="status" id="cover-fs-status"></div>
+    </div>
+
     <!-- Font Size -->
     <div class="card">
       <div class="card-title" data-i18n="fontSizeTitle">Font Size</div>
@@ -761,6 +838,15 @@
         viewDefaultRooms:   'By rooms',
         viewDefaultHint:    '💡 The user\'s last choice is remembered per device.',
         viewToggleSaved:    'Setting saved',
+        roomOrderTitle:     'Room Order',
+        roomOrderHint:      'Drag to reorder. Only applies to the "By rooms" view.',
+        zoneOrderSaved:     'Order saved',
+        coverFsTitle:       'Cover Fullscreen',
+        coverFsLabel:       'Show album art in fullscreen when playing',
+        coverFsHint:        'When enabled, the album cover fills the screen after the set delay. Tap the cover to return to the player.',
+        coverFsDelayTitle:  'Delay (seconds)',
+        coverFsDelayHint:   'Time of inactivity before fullscreen appears. Default: 20 s',
+        coverFsSaved:       'Setting saved',
         fontSizeTitle:      'Font Size',
         fontSizeHint:       'Adjusts text size on device and flow tiles. Default: 1 (minimum)',
         fontSizeSaved:      'Font size saved',
@@ -868,6 +954,15 @@
         viewDefaultRooms:   'Nach Räumen',
         viewDefaultHint:    '💡 Die letzte Wahl des Nutzers wird pro Gerät gespeichert.',
         viewToggleSaved:    'Einstellung gespeichert',
+        roomOrderTitle:     'Raumreihenfolge',
+        roomOrderHint:      'Ziehen zum Umordnen. Gilt nur für die Ansicht "Nach Räumen".',
+        zoneOrderSaved:     'Reihenfolge gespeichert',
+        coverFsTitle:       'Cover Vollbild',
+        coverFsLabel:       'Albumcover bei Wiedergabe im Vollbild anzeigen',
+        coverFsHint:        'Wenn aktiviert, füllt das Albumcover nach der eingestellten Zeit den Bildschirm. Tippen auf das Cover kehrt zum Player zurück.',
+        coverFsDelayTitle:  'Verzögerung (Sekunden)',
+        coverFsDelayHint:   'Zeit ohne Interaktion bis das Vollbild erscheint. Standard: 20 s',
+        coverFsSaved:       'Einstellung gespeichert',
         fontSizeTitle:      'Schriftgrösse',
         fontSizeHint:       'Passt die Textgrösse auf Geräte- und Flow-Kacheln an. Standard: 1 (Minimum)',
         fontSizeSaved:      'Schriftgrösse gespeichert',
@@ -1049,7 +1144,9 @@
       var savedTileRadius     = await hGetSafe('tileRadius', 'rounded');
       var savedHeaderHidden   = await hGetSafe('headerHidden', false);
       var savedViewDefault    = await hGetSafe('viewDefault', 'all');
-      var savedViewBtnHidden  = await hGetSafe('viewBtnHidden', false);
+      var savedViewBtnHidden    = await hGetSafe('viewBtnHidden', false);
+      var savedCoverFs          = await hGetSafe('coverFullscreen', true);
+      var savedCoverFsDelay     = await hGetSafe('coverFullscreenDelay', 20);
 
       // ── General tab values ─────────────────────────────────────────
       document.getElementById('port-input').value = port;
@@ -1065,6 +1162,9 @@
       document.getElementById('header-hidden-toggle').checked = !savedHeaderHidden;
       document.getElementById('view-btn-toggle').checked = !savedViewBtnHidden;
       setViewDefault(savedViewDefault, true);
+      document.getElementById('cover-fs-toggle').checked = savedCoverFs === true;
+      document.getElementById('cover-fs-delay-input').value = savedCoverFsDelay || 20;
+      _updateCoverFsDelayRow();
       document.getElementById('energy-toggle').checked = energyEnabled !== false;
       document.getElementById('battery-invert-toggle').checked = batteryInvertSign === true;
       updateTileLabel(tileSize);
@@ -1108,6 +1208,9 @@
           })
           .catch(function() {});
       }
+
+      // ── Zone Order ────────────────────────────────────────────────
+      initZoneOrder();
 
       // ── Zones + Devices (cache first, then HTTP fallback) ─────────
       var cachedZones   = await hGet('cachedZones');
@@ -1280,6 +1383,147 @@
         await hSet('viewDefault', value);
         showStatus('view-toggle-status', T.viewToggleSaved, true);
       } catch (e) { showStatus('view-toggle-status', T.errorPrefix + e.message, false); }
+    }
+
+    // ── Room Order ────────────────────────────────────────────────────────────
+    var _zoneOrderData = [];   // [{id, name}] in aktueller Reihenfolge
+
+    function buildZoneOrderList(zones, savedOrder) {
+      var ordered = savedOrder
+        .map(function(id) { return zones.find(function(z) { return z.id === id; }); })
+        .filter(Boolean);
+      var rest = zones
+        .filter(function(z) { return !savedOrder.includes(z.id); })
+        .sort(function(a, b) { return a.name.localeCompare(b.name); });
+      _zoneOrderData = ordered.concat(rest);
+      renderZoneOrderList();
+    }
+
+    function renderZoneOrderList() {
+      var list = document.getElementById('zone-order-list');
+      if (!list) return;
+      list.innerHTML = '';
+
+      _zoneOrderData.forEach(function(zone, idx) {
+        var li = document.createElement('li');
+        li.className = 'zone-order-item';
+
+        var handle = document.createElement('span');
+        handle.className = 'zone-order-handle';
+        handle.textContent = '⠿';
+
+        var name = document.createElement('span');
+        name.className = 'zone-order-name';
+        name.textContent = zone.name;
+
+        li.appendChild(handle);
+        li.appendChild(name);
+        list.appendChild(li);
+      });
+
+      // ── Pointer-based drag & drop (works in iframe + touch) ──────────────
+      // HTML5 drag API is unreliable in Homey's settings iframe → use pointer events.
+      var items       = Array.from(list.querySelectorAll('.zone-order-item'));
+      var dragSrcIdx  = null;
+      var dragOverIdx = null;
+
+      items.forEach(function(item, idx) {
+        item.addEventListener('pointerdown', function(e) {
+          if (e.button !== undefined && e.button !== 0) return;
+          e.preventDefault();
+          item.setPointerCapture(e.pointerId);
+          dragSrcIdx  = idx;
+          dragOverIdx = idx;
+          item.classList.add('dragging');
+        });
+
+        item.addEventListener('pointermove', function(e) {
+          if (dragSrcIdx !== idx) return;
+          e.preventDefault();
+
+          // Determine which row the pointer is over by Y coordinate
+          var newOver = null;
+          var listRect = list.getBoundingClientRect();
+          items.forEach(function(other, otherIdx) {
+            var r = other.getBoundingClientRect();
+            if (e.clientY >= r.top && e.clientY <= r.bottom) newOver = otherIdx;
+          });
+
+          // Update highlight
+          items.forEach(function(el) { el.classList.remove('drag-over'); });
+          if (newOver !== null && newOver !== dragSrcIdx) {
+            items[newOver].classList.add('drag-over');
+            dragOverIdx = newOver;
+          } else if (newOver === dragSrcIdx) {
+            dragOverIdx = dragSrcIdx;
+          }
+        });
+
+        function finishDrag(e) {
+          if (dragSrcIdx !== idx) return;
+          item.releasePointerCapture(e.pointerId);
+          items.forEach(function(el) { el.classList.remove('dragging', 'drag-over'); });
+
+          if (dragOverIdx !== null && dragOverIdx !== dragSrcIdx) {
+            var moved = _zoneOrderData.splice(dragSrcIdx, 1)[0];
+            _zoneOrderData.splice(dragOverIdx, 0, moved);
+            renderZoneOrderList();
+            saveZoneOrder();
+          }
+          dragSrcIdx  = null;
+          dragOverIdx = null;
+        }
+
+        item.addEventListener('pointerup',     finishDrag);
+        item.addEventListener('pointercancel', finishDrag);
+      });
+    }
+
+    async function saveZoneOrder() {
+      var ids = _zoneOrderData.map(function(z) { return z.id; });
+      try {
+        await hSet('zoneOrder', ids);
+        showStatus('zone-order-status', T.zoneOrderSaved, true);
+      } catch (e) {
+        showStatus('zone-order-status', T.errorPrefix + e.message, false);
+      }
+    }
+
+    // ── Cover Fullscreen ──────────────────────────────────────────────────────
+    function _updateCoverFsDelayRow() {
+      var enabled = document.getElementById('cover-fs-toggle').checked;
+      document.getElementById('cover-fs-delay-row').style.display = enabled ? 'block' : 'none';
+    }
+
+    async function saveCoverFs() {
+      var enabled = document.getElementById('cover-fs-toggle').checked;
+      _updateCoverFsDelayRow();
+      try {
+        await hSet('coverFullscreen', enabled);
+        showStatus('cover-fs-status', T.coverFsSaved, true);
+      } catch (e) { showStatus('cover-fs-status', T.errorPrefix + e.message, false); }
+    }
+
+    async function saveCoverFsDelay(val) {
+      val = parseInt(val, 10);
+      if (isNaN(val) || val < 5) val = 5;
+      if (val > 300) val = 300;
+      document.getElementById('cover-fs-delay-input').value = val;
+      try {
+        await hSet('coverFullscreenDelay', val);
+        showStatus('cover-fs-status', T.coverFsSaved, true);
+      } catch (e) { showStatus('cover-fs-status', T.errorPrefix + e.message, false); }
+    }
+
+    async function initZoneOrder() {
+      try {
+        var zonesRaw   = await dashboardGet('/api/zones');
+        var savedOrder = (await hGetSafe('zoneOrder', [])) || [];
+        buildZoneOrderList(zonesRaw, savedOrder);
+      } catch (e) {
+        var list = document.getElementById('zone-order-list');
+        if (list) list.innerHTML = '<li style="color:#999;font-size:12px;padding:8px 0">' + (T.errorPrefix || 'Error: ') + e.message + '</li>';
+      }
     }
 
     function updateTileLabel(val) {

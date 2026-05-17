@@ -686,11 +686,14 @@ html, body {
 .energy-body {
   flex: 1;
   overflow: hidden;
-  padding: 6px 14px 10px;
+  padding: 14px;
 }
 
 .energy-flow-container {
   padding: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 .energy-scroll-body {
@@ -876,6 +879,81 @@ html, body {
     max-width: 100%;
     max-height: calc(100vh - 50px);
   }
+}
+
+/* ── Energy Flow Widget (hub + nodes + dashed lines) ── */
+.ef-wrap {
+  position: relative;
+  width: 100%;
+  flex: 1;
+  min-height: 180px;
+}
+
+.ef-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  z-index: 1;
+  pointer-events: none;
+}
+
+@keyframes ef-fwd { to { stroke-dashoffset: -18; } }
+@keyframes ef-rev { to { stroke-dashoffset:  18; } }
+
+.ef-hub {
+  position: absolute;
+  left: 50%; top: 50%;
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  background: var(--surface);
+  border: 2.5px solid transparent;
+  transform: translate(-50%, -50%);
+  z-index: 3;
+  transition: border-color 0.5s ease, box-shadow 0.5s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow);
+}
+
+.ef-node {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  transform: translate(-50%, -50%);
+  z-index: 2;
+  transition: opacity 0.4s;
+}
+
+.ef-node-icon { width: 24px; height: 24px; }
+
+.ef-node-value {
+  font-size: calc(14px * var(--font-scale));
+  font-weight: 700;
+  letter-spacing: -0.3px;
+  color: var(--text);
+  white-space: nowrap;
+  line-height: 1;
+}
+
+.ef-node-label {
+  font-size: calc(9px * var(--font-scale));
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  white-space: nowrap;
+}
+
+.ef-node-sub {
+  font-size: calc(10px * var(--font-scale));
+  font-weight: 600;
+  white-space: nowrap;
+  min-height: 13px;
+  color: var(--text-muted);
 }
 
 /* ── Energy History Chart ─────────────────────── */

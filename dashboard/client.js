@@ -506,6 +506,213 @@
     return '<span class="energy-device-icon-emoji">' + (_ENERGY_FALLBACK_ICONS[d.type] || '⚡') + '</span>';
   }
 
+  // ── Energy Flow Widget (hub + node + dashed line style) ─────────────────
+  var _efHasBattery = false;
+
+  var _efT = { grid: 'Grid', batt: 'Battery', house: 'House', export: 'Export', import: 'Import' };
+
+  var _EF_C = {
+    pv:        '#F59E0B',
+    house:     '#3B82F6',
+    charge:    '#22C55E',
+    discharge: '#F97316',
+    export:    '#22C55E',
+    import:    '#EF4444',
+    idle:      'var(--border)',
+  };
+
+  function _buildEfHtml(hasBattery) {
+    var battHide = hasBattery ? '' : ' style="display:none"';
+    return '<div class="ef-wrap" id="ef-wrap">' +
+      '<svg class="ef-svg" id="ef-svg">' +
+        '<line id="ef-line-pv"    stroke-width="2" stroke-dasharray="5 4"/>' +
+        '<line id="ef-line-house" stroke-width="2" stroke-dasharray="5 4"/>' +
+        '<line id="ef-line-grid"  stroke-width="2" stroke-dasharray="5 4"/>' +
+        '<line id="ef-line-batt"  stroke-width="2" stroke-dasharray="5 4"' + battHide + '/>' +
+      '</svg>' +
+      '<div class="ef-hub" id="ef-hub">' +
+        '<svg width="16" height="16" id="ef-hub-icon" viewBox="0 0 24 24" fill="none"' +
+             ' stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">' +
+          '<polygon points="13,2 3,14 12,14 11,22 21,10 12,10"/>' +
+        '</svg>' +
+      '</div>' +
+      // PV — top center
+      '<div class="ef-node" id="ef-node-pv" style="left:50%;top:12%">' +
+        '<svg class="ef-node-icon" viewBox="0 0 24 24" fill="none"' +
+             ' stroke="#F59E0B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+          '<circle cx="12" cy="12" r="4"/>' +
+          '<line x1="12" y1="2" x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="22"/>' +
+          '<line x1="4.22" y1="4.22" x2="6.34" y2="6.34"/><line x1="17.66" y1="17.66" x2="19.78" y2="19.78"/>' +
+          '<line x1="2" y1="12" x2="5" y2="12"/><line x1="19" y1="12" x2="22" y2="12"/>' +
+          '<line x1="4.22" y1="19.78" x2="6.34" y2="17.66"/><line x1="17.66" y1="6.34" x2="19.78" y2="4.22"/>' +
+        '</svg>' +
+        '<div class="ef-node-value" id="ef-pv-val">—</div>' +
+        '<div class="ef-node-label">Solar</div>' +
+      '</div>' +
+      // Grid — middle left
+      '<div class="ef-node" id="ef-node-grid" style="left:12%;top:50%">' +
+        '<svg class="ef-node-icon" id="ef-grid-icon" viewBox="0 0 24 24" fill="none"' +
+             ' stroke="#9CA3AF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+          '<polygon points="13,2 3,14 12,14 11,22 21,10 12,10"/>' +
+        '</svg>' +
+        '<div class="ef-node-value" id="ef-grid-val">—</div>' +
+        '<div class="ef-node-label">' + _efT.grid + '</div>' +
+        '<div class="ef-node-sub" id="ef-grid-sub"></div>' +
+      '</div>' +
+      // Battery — middle right
+      '<div class="ef-node" id="ef-node-batt" style="left:88%;top:50%">' +
+        '<svg class="ef-node-icon" id="ef-batt-icon" viewBox="0 0 24 24" fill="none"' +
+             ' stroke="#9CA3AF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+          '<rect x="2" y="7" width="16" height="10" rx="2"/>' +
+          '<line x1="22" y1="10" x2="22" y2="14"/>' +
+          '<line x1="6" y1="12" x2="12" y2="12"/>' +
+          '<line x1="9" y1="9" x2="9" y2="15"/>' +
+        '</svg>' +
+        '<div class="ef-node-value" id="ef-batt-val">—</div>' +
+        '<div class="ef-node-label">' + _efT.batt + '</div>' +
+        '<div class="ef-node-sub" id="ef-batt-soc"></div>' +
+      '</div>' +
+      // House — bottom center
+      '<div class="ef-node" id="ef-node-house" style="left:50%;top:88%">' +
+        '<svg class="ef-node-icon" viewBox="0 0 24 24" fill="none"' +
+             ' stroke="#3B82F6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+          '<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>' +
+          '<polyline points="9,22 9,12 15,12 15,22"/>' +
+        '</svg>' +
+        '<div class="ef-node-value" id="ef-house-val">—</div>' +
+        '<div class="ef-node-label">' + _efT.house + '</div>' +
+      '</div>' +
+    '</div>';
+  }
+
+  function _efPositionLines() {
+    var wrap = document.getElementById('ef-wrap');
+    if (!wrap) return;
+    function efRel(el) {
+      var r = el.getBoundingClientRect(), w = wrap.getBoundingClientRect();
+      return { top: r.top-w.top, bottom: r.bottom-w.top, left: r.left-w.left, right: r.right-w.left,
+               cx: (r.left+r.right)/2-w.left, cy: (r.top+r.bottom)/2-w.top };
+    }
+    function efCoords(id, x1, y1, x2, y2) {
+      var el = document.getElementById(id);
+      if (!el) return;
+      el.setAttribute('x1', Math.round(x1)); el.setAttribute('y1', Math.round(y1));
+      el.setAttribute('x2', Math.round(x2)); el.setAttribute('y2', Math.round(y2));
+    }
+    var hub   = document.getElementById('ef-hub');
+    var pv    = document.getElementById('ef-node-pv');
+    var house = document.getElementById('ef-node-house');
+    var grid  = document.getElementById('ef-node-grid');
+    var batt  = document.getElementById('ef-node-batt');
+    if (!hub || !pv || !house || !grid) return;
+    var h = efRel(hub), p = efRel(pv), ho = efRel(house), g = efRel(grid);
+    efCoords('ef-line-pv',    p.cx,  p.bottom,  h.cx,    h.top);
+    efCoords('ef-line-house', h.cx,  h.bottom,  ho.cx,   ho.top);
+    efCoords('ef-line-grid',  g.right, g.cy,    h.left,  h.cy);
+    if (batt) {
+      var b = efRel(batt);
+      efCoords('ef-line-batt', h.right, h.cy, b.left, b.cy);
+    }
+  }
+
+  function _efSetLine(id, anim, color) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    el.style.stroke          = color;
+    el.style.strokeOpacity   = anim ? '1' : '0.35';
+    el.style.strokeDasharray = anim ? '5 4' : '3 7';
+    el.style.animation       = anim ? (anim + ' 0.5s linear infinite') : 'none';
+  }
+
+  function _updateEfFlow(s, hasBattery, thr) {
+    var pv   = s.solarW   || 0;
+    var batt = s.batteryW;   // null if no battery
+    var grid = s.gridW    || 0;
+    var soc  = s.batterySoc;
+    var home = s.homeW    || 0;
+
+    var pvEl    = document.getElementById('ef-pv-val');
+    var homeEl  = document.getElementById('ef-house-val');
+    var battEl  = document.getElementById('ef-batt-val');
+    var gridEl  = document.getElementById('ef-grid-val');
+    var socEl   = document.getElementById('ef-batt-soc');
+    var gridSub = document.getElementById('ef-grid-sub');
+
+    if (pvEl)    pvEl.textContent   = _fmtW(pv);
+    if (homeEl)  homeEl.textContent = _fmtW(home);
+    if (battEl)  battEl.textContent = _fmtW(batt !== null ? Math.abs(batt) : null);
+    if (gridEl)  gridEl.textContent = _fmtW(grid !== null ? Math.abs(grid) : null);
+    if (socEl)   socEl.textContent  = (soc !== null && soc !== undefined) ? Math.round(soc) + '%' : '';
+    if (gridSub) gridSub.textContent = (grid < -thr) ? _efT.export : (grid > thr) ? _efT.import : '';
+
+    // PV line: fwd = producing
+    _efSetLine('ef-line-pv', pv > thr ? 'ef-fwd' : null, pv > thr ? _EF_C.pv : _EF_C.idle);
+
+    // House line: fwd = consuming
+    _efSetLine('ef-line-house', home > thr ? 'ef-fwd' : null, home > thr ? _EF_C.house : _EF_C.idle);
+
+    // Battery line
+    var battNode = document.getElementById('ef-node-batt');
+    var battIcon = document.getElementById('ef-batt-icon');
+    if (batt === null || batt === undefined) {
+      _efSetLine('ef-line-batt', null, 'transparent');
+      if (battNode) battNode.style.opacity = '0.25';
+      if (battIcon) battIcon.setAttribute('stroke', '#9CA3AF');
+    } else {
+      if (battNode) battNode.style.opacity = '1';
+      if (batt > thr) {
+        _efSetLine('ef-line-batt', 'ef-fwd', _EF_C.charge);
+        if (battIcon) battIcon.setAttribute('stroke', _EF_C.charge);
+      } else if (batt < -thr) {
+        _efSetLine('ef-line-batt', 'ef-rev', _EF_C.discharge);
+        if (battIcon) battIcon.setAttribute('stroke', _EF_C.discharge);
+      } else {
+        _efSetLine('ef-line-batt', null, _EF_C.idle);
+        if (battIcon) battIcon.setAttribute('stroke', '#9CA3AF');
+      }
+    }
+
+    // Grid line: fwd = import, rev = export
+    var gridIcon = document.getElementById('ef-grid-icon');
+    if (grid < -thr) {
+      _efSetLine('ef-line-grid', 'ef-rev', _EF_C.export);
+      if (gridIcon) gridIcon.setAttribute('stroke', _EF_C.export);
+    } else if (grid > thr) {
+      _efSetLine('ef-line-grid', 'ef-fwd', _EF_C.import);
+      if (gridIcon) gridIcon.setAttribute('stroke', _EF_C.import);
+    } else {
+      _efSetLine('ef-line-grid', null, _EF_C.idle);
+      if (gridIcon) gridIcon.setAttribute('stroke', '#9CA3AF');
+    }
+
+    // Hub border: green=PV on+no import | orange=batt discharging+no import | red=importing | none=standby
+    var hub     = document.getElementById('ef-hub');
+    var hubIcon = document.getElementById('ef-hub-icon');
+    var importing = grid  >  thr;
+    var pvOn      = pv    >  thr;
+    var battDisch = batt !== null && batt < -thr;
+    if (hub) {
+      if (pvOn && !importing) {
+        hub.style.borderColor = _EF_C.charge;
+        hub.style.boxShadow   = '0 0 8px rgba(34,197,94,0.4)';
+        if (hubIcon) { hubIcon.style.stroke = _EF_C.charge; hubIcon.style.opacity = '0.9'; }
+      } else if (!pvOn && battDisch && !importing) {
+        hub.style.borderColor = _EF_C.pv;
+        hub.style.boxShadow   = '0 0 8px rgba(245,158,11,0.4)';
+        if (hubIcon) { hubIcon.style.stroke = _EF_C.pv; hubIcon.style.opacity = '0.9'; }
+      } else if (importing) {
+        hub.style.borderColor = _EF_C.import;
+        hub.style.boxShadow   = '0 0 8px rgba(239,68,68,0.4)';
+        if (hubIcon) { hubIcon.style.stroke = _EF_C.import; hubIcon.style.opacity = '0.9'; }
+      } else {
+        hub.style.borderColor = 'transparent';
+        hub.style.boxShadow   = 'none';
+        if (hubIcon) { hubIcon.style.stroke = 'currentColor'; hubIcon.style.opacity = '0.35'; }
+      }
+    }
+  }
+
+  // kept for reference — no longer called from live tab
   function _renderEnergyFlowSVG(s, hasBattery) {
     var W  = 320;
     var R  = 36;
@@ -696,24 +903,30 @@
   function _renderEnergy(data) {
     _lastEnergyData = data; // cache for Devices tab
 
-    // If the Devices tab is currently shown, refresh it with new data
-    if (_energyTab === 'devices') {
-      _renderEnergyDevicesTab();
-      return;
-    }
+    if (_energyTab === 'devices') { _renderEnergyDevicesTab(); return; }
     if (_energyTab !== 'live') return;
 
-    var s      = data.summary;
+    var s       = data.summary;
     var devList = data.devices;
     var hasBat  = devList.some(function (d) { return d.type === 'battery'; });
     var body    = document.getElementById('energy-body');
-    var svgKey  = JSON.stringify(s) + (hasBat ? '1' : '0');
+    var thr     = 50;
 
-    // Only rebuild SVG when values have changed
-    if (svgKey !== _lastEnergySummaryKey) {
-      _lastEnergySummaryKey = svgKey;
-      body.innerHTML = '<div class="energy-flow-container">' + _renderEnergyFlowSVG(s, hasBat) + '</div>';
+    // Rebuild DOM only when not yet present or battery presence changed
+    if (!document.getElementById('ef-wrap') || _efHasBattery !== hasBat) {
+      _efHasBattery = hasBat;
+      body.innerHTML = '<div class="energy-flow-container">' + _buildEfHtml(hasBat) + '</div>';
+      // Reposition lines whenever the wrap resizes (flex height changes)
+      if (typeof ResizeObserver !== 'undefined') {
+        var efObs = new ResizeObserver(function () { _efPositionLines(); });
+        var efWrapEl = document.getElementById('ef-wrap');
+        if (efWrapEl) efObs.observe(efWrapEl);
+      }
+      requestAnimationFrame(function () { requestAnimationFrame(_efPositionLines); });
     }
+
+    _updateEfFlow(s, hasBat, thr);
+    requestAnimationFrame(_efPositionLines);
   }
 
   // ── Theme ('light' | 'dark') ───────────────────────

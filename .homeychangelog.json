@@ -1,4 +1,8 @@
 {
+  "1.3.13": {
+    "en": "Camera modal: tap image to refresh with spinner feedback; auto-refresh every 10 s; no black bars on large display; CLS fix (modal pre-sized from stored image dimensions); speaker album art loads faster (shared HTTPS agent, device cache, no 150 ms delay); energy modal min 480×480 px on large display; energy flow diagram fills full modal height; deprecated CSS slider-vertical removed",
+    "de": "Kamera-Modal: Bild antippen aktualisiert mit Spinner-Feedback; Auto-Refresh alle 10 s; keine schwarzen Balken auf grossem Display; CLS-Fix (Modal wird aus gespeicherten Bildmassen vorkalkuliert); Speaker-Albumcover lädt schneller (geteilter HTTPS-Agent, Gerätecache, kein 150-ms-Delay); Energie-Modal mind. 480×480 px auf grossem Display; Energiefluss-Diagramm füllt volle Modal-Höhe; veraltetes CSS slider-vertical entfernt"
+  },
   "1.3.12": {
     "en": "Speaker modal: fixed 480×480 px size matching Shelly Wall Display; long track/artist/album titles scroll as marquee; volume slider responds in real time while dragging; all modal headers unified to same height; larger touch targets for close buttons and energy tabs",
     "de": "Speaker-Modal: fixe Grösse 480×480 px passend zum Shelly Wall Display; lange Titel/Künstler/Album-Texte scrollen als Laufschrift; Lautstärkeregler reagiert in Echtzeit beim Schieben; alle Modal-Header auf gleiche Höhe vereinheitlicht; grössere Touch-Flächen für Schliessen-Buttons und Energie-Tabs"

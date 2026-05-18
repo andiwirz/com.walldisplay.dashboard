@@ -2233,22 +2233,63 @@
   var _cameraRefreshTimer = null;
   var _cameraLoadTimer    = null;
 
+  // Calculate the constrained display size for a camera image,
+  // matching the CSS rules: max-width:92vw, max-height:calc(92vh - 45px header).
+  var _CAM_HEADER_H = 45;
+  function _camDisplaySize(natW, natH) {
+    var maxW  = Math.round(window.innerWidth  * 0.92);
+    var maxH  = Math.round(window.innerHeight * 0.92) - _CAM_HEADER_H;
+    var scale = Math.min(1, maxW / natW, maxH / natH);
+    return { w: Math.round(natW * scale), h: Math.round(natH * scale) };
+  }
+
   function openCameraModal(deviceId, deviceName) {
     var modal = document.getElementById('camera-modal');
+    var inner = document.getElementById('camera-modal-inner');
     var title = document.getElementById('camera-modal-title');
-    var img   = document.getElementById('camera-modal-img');
-    var err   = document.getElementById('camera-modal-error');
+    var img     = document.getElementById('camera-modal-img');
+    var err     = document.getElementById('camera-modal-error');
+    var spinner = document.getElementById('camera-modal-spinner');
 
     title.textContent = deviceName;
     err.style.display = 'none';
     img.style.display = 'block';
+    spinner.style.display = 'none';
+
+    // Pre-size the modal-inner (width + height) to the stored display size before
+    // showing. Both dimensions must be locked to prevent CLS — the image load
+    // changes both width and height of the container.
+    // Skip on small displays (≤499×499 px) — CSS fullscreen media query takes over.
+    var _isSmallDisplay = window.innerWidth <= 499 && window.innerHeight <= 499;
+    if (!_isSmallDisplay) {
+      try {
+        var stored = JSON.parse(localStorage.getItem('cam_size_' + deviceId));
+        if (stored && stored.w && stored.h) {
+          var preSize = _camDisplaySize(stored.w, stored.h);
+          inner.style.width  = preSize.w + 'px';
+          inner.style.height = (preSize.h + _CAM_HEADER_H) + 'px';
+          img.setAttribute('width',  stored.w);
+          img.setAttribute('height', stored.h);
+        } else {
+          inner.style.width  = '';
+          inner.style.height = '';
+        }
+      } catch (_) { inner.style.width = ''; inner.style.height = ''; }
+    } else {
+      inner.style.width  = '';
+      inner.style.height = '';
+    }
+
     modal.style.display = 'flex';
     document.body.style.overflow = 'hidden';
 
     function refresh() {
+      // Spinner einblenden
+      spinner.style.display = 'flex';
       // #13 Timeout: wenn Bild nach 8 s nicht geladen → Fehlermeldung
       if (_cameraLoadTimer) clearTimeout(_cameraLoadTimer);
       _cameraLoadTimer = setTimeout(function () {
+        spinner.style.display = 'none';
         img.style.display = 'none';
         err.style.display = 'flex';
       }, 8000);
@@ -2257,19 +2298,37 @@
 
     img.onload = function () {
       if (_cameraLoadTimer) { clearTimeout(_cameraLoadTimer); _cameraLoadTimer = null; }
+      // Save natural dimensions and lock inner to exact display size (w + h)
+      if (img.naturalWidth && img.naturalHeight) {
+        try {
+          localStorage.setItem('cam_size_' + deviceId,
+            JSON.stringify({ w: img.naturalWidth, h: img.naturalHeight }));
+        } catch (_) {}
+        img.setAttribute('width',  img.naturalWidth);
+        img.setAttribute('height', img.naturalHeight);
+        if (!(window.innerWidth <= 499 && window.innerHeight <= 499)) {
+          var sz = _camDisplaySize(img.naturalWidth, img.naturalHeight);
+          inner.style.width  = sz.w + 'px';
+          inner.style.height = (sz.h + _CAM_HEADER_H) + 'px';
+        }
+      }
+      spinner.style.display = 'none';
       img.style.display = 'block';
       err.style.display = 'none';
     };
 
     img.onerror = function () {
       if (_cameraLoadTimer) { clearTimeout(_cameraLoadTimer); _cameraLoadTimer = null; }
+      spinner.style.display = 'none';
       img.style.display = 'none';
       err.style.display = 'flex';
     };
 
+    img.onclick = function () { refresh(); };
+
     refresh();
     clearInterval(_cameraRefreshTimer);
-    _cameraRefreshTimer = setInterval(refresh, 3000);
+    _cameraRefreshTimer = setInterval(refresh, 10000);
   }
 
   function closeCameraModal() {
@@ -2278,7 +2337,13 @@
     _cameraRefreshTimer = null;
     var modal = document.getElementById('camera-modal');
     modal.style.display = 'none';
-    document.getElementById('camera-modal-img').src = '';
+    var img   = document.getElementById('camera-modal-img');
+    var inner = document.getElementById('camera-modal-inner');
+    img.src = '';
+    img.removeAttribute('width');
+    img.removeAttribute('height');
+    inner.style.width  = '';
+    inner.style.height = '';
     document.body.style.overflow = '';
   }
 
@@ -2568,7 +2633,7 @@
         if (_speakerWasPlaying) _startCoverFsTimer();
       };
       coverImg.onerror = function () { this.classList.remove('loaded'); };
-      setTimeout(function () { coverImg.src = coverSrc; }, 150);
+      coverImg.src = coverSrc;
     }
 
     // Statische Icons (prev/next/shuffle/repeat-Outline setzen)

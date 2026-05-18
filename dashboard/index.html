@@ -93,13 +93,14 @@
 
   <!-- Kamera-Modal -->
   <div id="camera-modal" class="camera-modal" style="display:none" onclick="closeCameraModal()">
-    <div class="camera-modal-inner" onclick="event.stopPropagation()">
+    <div class="camera-modal-inner" id="camera-modal-inner" onclick="event.stopPropagation()">
       <div class="camera-modal-header">
         <span id="camera-modal-title" class="camera-modal-name"></span>
         <button class="camera-modal-close" onclick="closeCameraModal()">✕</button>
       </div>
       <div class="camera-modal-body">
         <img id="camera-modal-img" class="camera-modal-img" alt="Camera image" src="">
+        <div id="camera-modal-spinner" class="camera-modal-spinner" style="display:none"></div>
         <div id="camera-modal-error" class="camera-modal-error" style="display:none">No image available</div>
       </div>
     </div>

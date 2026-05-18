@@ -802,7 +802,9 @@ class ShellyWallDisplayApp extends Homey.App {
         //   [{id:”<uuid>”, url:”...”}]                                       — some drivers
         //   [“<uuid>”]                                                        — plain string
         try {
-          const device = await this.homeyApi.devices.getDevice({ id: deviceId });
+          // Use in-memory device cache first (avoids fresh API roundtrip on every request)
+          const cached = this._deviceCache && this._deviceCache[deviceId];
+          const device = cached || await this.homeyApi.devices.getDevice({ id: deviceId });
           const imgs = device.images;
           this.log(`Camera ${deviceId} device.images:`, JSON.stringify(imgs));
 
@@ -878,10 +880,8 @@ class ShellyWallDisplayApp extends Homey.App {
         const fetchImage = async (url, useBearer) => {
           const fetchOpts = {
             headers: (useBearer && token) ? { Authorization: `Bearer ${token}` } : {},
-            // Disable TLS cert verification — Homey Pro may use a self-signed cert
-            agent: url.startsWith('https')
-              ? new (require('https').Agent)({ rejectUnauthorized: false })
-              : undefined,
+            // Reuse the shared HTTPS agent (connection pooling, no TLS cert check)
+            agent: url.startsWith('https') ? this._httpsAgent : undefined,
           };
           return this._nodeFetch(url, fetchOpts);
         };

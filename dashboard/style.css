@@ -14,7 +14,7 @@
   --shadow:      0 2px 8px rgba(0,0,0,0.07), 0 0 1px rgba(0,0,0,0.04);
   --shadow-on:   0 2px 10px rgba(245,166,35,0.18), 0 0 1px rgba(245,166,35,0.25);
   --radius:      14px;
-  --header-h:    50px;
+  --header-h:    45px;
   --font-scale:  1;
   --tile-h:      100px;
 }
@@ -626,13 +626,14 @@ html, body {
 .energy-modal-hdr {
   display: flex;
   align-items: center;
-  padding: 14px 18px 12px;
+  height: var(--header-h);   /* exakt gleich wie Dashboard-Header (50 px) */
+  padding: 0 18px;
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
 }
 
 .energy-modal-title {
-  font-size: 17px;
+  font-size: 20px;            /* gleich wie .header-title */
   font-weight: 700;
   color: var(--text);
   /* kein flex: 1 – Tabs übernehmen den freien Platz */
@@ -651,7 +652,7 @@ html, body {
   background: transparent;
   border: none;
   border-radius: 7px;
-  padding: 5px 13px;
+  padding: 10px 13px;
   font-size: 12px;
   font-weight: 600;
   color: var(--text-muted);
@@ -677,9 +678,10 @@ html, body {
   color: var(--text-muted);
   font-size: 18px;
   cursor: pointer;
-  padding: 2px 6px;
-  border-radius: 6px;
+  padding: 10px 14px;  /* grössere Touch-Fläche, X-Icon bleibt gleich */
+  border-radius: 8px;
   line-height: 1;
+  margin: -6px -6px -6px 0;
 }
 .energy-close-btn:hover { color: var(--text); background: var(--border); }
 
@@ -817,12 +819,13 @@ html, body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 16px 10px;
+  height: var(--header-h);
+  padding: 0 16px;
   border-bottom: 1px solid var(--border);
 }
 
 .camera-modal-name {
-  font-size: 15px;
+  font-size: 20px;
   font-weight: 700;
   color: var(--text);
 }
@@ -833,9 +836,10 @@ html, body {
   color: var(--text-muted);
   font-size: 18px;
   cursor: pointer;
-  padding: 4px 8px;
-  border-radius: 6px;
+  padding: 10px 14px;  /* grössere Touch-Fläche, X-Icon bleibt gleich */
+  border-radius: 8px;
   line-height: 1;
+  margin: -6px -6px -6px 0;
 }
 .camera-modal-close:hover { background: var(--border); }
 
@@ -1233,10 +1237,11 @@ html, body {
 .speaker-modal-inner {
   background: var(--surface);
   border-radius: 18px;
-  width: 100%;
-  min-width: 380px;
-  max-width: 380px;
-  padding-bottom: 10px;
+  width: 480px;
+  height: 480px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
   box-shadow: 0 8px 48px rgba(0,0,0,0.35);
   overflow: hidden;
 }
@@ -1245,12 +1250,14 @@ html, body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 16px 10px;
+  height: var(--header-h);
+  padding: 0 16px;
   border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
 }
 
 .speaker-modal-name {
-  font-size: 15px;
+  font-size: 20px;
   font-weight: 700;
   color: var(--text);
 }
@@ -1261,24 +1268,28 @@ html, body {
   color: var(--text-muted);
   font-size: 18px;
   cursor: pointer;
-  padding: 4px 8px;
-  border-radius: 6px;
+  padding: 10px 14px;  /* grössere Touch-Fläche, X-Icon bleibt gleich */
+  border-radius: 8px;
   line-height: 1;
+  margin: -6px -6px -6px 0; /* negativer Margin damit der Header nicht höher wird */
 }
 .speaker-modal-close:hover { background: var(--border); }
 
 /* ── Body: 3-Spalten-Grid (Platzhalter | Cover+Info | Volume) ── */
 .speaker-modal-body {
+  flex: 1;
   display: grid;
-  grid-template-columns: 46px 1fr 46px;
+  grid-template-columns: 46px minmax(0, 1fr) 46px;
   align-items: start;
   gap: 0;
-  padding: 14px 8px 5px;
+  padding: 14px 8px 0;
+  overflow: hidden;
 }
 
 /* Cover + Track-Info gestapelt, horizontal zentriert */
 .speaker-main-col {
   grid-column: 2;
+  min-width: 0;          /* prevents grid item from expanding beyond 1fr */
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1287,8 +1298,8 @@ html, body {
 
 /* Reserviert feste Grösse — verhindert Layout-Sprünge beim Cover-Wechsel */
 .speaker-cover-wrap {
-  width: 200px;
-  height: 200px;
+  width: 230px;
+  height: 230px;
   border-radius: 14px;
   background: rgba(128,128,128,0.15);
   flex-shrink: 0;
@@ -1297,8 +1308,8 @@ html, body {
 }
 
 .speaker-cover {
-  width: 200px;
-  height: 200px;
+  width: 230px;
+  height: 230px;
   border-radius: 0;
   object-fit: cover;
   background: var(--border);
@@ -1312,6 +1323,8 @@ html, body {
 .speaker-track-info {
   width: 100%;
   min-width: 0;
+  max-width: 100%;
+  overflow: hidden;   /* belt-and-suspenders: also clips at the info block level */
   text-align: center;
 }
 
@@ -1319,9 +1332,8 @@ html, body {
   font-size: calc(16px * var(--font-scale));
   font-weight: 700;
   color: var(--text);
-  white-space: nowrap;
   overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: nowrap;
   margin-bottom: 6px;
 }
 
@@ -1329,9 +1341,8 @@ html, body {
   font-size: calc(14px * var(--font-scale));
   color: var(--accent);
   font-weight: 600;
-  white-space: nowrap;
   overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: nowrap;
   margin-bottom: 4px;
   min-height: 1.2em;
 }
@@ -1339,10 +1350,22 @@ html, body {
 .speaker-track-album {
   font-size: calc(12px * var(--font-scale));
   color: var(--text-muted);
-  white-space: nowrap;
   overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: nowrap;
   min-height: 1.2em;
+}
+
+/* ── Marquee (scrolling text for long track/artist/album) ── */
+.marquee-inner {
+  display: inline-block;
+  white-space: nowrap;
+}
+
+/* Left-align when marquee is active so the span always starts at position 0 */
+.speaker-track-name.has-marquee,
+.speaker-track-artist.has-marquee,
+.speaker-track-album.has-marquee {
+  text-align: left;
 }
 
 /* ── Vertikaler Volume-Slider ─────────────────── */
@@ -1397,7 +1420,7 @@ html, body {
   align-items: center;
   justify-content: center;
   gap: 4px;
-  padding: 7px 16px 4px;
+  padding: 7px 16px 14px;
 }
 
 .speaker-btn {
@@ -1455,7 +1478,7 @@ html, body {
 .speaker-vol-rotate-wrap {
   position: relative;
   width: 46px;
-  height: 290px;
+  height: 275px;
   overflow: visible;
 }
 
@@ -1463,7 +1486,7 @@ html, body {
   position: absolute;
   left: 50%;
   top: 50%;
-  width: 290px;
+  width: 275px;
   transform: translate(-50%, -50%) rotate(-90deg);
   -webkit-appearance: none;
   height: 6px;
@@ -1486,30 +1509,28 @@ html, body {
 /* ── Kleines Display < 500×500 (Shelly 480×480) — Vollbild ── */
 @media (max-width: 499px) and (max-height: 499px) {
   .speaker-modal-inner {
-    border-radius: 0;
-    max-width: 100%;
+    width: 100%;
     height: 100%;
-    display: flex;
-    flex-direction: column;
-    padding-bottom: 4px;
+    border-radius: 0;
+    flex-shrink: 1;
   }
-  .speaker-modal-header { padding: 10px 16px 9px; }
-  .speaker-modal-body   { padding: 10px 8px 0; flex: 0 0 auto; overflow: visible; }
+  .speaker-modal-header { height: var(--header-h); padding: 0 16px; }
+  .speaker-modal-body   { padding: 10px 8px 0; }
 
-  /* Cover etwas grösser auf dem kleinen Display */
-  .speaker-cover-wrap { width: 220px; height: 220px; }
-  .speaker-cover      { width: 220px; height: 220px; }
+  /* Cover auf kleinem Display leicht kleiner damit Controls passen */
+  .speaker-cover-wrap { width: 210px; height: 210px; }
+  .speaker-cover      { width: 210px; height: 210px; }
 
   /* Slider-Länge auf kleinem Display */
-  .speaker-vol-rotate-wrap { height: 290px; }
+  .speaker-vol-rotate-wrap { height: 275px; }
   .speaker-vol-col-sm .speaker-vol-slider-h {
-    width: 290px;
+    width: 275px;
     transform: translate(-50%, -50%) rotate(-90deg);
   }
   .speaker-vol-col-sm .speaker-vol-slider-h::-webkit-slider-thumb { width: 28px; height: 28px; }
 
   /* Controls kompakter */
-  .speaker-controls { padding: 0 12px 2px; gap: 2px; }
+  .speaker-controls { padding: 0 12px 7px; gap: 2px; }
   .speaker-btn        { width: 48px; height: 48px; }
   .speaker-btn-prev,
   .speaker-btn-next   { width: 54px; height: 54px; }
@@ -1538,14 +1559,16 @@ html, body {
 .thermostat-modal-header {
   display: flex;
   align-items: center;
-  padding: 14px 16px 12px;
+  height: var(--header-h);
+  padding: 0 16px;
   border-bottom: 1px solid var(--border);
   gap: 10px;
+  flex-shrink: 0;
 }
 
 .thermostat-modal-name {
   flex: 1;
-  font-size: 15px;
+  font-size: 20px;
   font-weight: 700;
   color: var(--text);
   white-space: nowrap;

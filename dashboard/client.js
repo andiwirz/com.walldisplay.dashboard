@@ -2367,24 +2367,39 @@
     if (!d) return;
     document.getElementById('speaker-modal-name').textContent = d.name;
     // Event-Listener für beide Slider (vertikal + horizontal)
-    function _volChange() {
-      setCapability(_speakerModalId, CAP.VOLUME_SET, parseInt(this.value, 10) / 100);
-      // Anderen Slider synchron halten
+    var _volDebounce = null;
+    function _volSend(value) {
+      if (_volDebounce) { clearTimeout(_volDebounce); _volDebounce = null; }
+      setCapability(_speakerModalId, CAP.VOLUME_SET, value / 100);
+    }
+    function _volInput() {
+      var val = parseInt(this.value, 10);
+      // Visuelles Feedback sofort auf beiden Slidern
       var other = this.id === 'speaker-vol-slider'
                   ? document.getElementById('speaker-vol-slider-row')
                   : document.getElementById('speaker-vol-slider');
-      if (other) { other.value = this.value; other.style.setProperty('--val', this.value + '%'); }
+      if (other) { other.value = val; other.style.setProperty('--val', val + '%'); }
+      this.style.setProperty('--val', val + '%');
+      // API-Aufruf entprellt (150 ms) — verhindert Flooding
+      if (_volDebounce) clearTimeout(_volDebounce);
+      _volDebounce = setTimeout(function () { _volSend(val); }, 150);
+    }
+    function _volChange() {
+      // Beim Loslassen: sofort senden, Debounce abbrechen
+      _volSend(parseInt(this.value, 10));
     }
     var volSlider = document.getElementById('speaker-vol-slider');
-    volSlider.oninput  = function () { /* thumb position gibt Feedback */ };
+    volSlider.oninput  = _volInput;
     volSlider.onchange = _volChange;
     var volSliderRow = document.getElementById('speaker-vol-slider-row');
-    volSliderRow.oninput  = function () { this.style.setProperty('--val', this.value + '%'); };
+    volSliderRow.oninput  = _volInput;
     volSliderRow.onchange = _volChange;
     _speakerWasPlaying = false;
     _updateSpeakerModal();
     document.getElementById('speaker-modal').style.display = 'flex';
     document.body.style.overflow = 'hidden';
+    // Measure marquee AFTER modal is visible (double rAF ensures layout is done)
+    requestAnimationFrame(function () { requestAnimationFrame(_recheckMarquee); });
 
     // Tap auf Cover → sofort Vollbild (wie automatischer Timer)
     var coverWrap = document.getElementById('speaker-cover-wrap');
@@ -2450,6 +2465,76 @@
     if (_speakerPollTimer) { clearInterval(_speakerPollTimer); _speakerPollTimer = null; }
   }
 
+  var _MARQUEE_IDS = ['speaker-track-name', 'speaker-track-artist', 'speaker-track-album'];
+
+  // Set text on a container element; wraps text in a .marquee-inner span.
+  // Does NOT measure — call _recheckMarquee() after the modal is visible.
+  function _setMarqueeText(id, text) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    var inner = el.querySelector('.marquee-inner');
+    if (!inner) {
+      el.textContent = '';
+      inner = document.createElement('span');
+      inner.className = 'marquee-inner';
+      el.appendChild(inner);
+    }
+    inner.style.animation = '';
+    inner.textContent = text;
+  }
+
+  // Lazily create a <style> element for injected marquee @keyframes rules.
+  var _marqueeSheet = null;
+  function _getMarqueeSheet() {
+    if (!_marqueeSheet) {
+      var s = document.createElement('style');
+      s.id = 'marquee-kf';
+      document.head.appendChild(s);
+      _marqueeSheet = s.sheet;
+    }
+    return _marqueeSheet;
+  }
+
+  // Inject a concrete @keyframes rule (no CSS variables) and apply it inline.
+  function _applyMarqueeAnim(inner, id, overflow) {
+    var sheet = _getMarqueeSheet();
+    var name  = 'mq_' + id.replace(/[^a-z0-9]/gi, '_');
+    // Remove old rule for this element
+    for (var i = sheet.cssRules.length - 1; i >= 0; i--) {
+      if (sheet.cssRules[i].name === name) { sheet.deleteRule(i); break; }
+    }
+    var shift = '-' + overflow + 'px';
+    var dur   = Math.max(6, overflow / 40 + 3).toFixed(1);
+    sheet.insertRule(
+      '@keyframes ' + name + '{' +
+      '0%,12%{transform:translateX(0)}' +
+      '72%,84%{transform:translateX(' + shift + ')}' +
+      '93%,100%{transform:translateX(0)}' +
+      '}',
+      sheet.cssRules.length
+    );
+    inner.style.animation = name + ' ' + dur + 's ease-in-out infinite';
+  }
+
+  // Measure actual rendered overflow and enable scrolling where needed.
+  // Must be called while the modal is already visible (offsetWidth != 0).
+  function _recheckMarquee() {
+    _MARQUEE_IDS.forEach(function (id) {
+      var el = document.getElementById(id);
+      if (!el) return;
+      var inner = el.querySelector('.marquee-inner');
+      if (!inner) return;
+      // Reset
+      inner.style.animation = '';
+      el.classList.remove('has-marquee');
+      var overflow = inner.offsetWidth - el.offsetWidth;
+      if (overflow > 4) {
+        el.classList.add('has-marquee');   // switches container to text-align:left
+        _applyMarqueeAnim(inner, id, overflow);
+      }
+    });
+  }
+
   function _updateSpeakerModal() {
     if (!_speakerModalId) return;
     var d = devices[_speakerModalId];
@@ -2460,9 +2545,13 @@
     var track  = (caps[CAP.SPEAKER_TRACK]  && caps[CAP.SPEAKER_TRACK].value)  || '';
     var artist = (caps[CAP.SPEAKER_ARTIST] && caps[CAP.SPEAKER_ARTIST].value) || '';
     var album  = (caps[CAP.SPEAKER_ALBUM]  && caps[CAP.SPEAKER_ALBUM].value)  || '';
-    document.getElementById('speaker-track-name').textContent   = track  || '—';
-    document.getElementById('speaker-track-artist').textContent = artist;
-    document.getElementById('speaker-track-album').textContent  = album;
+    _setMarqueeText('speaker-track-name',   track  || '—');
+    _setMarqueeText('speaker-track-artist', artist);
+    _setMarqueeText('speaker-track-album',  album);
+    // If modal is already visible (SSE live update), recheck immediately
+    if (document.getElementById('speaker-modal').style.display !== 'none') {
+      requestAnimationFrame(_recheckMarquee);
+    }
 
     // Cover: nur neu laden wenn sich der Track geändert hat
     var coverImg = document.getElementById('speaker-cover');

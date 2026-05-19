@@ -745,19 +745,23 @@ class ShellyWallDisplayApp extends Homey.App {
         return;
       }
 
-      // GET /api/debug/images â€” alle registrierten Homey-Images + camera device.images
+      // GET /api/debug/images — alle registrierten Homey-Images + camera/speaker device.images
       if (url.pathname === '/api/debug/images' && req.method === 'GET') {
         const allImages = await this.homeyApi.images.getImages();
         const allDevices = await this.homeyApi.devices.getDevices();
         const cameras = Object.values(allDevices)
           .filter(d => (d.virtualClass || d.class) === 'camera')
           .map(d => ({ id: d.id, name: d.name, images: d.images }));
+        const speakers = Object.values(allDevices)
+          .filter(d => (d.virtualClass || d.class) === 'speaker' || (d.virtualClass || d.class) === 'musicplayer')
+          .map(d => ({ id: d.id, name: d.name, class: d.class, virtualClass: d.virtualClass, images: d.images }));
         res.writeHead(200);
         res.end(JSON.stringify({
           images: Object.values(allImages).map(img => ({
             id: img.id, ownerUri: img.ownerUri, url: img.url,
           })),
           cameras,
+          speakers,
         }, null, 2));
         return;
       }
@@ -843,23 +847,59 @@ class ShellyWallDisplayApp extends Homey.App {
 
         // ── Strategy 2: images.getImages() — match by UUID or deviceId ───────
         // Handles cases where ownerUri is an app URI (e.g. UniFi Protect:
-        // ownerUri = “homey:app:com.ubnt.unifiprotect”), not a device URI.
+        // ownerUri = “homey:app:com.ubnt.unifiprotect”, Sonos album art), not a device URI.
         if (!imageUrl) {
+          // Helper: search a flat images object for our device
+          const findInImages = (allImages) => Object.values(allImages).find(
+            (img) => (imageId && img.id === imageId) ||
+                     (img.ownerUri && img.ownerUri.includes(deviceId))
+          );
+
+          // Strategy 2a: SDK call (works on Homey ≥ v2)
+          let sdkImages = null;
           try {
-            const allImages = await this.homeyApi.images.getImages();
-            this.log(`Camera ${deviceId} fallback: searching ${Object.keys(allImages).length} images`);
-            // Match by: (a) the UUID we already know, (b) ownerUri containing deviceId
-            const found = Object.values(allImages).find(
-              (img) => (imageId && img.id === imageId) ||
-                       (img.ownerUri && img.ownerUri.includes(deviceId))
-            );
+            sdkImages = await this.homeyApi.images.getImages();
+            this.log(`Camera ${deviceId} SDK images: ${Object.keys(sdkImages).length} entries`);
+          } catch (e) {
+            this.log(`Camera getImages SDK error (${e.message}) — will try REST fallback`);
+          }
+
+          if (sdkImages) {
+            const found = findInImages(sdkImages);
             if (found) {
               imageId  = found.id;
               imageUrl = `${this.homeyBaseUrl}/api/image/${found.id}`;
-              this.log('Camera: found via getImages():', imageUrl);
+              this.log('Camera: found via SDK getImages():', imageUrl);
             }
-          } catch (e) {
-            this.log('Camera getImages fallback error:', e.message);
+          }
+
+          // Strategy 2b: Direct REST call — works on early 2016 Homey where the SDK
+          // throws “missing_scopes” but the HTTP endpoint is still accessible.
+          if (!imageUrl) {
+            try {
+              const token = await this._getOwnerToken();
+              const restRes = await this._nodeFetch(
+                `${this.homeyBaseUrl}/api/manager/images/image`,
+                {
+                  headers: token ? { Authorization: `Bearer ${token}` } : {},
+                  agent:   this.homeyBaseUrl.startsWith('https') ? this._httpsAgent : undefined,
+                }
+              );
+              if (restRes.ok) {
+                const restImages = await restRes.json();
+                this.log(`Camera ${deviceId} REST images: ${Object.keys(restImages).length} entries`);
+                const found = findInImages(restImages);
+                if (found) {
+                  imageId  = found.id;
+                  imageUrl = `${this.homeyBaseUrl}/api/image/${found.id}`;
+                  this.log('Camera: found via REST images fallback:', imageUrl);
+                }
+              } else {
+                this.log(`Camera REST images fallback HTTP ${restRes.status}`);
+              }
+            } catch (e) {
+              this.log('Camera REST images fallback error:', e.message);
+            }
           }
         }
 

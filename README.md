@@ -48,7 +48,7 @@ The app runs a local HTTP/WebSocket server on your Homey that emulates the Home 
 ### Reliability & Performance
 - **Instant capability updates** — per-device `makeCapabilityInstance` subscriptions (homey-api V3) fire the moment Homey commits any capability value change; physical switch presses appear on the dashboard in under 1 second
 - **SSE fast path** — capability changes are broadcast over Server-Sent Events immediately; the card updates within a single animation frame
-- **Fallback polling** — full device state poll every 10 s (SSE active) / 5 s (SSE inactive) as a safety net
+- **Fallback polling** — full device state poll every 120 s (SSE active) / 10 s (SSE inactive) as a safety net; `makeCapabilityInstance` delivers real-time updates so frequent polling is unnecessary
 - **SSE reconnect backoff** — exponential backoff (1 s → 2 s → 4 s → … → 30 s) after connection loss
 - **Auto-refresh** — full data reload every 5 minutes and on header logo tap
 - **XHR timeout** — all requests time out after 10 seconds to prevent a frozen UI
@@ -116,7 +116,7 @@ Homey App (com.walldisplay.dashboard)
 
 ## Settings
 
-The settings page is organised into three tabs:
+The settings page is organised into four tabs:
 
 ### General
 
@@ -159,6 +159,17 @@ Configure what each display shows. Every profile has two collapsible sections �
 | **Flows** | *All* (no filter) · *None* (hide all flows) · individual flow selection |
 
 > **Note on flow triggering:** Due to a Homey platform restriction, apps cannot trigger flows using their internal token. A **Personal Access Token** (set in the General tab) is required. Create one at [my.homey.app](https://my.homey.app) under Account → Developer → API Keys with full permissions.
+
+### Debug
+
+Tools for diagnosing camera, speaker, and logging issues. All output is shown in copyable black code fields.
+
+| Tool | Description |
+|---|---|
+| **App Logging** | Enable or disable the in-memory log buffer. When enabled, the last 200 `log()` / `error()` calls from the app are stored in a ring buffer with zero overhead when disabled. |
+| **App Logs** | Load the current log buffer — newest entries first, errors highlighted in red. |
+| **Image Registry** | Show all images registered with Homey, grouped by cameras and speakers. Useful for diagnosing missing album art or camera snapshots. |
+| **Speaker Cover URL** | Enter a speaker device ID to resolve its current album art URL without fetching the image — useful for testing 401 / 404 responses directly in the browser. |
 
 ---
 
@@ -220,7 +231,8 @@ Configure what each display shows. Every profile has two collapsible sections �
 ```
 com.walldisplay.dashboard/
 ├── app.js                  # Homey app entry point — HTTP/WebSocket server, Homey API integration
-├── app.json                # App manifest (id, permissions, metadata)
+├── app.json                # App manifest (id, permissions, api declarations, metadata)
+├── api.js                  # Homey SDK v3 API module — debug endpoints callable from settings page
 ├── package.json            # Node.js dependencies
 ├── assets/
 │   ├── icon.svg            # App icon
@@ -231,7 +243,7 @@ com.walldisplay.dashboard/
 │   ├── style.css           # Touch-optimised styles (dark/light mode, tile sizes, flow tiles)
 │   └── device-icons/       # SVG device icons served locally
 └── settings/
-    └── index.html          # Settings UI — tabs: General, Design, Profiles
+    └── index.html          # Settings UI — tabs: General, Design, Profiles, Debug
 ```
 
 ---

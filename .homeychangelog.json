@@ -1,4 +1,8 @@
 {
+  "1.3.17": {
+    "en": "Debug endpoint /api/debug/cover/:deviceId resolves and returns the album art URL for a speaker without fetching — allows direct browser testing of the image URL for troubleshooting",
+    "de": "Debug-Endpoint /api/debug/cover/:deviceId löst die Albumcover-URL eines Speakers auf und gibt sie zurück ohne zu laden — ermöglicht direktes Browser-Testen der Bild-URL zur Fehlersuche"
+  },
   "1.3.16": {
     "en": "Speaker album art fix for Homey 2016: image URL now taken directly from imageObj.url (e.g. /image/<uuid>/image) instead of always constructing /api/image/<uuid> — fixes 404 on early Homey firmware where the image path differs",
     "de": "Speaker-Albumcover-Fix für Homey 2016: Bild-URL wird jetzt direkt aus imageObj.url übernommen (z.B. /image/<uuid>/image) statt immer /api/image/<uuid> zu konstruieren — behebt 404 auf älteren Homey-Firmware-Versionen mit abweichendem Bildpfad"

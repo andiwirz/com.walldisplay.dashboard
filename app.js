@@ -766,6 +766,53 @@ class ShellyWallDisplayApp extends Homey.App {
         return;
       }
 
+      // GET /api/debug/cover/:deviceId — resolve the album art URL for a speaker without fetching it.
+      // Useful for troubleshooting: open the returned resolvedUrl directly in the browser.
+      const coverDebugMatch = url.pathname.match(/^\/api\/debug\/cover\/([^/]+)$/);
+      if (coverDebugMatch && req.method === 'GET') {
+        const deviceId = coverDebugMatch[1];
+        const isUuid = (s) => typeof s === 'string' && s.length > 20 && s.includes('-');
+        const resolveUrl = (raw) => {
+          if (!raw) return null;
+          if (raw.startsWith('http')) return raw;
+          if (raw.startsWith('/'))    return `${this.homeyBaseUrl}${raw}`;
+          return null;
+        };
+        try {
+          const cached = this._deviceCache && this._deviceCache[deviceId];
+          const device = cached || await this.homeyApi.devices.getDevice({ id: deviceId });
+          const imgs   = device ? device.images : null;
+          let resolved = null;
+          let rawEntry = null;
+          if (Array.isArray(imgs)) {
+            for (const entry of imgs) {
+              if (entry && entry.imageObj && isUuid(entry.imageObj.id)) {
+                rawEntry = entry.imageObj;
+                resolved = resolveUrl(entry.imageObj.url) || `${this.homeyBaseUrl}/api/image/${entry.imageObj.id}`;
+                break;
+              }
+            }
+          }
+          const token = await this._getOwnerToken();
+          res.writeHead(200);
+          res.end(JSON.stringify({
+            deviceId,
+            deviceName:  device ? device.name : null,
+            homeyBaseUrl: this.homeyBaseUrl,
+            rawImageObj:  rawEntry,
+            resolvedUrl:  resolved,
+            hasToken:     !!token,
+            hint: resolved
+              ? `Open resolvedUrl in browser (append ?authorization=<token> if 401)`
+              : 'No image found in device.images',
+          }, null, 2));
+        } catch (e) {
+          res.writeHead(500);
+          res.end(JSON.stringify({ error: e.message }));
+        }
+        return;
+      }
+
       // GET /api/device/:id/caps — frische Capabilities eines Geräts (kein Cache, für Speaker-Polling)
       const deviceCapsMatch = url.pathname.match(/^\/api\/device\/([^/]+)\/caps$/);
       if (deviceCapsMatch && req.method === 'GET') {

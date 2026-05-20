@@ -820,16 +820,28 @@ class ShellyWallDisplayApp extends Homey.App {
                 break;
               }
               if (typeof entry === 'object' && entry !== null) {
-                // Priority 1: imageObj.id — a real UUID; imageObj.url may be relative.
+                // Helper: resolve a relative or absolute image URL against homeyBaseUrl.
+                // On Homey 2016 the path is /image/<uuid>/image (not /api/image/<uuid>),
+                // so we MUST use imageObj.url when present rather than constructing the URL.
+                const resolveUrl = (raw) => {
+                  if (!raw) return null;
+                  if (raw.startsWith('http')) return raw;
+                  if (raw.startsWith('/'))    return `${this.homeyBaseUrl}${raw}`;
+                  return null;
+                };
+
+                // Priority 1: imageObj present — use its URL directly (preserves /image/<uuid>/image path)
                 if (entry.imageObj && isUuid(entry.imageObj.id)) {
                   imageId  = entry.imageObj.id;
-                  imageUrl = `${this.homeyBaseUrl}/api/image/${imageId}`;
+                  imageUrl = resolveUrl(entry.imageObj.url)
+                          || `${this.homeyBaseUrl}/api/image/${imageId}`;
                   break;
                 }
                 // Priority 2: entry.id — only if UUID-like (not “main”/”snapshot”)
                 if (isUuid(entry.id)) {
                   imageId  = entry.id;
-                  imageUrl = `${this.homeyBaseUrl}/api/image/${imageId}`;
+                  imageUrl = resolveUrl(entry.url)
+                          || `${this.homeyBaseUrl}/api/image/${imageId}`;
                   break;
                 }
                 // Priority 3: absolute URL from imageObj or entry

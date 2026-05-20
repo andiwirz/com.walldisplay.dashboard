@@ -1,4 +1,8 @@
 {
+  "1.3.16": {
+    "en": "Speaker album art fix for Homey 2016: image URL now taken directly from imageObj.url (e.g. /image/<uuid>/image) instead of always constructing /api/image/<uuid> — fixes 404 on early Homey firmware where the image path differs",
+    "de": "Speaker-Albumcover-Fix für Homey 2016: Bild-URL wird jetzt direkt aus imageObj.url übernommen (z.B. /image/<uuid>/image) statt immer /api/image/<uuid> zu konstruieren — behebt 404 auf älteren Homey-Firmware-Versionen mit abweichendem Bildpfad"
+  },
   "1.3.15": {
     "en": "Camera/speaker cover fix for early 2016 Homey: when the SDK images API returns 'missing_scopes', falls back to a direct REST call to /api/manager/images/image — fixes blank album art on Homey 2016; debug endpoint now also shows speaker device images",
     "de": "Kamera-/Speaker-Cover-Fix für Homey 2016: wenn die SDK-Images-API 'missing_scopes' zurückgibt, wird auf einen direkten REST-Aufruf an /api/manager/images/image ausgewichen — behebt fehlende Albumcover auf Homey 2016; Debug-Endpoint zeigt jetzt auch Speaker-Gerät-Images"

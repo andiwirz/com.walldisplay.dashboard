@@ -502,6 +502,7 @@
     <button class="tab-btn active" onclick="switchTab('general')" id="tab-general" data-i18n="tabGeneral">General</button>
     <button class="tab-btn" onclick="switchTab('design')" id="tab-design" data-i18n="tabDesign">Design</button>
     <button class="tab-btn" onclick="switchTab('displays')" id="tab-displays" data-i18n="tabDisplays">Profile</button>
+    <button class="tab-btn" onclick="switchTab('debug')" id="tab-debug" data-i18n="tabDebug">Debug</button>
   </div>
 
   <!-- ── Tab: General ─────────────────────────────── -->
@@ -787,6 +788,59 @@
 
   </div><!-- /panel-displays -->
 
+  <!-- ── Tab: Debug ────────────────────────────────── -->
+  <div class="tab-panel" id="panel-debug">
+
+    <div class="card">
+      <div class="card-title" data-i18n="debugEnableTitle">Logging</div>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+        <input type="checkbox" id="debug-logging-toggle" onchange="saveDebugLogging(this.checked)" style="width:auto;margin:0;cursor:pointer;">
+        <span data-i18n="debugEnableLabel" style="font-size:14px;cursor:pointer;" onclick="var cb=document.getElementById('debug-logging-toggle');cb.checked=!cb.checked;saveDebugLogging(cb.checked);">Enable app logging</span>
+      </div>
+      <p id="debug-enable-hint" style="margin:0;font-size:12px;color:#888;line-height:1.4;"></p>
+      <div class="status" id="debug-logging-status"></div>
+    </div>
+
+    <div class="card" id="debug-logs-card">
+      <div class="card-title" data-i18n="debugLogsTitle">App Logs</div>
+      <p class="hint" style="margin-bottom:12px;" data-i18n="debugLogsHint">Last 200 log entries from the running app (newest first). Errors are shown in red.</p>
+      <button class="save-btn" id="debug-logs-btn" onclick="loadDebugLogs()" data-i18n="debugLoad">Load</button>
+      <div class="status" id="debug-logs-status"></div>
+      <div id="debug-logs-wrap" style="position:relative;margin-top:12px;">
+        <button onclick="copyDebugOut('debug-logs-out','debug-logs-copy')" id="debug-logs-copy" style="position:absolute;top:6px;right:6px;padding:3px 10px;font-size:11px;border:1px solid #555;border-radius:5px;background:#2d2d2d;color:#ccc;cursor:pointer;z-index:1;" data-i18n="debugCopy">Copy</button>
+        <pre id="debug-logs-out" style="margin:0;background:#1e1e1e;color:#d4d4d4;font-size:11px;line-height:1.6;padding:12px;border-radius:8px;overflow-x:auto;white-space:pre-wrap;word-break:break-all;max-height:450px;overflow-y:auto;user-select:text;-webkit-user-select:text;">—</pre>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title" data-i18n="debugImagesTitle">Image Registry</div>
+      <p class="hint" style="margin-bottom:12px;" data-i18n="debugImagesHint">All images registered with Homey, grouped by cameras and speakers. Useful for diagnosing missing album art or camera snapshots.</p>
+      <button class="save-btn" id="debug-images-btn" onclick="loadDebugImages()" data-i18n="debugLoad">Load</button>
+      <div class="status" id="debug-images-status"></div>
+      <div id="debug-images-wrap" style="position:relative;margin-top:12px;">
+        <button onclick="copyDebugOut('debug-images-out','debug-images-copy')" id="debug-images-copy" style="position:absolute;top:6px;right:6px;padding:3px 10px;font-size:11px;border:1px solid #555;border-radius:5px;background:#2d2d2d;color:#ccc;cursor:pointer;" data-i18n="debugCopy">Copy</button>
+        <pre id="debug-images-out" style="margin:0;background:#1e1e1e;color:#d4d4d4;font-size:11px;line-height:1.5;padding:12px 12px 12px 12px;border-radius:8px;overflow-x:auto;white-space:pre-wrap;word-break:break-all;max-height:400px;overflow-y:auto;user-select:text;-webkit-user-select:text;">—</pre>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title" data-i18n="debugCoverTitle">Speaker Cover URL</div>
+      <p class="hint" style="margin-bottom:12px;" data-i18n="debugCoverHint">Resolves the album art URL for a specific speaker without fetching it. Find the speaker&nbsp;ID in the Image Registry above.</p>
+      <input type="text" id="debug-cover-id" placeholder="Speaker device ID (UUID)" style="display:block;width:100%;box-sizing:border-box;padding:8px 10px;margin-bottom:8px;border:1.5px solid #ddd;border-radius:8px;font-size:13px;font-family:monospace;">
+      <button class="save-btn" onclick="loadDebugCover()" data-i18n="debugLoad">Load</button>
+      <div class="status" id="debug-cover-status"></div>
+      <div id="debug-cover-wrap" style="position:relative;margin-top:8px;">
+        <button onclick="copyDebugOut('debug-cover-out','debug-cover-copy')" id="debug-cover-copy" style="position:absolute;top:6px;right:6px;padding:3px 10px;font-size:11px;border:1px solid #555;border-radius:5px;background:#2d2d2d;color:#ccc;cursor:pointer;" data-i18n="debugCopy">Copy</button>
+        <pre id="debug-cover-out" style="margin:0;background:#1e1e1e;color:#d4d4d4;font-size:11px;line-height:1.5;padding:12px;border-radius:8px;overflow-x:auto;white-space:pre-wrap;word-break:break-all;max-height:300px;overflow-y:auto;user-select:text;-webkit-user-select:text;">—</pre>
+        <div id="debug-cover-link" style="display:none;margin-top:8px;padding:10px 12px;background:#fff3e0;border-radius:8px;border:1px solid #ffcc80;">
+          <div style="font-size:11px;color:#888;margin-bottom:4px;" data-i18n="debugCoverLinkLabel">Resolved URL</div>
+          <a id="debug-cover-link-a" href="#" target="_blank" style="font-size:12px;font-family:monospace;color:#E8001D;word-break:break-all;"></a>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /panel-debug -->
+
   <script>
     // ── i18n ───────────────────────────────────────────────────────────
     var STRINGS = {
@@ -910,6 +964,22 @@
         other:            'Other',
         zoneAll:          'All',
         zoneNone:         'None',
+        tabDebug:          'Debug',
+        debugEnableTitle:  'Logging',
+        debugEnableHintOff: 'Disabled — no entries written, zero CPU overhead.',
+        debugEnableHintOn:  'Active — last 200 entries buffered.',
+        debugEnableLabelOn:  'App logging enabled',
+        debugEnableLabelOff: 'App logging disabled',
+        debugEnableLabel:   'Enable app logging',
+        debugLogsTitle:    'App Logs',
+        debugLogsHint:     'Last 200 log entries from the running app (newest first). Errors are shown in red.',
+        debugImagesTitle: 'Image Registry',
+        debugImagesHint:  'All images registered with Homey, grouped by cameras and speakers. Useful for diagnosing missing album art or camera snapshots.',
+        debugLoad:        'Load',
+        debugCopy:        'Copy',
+        debugCoverTitle:     'Speaker Cover URL',
+        debugCoverHint:      'Resolves the album art URL for a specific speaker without fetching it. Find the speaker&nbsp;ID in the Image Registry above.',
+        debugCoverLinkLabel: 'Resolved URL — open in browser to test:',
       },
       de: {
         title:            'Shelly Wall Display',
@@ -1031,6 +1101,22 @@
         other:            'Sonstige',
         zoneAll:          'Alle',
         zoneNone:         'Keine',
+        tabDebug:          'Debug',
+        debugEnableTitle:  'Logging',
+        debugEnableHintOff: 'Deaktiviert — keine Einträge geschrieben, kein CPU-Overhead.',
+        debugEnableHintOn:  'Aktiv — letzte 200 Einträge gepuffert.',
+        debugEnableLabelOn:  'App-Logging aktiviert',
+        debugEnableLabelOff: 'App-Logging deaktiviert',
+        debugEnableLabel:   'App-Logging aktivieren',
+        debugLogsTitle:    'App-Logs',
+        debugLogsHint:     'Die letzten 200 Log-Einträge der laufenden App (neueste zuerst). Fehler werden rot dargestellt.',
+        debugImagesTitle: 'Image-Registrierung',
+        debugImagesHint:  'Alle bei Homey registrierten Bilder, gruppiert nach Kameras und Speakern. Hilfreich zur Diagnose fehlender Albumcover oder Kamera-Schnappschüsse.',
+        debugLoad:        'Laden',
+        debugCopy:        'Kopieren',
+        debugCoverTitle:     'Speaker-Cover-URL',
+        debugCoverHint:      'Löst die Albumcover-URL eines Speakers auf ohne das Bild zu laden. Die Speaker-ID findest du oben in der Image-Registrierung.',
+        debugCoverLinkLabel: 'Resolved URL — im Browser öffnen zum Testen:',
       }
     };
 
@@ -1107,7 +1193,7 @@
       });
     }
 
-    // ── HTTP helper ────────────────────────────────────────────────────
+    // ── HTTP helper (direct, for non-debug calls) ──────────────────────
     function dashboardGet(path) {
       return new Promise(function(resolve, reject) {
         var req = new XMLHttpRequest();
@@ -1121,6 +1207,209 @@
         req.onerror = function() { reject(new Error('Network error')); };
         req.send(null);
       });
+    }
+
+    // ── Homey App API helper (works in Homey app + remote via cloud) ──
+    // Uses api.js convention: method + PascalCase(path) → e.g. GET /debug/logs → getDebugLogs
+    function homeyApi(method, path, body) {
+      return new Promise(function(resolve, reject) {
+        if (!_Homey || typeof _Homey.api !== 'function') { reject(new Error('no Homey.api')); return; }
+        var settled = false;
+        var timer = setTimeout(function() {
+          if (settled) return;
+          settled = true;
+          reject(new Error('Homey.api timeout (8s)'));
+        }, 8000);
+        // Strip leading slash – Homey SDK api.js convention uses bare paths
+        var apiPath = path.replace(/^\//, '');
+        _Homey.api(method, apiPath, body || null, function(err, data) {
+          if (settled) return;
+          settled = true;
+          clearTimeout(timer);
+          if (err) reject(new Error((err && err.message) ? err.message : String(err)));
+          else resolve(data);
+        });
+      });
+    }
+
+    // ── Debug API ──────────────────────────────────────────────────────
+    // Tries Homey.api() → api.js (works in Homey app + remote via cloud).
+    // Falls back to direct HTTP if that fails (works in local browser).
+    // On total failure reports errors from BOTH methods for diagnosis.
+    function debugApiGet(path) {
+      return new Promise(function(resolve, reject) {
+        homeyApi('GET', path, null)
+          .then(resolve)
+          .catch(function(homeyErr) {
+            dashboardGet('/api' + path)
+              .then(resolve)
+              .catch(function(dashErr) {
+                reject(new Error(
+                  'Homey.api: ' + homeyErr.message +
+                  ' | HTTP: ' + dashErr.message
+                ));
+              });
+          });
+      });
+    }
+
+    function debugApiPost(path, body) {
+      return new Promise(function(resolve, reject) {
+        homeyApi('POST', path, body)
+          .then(resolve)
+          .catch(function(homeyErr) {
+            dashboardGet('/api' + path + '/' + encodeURIComponent((body && body.deviceId) || ''))
+              .then(resolve)
+              .catch(function(dashErr) {
+                reject(new Error(
+                  'Homey.api: ' + homeyErr.message +
+                  ' | HTTP: ' + dashErr.message
+                ));
+              });
+          });
+      });
+    }
+
+    // ── Debug logging toggle ───────────────────────────────────────────
+    function _applyDebugLoggingUi(enabled) {
+      var hint  = document.getElementById('debug-enable-hint');
+      var label = document.querySelector('[data-i18n="debugEnableLabel"]');
+      var card  = document.getElementById('debug-logs-card');
+      if (hint)  hint.textContent  = enabled ? T.debugEnableHintOn  : T.debugEnableHintOff;
+      if (label) label.textContent = enabled ? T.debugEnableLabelOn : T.debugEnableLabelOff;
+      if (card) {
+        card.style.opacity       = enabled ? '1' : '0.4';
+        card.style.pointerEvents = enabled ? ''  : 'none';
+      }
+    }
+
+    function saveDebugLogging(enabled) {
+      var status = document.getElementById('debug-logging-status');
+      status.textContent = '…';
+      status.style.color = '';
+      hSet('debugLogging', enabled).then(function() {
+        _applyDebugLoggingUi(enabled);
+        status.textContent = enabled
+          ? (lang === 'de' ? 'Logging aktiviert' : 'Logging enabled')
+          : (lang === 'de' ? 'Logging deaktiviert' : 'Logging disabled');
+        status.style.color = enabled ? '#43a047' : '#888';
+        setTimeout(function() { status.textContent = ''; }, 2500);
+      }).catch(function(err) {
+        status.textContent = (T.errorPrefix || 'Error: ') + err.message;
+        status.style.color = '#e53935';
+      });
+    }
+
+    // ── Debug helpers ──────────────────────────────────────────────────
+    function _debugPreError(out, msg) {
+      out.style.color = '#f48771';
+      out.textContent = msg;
+    }
+    function _debugPreClear(out) {
+      out.style.color = '#d4d4d4';
+    }
+
+    function loadDebugLogs() {
+      var btn    = document.getElementById('debug-logs-btn');
+      var out    = document.getElementById('debug-logs-out');
+      var status = document.getElementById('debug-logs-status');
+      btn.disabled = true;
+      status.textContent = '';
+      debugApiGet('/debug/logs')
+        .then(function(data) {
+          _debugPreClear(out);
+          var rows = Array.isArray(data) ? data : [];
+          var html = rows.map(function(e) {
+            var line = escHtml(e.ts) + '  [' + escHtml(e.level.toUpperCase()) + ']  ' + escHtml(e.msg);
+            if (e.level === 'error') return '<span style="color:#f48771">' + line + '</span>';
+            return line;
+          }).join('\n');
+          out.innerHTML = html || '(no entries)';
+          out.scrollTop = 0;
+        })
+        .catch(function(err) {
+          _debugPreError(out, err.message);
+        })
+        .then(function() { btn.disabled = false; }, function() { btn.disabled = false; });
+    }
+
+    function escHtml(s) {
+      return String(s)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+    }
+
+    function copyDebugOut(preId, btnId) {
+      var text = document.getElementById(preId).textContent || '';
+      var btn  = document.getElementById(btnId);
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(function() {
+          btn.textContent = '✓';
+          setTimeout(function() { btn.textContent = T.debugCopy || 'Copy'; }, 1500);
+        }).catch(function() { _copyFallback(text); });
+      } else {
+        _copyFallback(text);
+      }
+    }
+    function _copyFallback(text) {
+      var ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.cssText = 'position:fixed;top:-999px;left:-999px';
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand('copy'); } catch (_) {}
+      document.body.removeChild(ta);
+    }
+
+    function loadDebugImages() {
+      var btn    = document.getElementById('debug-images-btn');
+      var status = document.getElementById('debug-images-status');
+      var out    = document.getElementById('debug-images-out');
+      btn.disabled = true;
+      status.textContent = '';
+      debugApiGet('/debug/images')
+        .then(function(data) {
+          _debugPreClear(out);
+          out.textContent = JSON.stringify(data, null, 2);
+        })
+        .catch(function(err) {
+          _debugPreError(out, err.message);
+        })
+        .then(function() { btn.disabled = false; }, function() { btn.disabled = false; });
+    }
+
+    function loadDebugCover() {
+      var id     = (document.getElementById('debug-cover-id').value || '').trim();
+      var status = document.getElementById('debug-cover-status');
+      var out    = document.getElementById('debug-cover-out');
+      var wrap   = document.getElementById('debug-cover-wrap');
+      if (!id) {
+        status.textContent = lang === 'de' ? 'Bitte Speaker-ID eingeben.' : 'Please enter a speaker device ID.';
+        status.style.color = '#e53935';
+        return;
+      }
+      status.textContent = '…';
+      status.style.color = '';
+      debugApiPost('/debug/cover', { deviceId: id })
+        .then(function(data) {
+          status.textContent = '';
+          out.textContent = JSON.stringify(data, null, 2);
+          // Show resolved URL as a clickable link below the JSON block
+          var linkWrap = document.getElementById('debug-cover-link');
+          var linkEl   = document.getElementById('debug-cover-link-a');
+          if (data.resolvedUrl) {
+            linkEl.href        = data.resolvedUrl;
+            linkEl.textContent = data.resolvedUrl;
+            linkWrap.style.display = 'block';
+          } else {
+            linkWrap.style.display = 'none';
+          }
+        })
+        .catch(function(err) {
+          status.textContent = T.errorPrefix + err.message;
+          status.style.color = '#e53935';
+        });
     }
 
     // ── Init ───────────────────────────────────────────────────────────
@@ -1169,6 +1458,7 @@
       var savedViewBtnHidden    = await hGetSafe('viewBtnHidden', false);
       var savedCoverFs          = await hGetSafe('coverFullscreen', true);
       var savedCoverFsDelay     = await hGetSafe('coverFullscreenDelay', 20);
+      var savedDebugLogging     = await hGetSafe('debugLogging', false);
 
       // ── General tab values ─────────────────────────────────────────
       document.getElementById('port-input').value = port;
@@ -1188,6 +1478,10 @@
       document.getElementById('cover-fs-toggle').checked = savedCoverFs === true;
       document.getElementById('cover-fs-delay-input').value = savedCoverFsDelay || 20;
       _updateCoverFsDelayRow();
+      // ── Debug tab ──────────────────────────────────────────────────
+      var debugToggle = document.getElementById('debug-logging-toggle');
+      if (debugToggle) debugToggle.checked = savedDebugLogging === true;
+      _applyDebugLoggingUi(savedDebugLogging === true);
       document.getElementById('energy-toggle').checked = energyEnabled !== false;
       document.getElementById('battery-invert-toggle').checked = batteryInvertSign === true;
       updateTileLabel(tileSize);

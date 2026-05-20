@@ -10,7 +10,49 @@ const WebSocket = require('ws');
 
 const DEFAULT_PORT = 7575;
 
+const LOG_BUFFER_SIZE = 200;
+
 class ShellyWallDisplayApp extends Homey.App {
+
+  // ── O(1) ring buffer — no shifting, no splicing ──────────────────────
+  _pushLog(level, args) {
+    if (!this._logRing) {
+      this._logRing  = new Array(LOG_BUFFER_SIZE);
+      this._logHead  = 0;   // next write position (mod LOG_BUFFER_SIZE)
+      this._logCount = 0;   // how many entries are filled
+    }
+    let msg = '';
+    for (let i = 0; i < args.length; i++) {
+      const a = args[i];
+      if (i > 0) msg += ' ';
+      if (typeof a !== 'object' || a === null) {
+        msg += String(a);
+      } else {
+        try {
+          const s = JSON.stringify(a);
+          msg += s.length > 150 ? s.slice(0, 150) + '…' : s;
+        } catch (_) { msg += '[object]'; }
+      }
+    }
+    this._logRing[this._logHead] = { ts: new Date().toISOString(), level, msg };
+    this._logHead = (this._logHead + 1) % LOG_BUFFER_SIZE;
+    if (this._logCount < LOG_BUFFER_SIZE) this._logCount++;
+  }
+
+  // Returns entries newest-first
+  _getLogEntries() {
+    if (!this._logRing) return [];
+    const out = new Array(this._logCount);
+    for (let i = 0; i < this._logCount; i++) {
+      // Walk backwards from head
+      const idx = (this._logHead - 1 - i + LOG_BUFFER_SIZE) % LOG_BUFFER_SIZE;
+      out[i] = this._logRing[idx];
+    }
+    return out;
+  }
+
+  log(...args)   { if (this._debugLogging) this._pushLog('log',   args); super.log(...args);   }
+  error(...args) { if (this._debugLogging) this._pushLog('error', args); super.error(...args); }
 
   async onInit() {
     this.log('Shelly Wall Display App gestartet');
@@ -59,10 +101,22 @@ class ShellyWallDisplayApp extends Homey.App {
       return;
     }
 
+    // Load debug-logging flag (default: off)
+    this._debugLogging = this.homey.settings.get('debugLogging') === true;
+
     this.homey.settings.on('set', (key) => {
       if (key === 'port') {
         const newPort = this.homey.settings.get('port') || DEFAULT_PORT;
         this._restartServer(newPort).catch((e) => this.error('Server-Neustart fehlgeschlagen:', e.message));
+      }
+      if (key === 'debugLogging') {
+        this._debugLogging = this.homey.settings.get('debugLogging') === true;
+        if (!this._debugLogging) {
+          // Clear the buffer immediately when logging is turned off
+          this._logRing  = null;
+          this._logHead  = 0;
+          this._logCount = 0;
+        }
       }
       // SSE-Filter neu berechnen wenn sich Profile oder Geräteauswahl ändern (#9)
       if (key === 'displayProfiles' || key === 'defaultProfileDevices' || key === 'enabledDevices') {
@@ -82,20 +136,27 @@ class ShellyWallDisplayApp extends Homey.App {
       this.log('Homey API verbunden');
 
       // ── Full device-object changes (name, zone, available …) ────────────────
+      // NOTE: device.update fires on EVERY capability change (Homey updates the full
+      // device object each time). Broadcasting capabilitiesObj here would duplicate
+      // every makeCapabilityInstance event with a much larger JSON payload.
+      // → Only broadcast when `available` actually changes; cap-value updates are
+      //   already handled by makeCapabilityInstance with a minimal payload.
+      this._deviceAvailable = {};   // tracks last known available state per device id
       this.homeyApi.devices.on('device.update', (device) => {
+        const prev = this._deviceAvailable[device.id];
+        const curr = device.available;
+        // Always keep cache current
+        // Only update availability — capability values are kept fresh by makeCapabilityInstance.
+        // Replacing capabilitiesObj here on every device.update (which fires on every cap change)
+        // creates unnecessary object churn with no benefit.
         if (this._deviceCache && this._deviceCache[device.id]) {
-          this._deviceCache[device.id].capabilitiesObj = device.capabilitiesObj;
-          this._deviceCache[device.id].available       = device.available;
+          this._deviceCache[device.id].available = curr;
         }
+        this._deviceAvailable[device.id] = curr;
+        // Only broadcast when availability actually changes (avoids duplicate SSE per cap update)
+        if (prev === curr) return;
         if (this._relevantDeviceIds !== null && !this._relevantDeviceIds.has(device.id)) return;
-        this._broadcastSSE({
-          type: 'device.update',
-          device: {
-            id: device.id,
-            available: device.available,
-            capabilitiesObj: device.capabilitiesObj,
-          },
-        });
+        this._broadcastSSE({ type: 'device.update', device: { id: device.id, available: curr } });
       });
 
       // SSE-Filter initial befüllen (nach API-Init, damit Settings bereits geladen sind)
@@ -128,12 +189,11 @@ class ShellyWallDisplayApp extends Homey.App {
       this._updateFlowSettingsCache().catch((e) =>
         this.error('Flow-Settings-Cache Fehler:', e.message)
       );
-      // Bei Flow-Änderungen Cache mit Debounce aktualisieren.
-      // flow.update feuert bei jeder Ausführung (Homey aktualisiert lastExecuted) —
-      // ohne Debounce würden bei aktiven Flows zig unnötige 3-Call-Fetches pro Stunde ausgelöst.
+      // Flow-Cache nur bei strukturellen Änderungen (erstellt/gelöscht) aktualisieren.
+      // flow.update wird NICHT abonniert — es feuert bei jeder Ausführung (lastExecuted-Update)
+      // und würde bei aktiver Energieautomation dauernd getFlows()+getAdvancedFlows() auslösen.
       try {
         this.homeyApi.flow.on('flow.create', () => this._scheduleFlowCacheUpdate());
-        this.homeyApi.flow.on('flow.update', () => this._scheduleFlowCacheUpdate());
         this.homeyApi.flow.on('flow.delete', () => this._scheduleFlowCacheUpdate());
       } catch (_) {}
     } catch (err) {
@@ -264,7 +324,9 @@ class ShellyWallDisplayApp extends Homey.App {
 
     const auth = req.headers['authorization'] ? ' [Bearer]' : '';
     const ua = req.headers['user-agent'] ? ` UA:${req.headers['user-agent'].substring(0, 40)}` : '';
-    this.log(`${req.method} ${url.pathname}${auth}${ua}`);
+    if (!ShellyWallDisplayApp.SILENT_PATHS.has(url.pathname)) {
+      this.log(`${req.method} ${url.pathname}${auth}${ua}`);
+    }
 
     if (url.pathname === '/ping') {
       res.setHeader('Content-Type', 'text/plain');
@@ -794,15 +856,19 @@ class ShellyWallDisplayApp extends Homey.App {
             }
           }
           const token = await this._getOwnerToken();
+          const extBase = this._getExternalBaseUrl(req.socket.localAddress);
+          const resolvedExternal = resolved
+            ? resolved.replace(this.homeyBaseUrl, extBase)
+            : null;
           res.writeHead(200);
           res.end(JSON.stringify({
             deviceId,
-            deviceName:  device ? device.name : null,
+            deviceName:   device ? device.name : null,
             homeyBaseUrl: this.homeyBaseUrl,
             rawImageObj:  rawEntry,
-            resolvedUrl:  resolved,
+            resolvedUrl:  resolvedExternal,
             hasToken:     !!token,
-            hint: resolved
+            hint: resolvedExternal
               ? `Open resolvedUrl in browser (append ?authorization=<token> if 401)`
               : 'No image found in device.images',
           }, null, 2));
@@ -810,6 +876,14 @@ class ShellyWallDisplayApp extends Homey.App {
           res.writeHead(500);
           res.end(JSON.stringify({ error: e.message }));
         }
+        return;
+      }
+
+      // GET /api/debug/logs — in-memory log ring buffer (last 300 entries)
+      if (url.pathname === '/api/debug/logs' && req.method === 'GET') {
+        const entries = this._getLogEntries();
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify(entries, null, 2));
         return;
       }
 
@@ -857,7 +931,7 @@ class ShellyWallDisplayApp extends Homey.App {
           const cached = this._deviceCache && this._deviceCache[deviceId];
           const device = cached || await this.homeyApi.devices.getDevice({ id: deviceId });
           const imgs = device.images;
-          this.log(`Camera ${deviceId} device.images:`, JSON.stringify(imgs));
+          this.log(`Camera ${deviceId} device.images count: ${Array.isArray(imgs) ? imgs.length : 0}`);
 
           if (Array.isArray(imgs) && imgs.length > 0) {
             for (const entry of imgs) {
@@ -1659,7 +1733,7 @@ class ShellyWallDisplayApp extends Homey.App {
       let msg;
       try { msg = JSON.parse(data.toString()); } catch { return; }
 
-      this.log(`WS msg: ${msg.type}`);
+      // WS messages are too frequent to log (fires on every device update)
 
       // Schritt 2: Auth-Request â†’ immer akzeptieren
       if (msg.type === 'auth') {
@@ -1725,6 +1799,31 @@ class ShellyWallDisplayApp extends Homey.App {
   // - Absolute URL ("http...")           â†’ unverÃ¤ndert (via icon-proxy)
   // - Relativer Pfad ("/api/icon/...")   â†’ homeyBaseUrl + Pfad (via icon-proxy)
   // - Interne Icon-Name ("garage-door")  â†’ /device-icons/{name}.svg (eigener Server, kein Proxy)
+  // Returns the Homey's LAN IP base URL (e.g. http://192.168.1.10) so that
+  // debug URLs can be opened directly from a browser on the same network.
+  // Falls back to homeyBaseUrl (127.0.0.1) if no external interface is found.
+  _getExternalBaseUrl(reqLocalAddress) {
+    // Prefer the IP the client actually connected to (most reliable)
+    if (reqLocalAddress && reqLocalAddress !== '127.0.0.1' && reqLocalAddress !== '::1') {
+      const clean = reqLocalAddress.replace(/^::ffff:/, '');
+      if (clean !== '127.0.0.1') {
+        const proto = this.homeyBaseUrl.startsWith('https') ? 'https' : 'http';
+        return `${proto}://${clean}`;
+      }
+    }
+    // Fallback: first non-loopback IPv4 interface
+    const ifaces = os.networkInterfaces();
+    for (const name of Object.keys(ifaces)) {
+      for (const iface of ifaces[name]) {
+        if (iface.family === 'IPv4' && !iface.internal) {
+          const proto = this.homeyBaseUrl.startsWith('https') ? 'https' : 'http';
+          return `${proto}://${iface.address}`;
+        }
+      }
+    }
+    return this.homeyBaseUrl;
+  }
+
   _buildIconUrl(iconUrl) {
     if (!iconUrl) return null;
     if (iconUrl.startsWith('http')) return iconUrl;
@@ -1748,7 +1847,10 @@ class ShellyWallDisplayApp extends Homey.App {
   // um Prototype-Ketten, EventEmitter-Referenzen und internen SDK-State zu vermeiden.
   async _getDevicesCache() {
     const now = Date.now();
-    if (this._deviceCache && now - this._deviceCacheTs < 60000) {
+    // 5-min TTL — makeCapabilityInstance + device.update keep values fresh in real-time.
+    // A full getDevices() refresh is only needed as a safety net for structural changes
+    // (capabilities added/removed) that aren't reflected by the live-update path.
+    if (this._deviceCache && now - this._deviceCacheTs < 300000) {
       return this._deviceCache;
     }
     const raw = await this.homeyApi.devices.getDevices();
@@ -1819,17 +1921,33 @@ class ShellyWallDisplayApp extends Homey.App {
 
   _subscribeDeviceCapabilities(device) {
     const caps = Object.keys(device.capabilitiesObj || {});
+    if (!this._capDebounceTimers)  this._capDebounceTimers  = {};
+    if (!this._capDebouncePayload) this._capDebouncePayload = {};
+
     for (const capabilityId of caps) {
       try {
         device.makeCapabilityInstance(capabilityId, (value) => {
-          // Patch device cache in-place
-          const cached = this._deviceCache && this._deviceCache[device.id];
+          const id = device.id;
+          // Always patch cache in-place (no debounce needed for cache)
+          const cached = this._deviceCache && this._deviceCache[id];
           if (cached && cached.capabilitiesObj && cached.capabilitiesObj[capabilityId]) {
             cached.capabilitiesObj[capabilityId].value = value;
           }
           // SSE filter — skip devices not visible in any profile
-          if (this._relevantDeviceIds !== null && !this._relevantDeviceIds.has(device.id)) return;
-          this._broadcastSSE({ type: 'device.capability.update', deviceId: device.id, capabilityId, value });
+          if (this._relevantDeviceIds !== null && !this._relevantDeviceIds.has(id)) return;
+
+          // Accumulate capability changes for this device
+          if (!this._capDebouncePayload[id]) this._capDebouncePayload[id] = {};
+          this._capDebouncePayload[id][capabilityId] = value;
+
+          // Schedule a single SSE broadcast for this device (debounce 80 ms)
+          if (this._capDebounceTimers[id]) return;
+          this._capDebounceTimers[id] = setTimeout(() => {
+            const updates = this._capDebouncePayload[id];
+            delete this._capDebounceTimers[id];
+            delete this._capDebouncePayload[id];
+            this._broadcastSSE({ type: 'device.capability.update', deviceId: id, updates });
+          }, 80);
         });
       } catch (_) {
         // Some capabilities don't support makeCapabilityInstance — skip silently
@@ -1913,6 +2031,75 @@ class ShellyWallDisplayApp extends Homey.App {
     return candidates[0] || null;
   }
 
+  // ── Homey Settings-page API (works via cloud relay too) ─────────────
+  async onApi(method, endpoint, body) {
+    // Normalise: some SDK versions omit the leading slash
+    const ep = endpoint.startsWith('/') ? endpoint : '/' + endpoint;
+    if (method === 'GET') {
+      // GET /debug/logs
+      if (ep === '/debug/logs') {
+        return this._getLogEntries();
+      }
+
+      // GET /debug/images
+      if (ep === '/debug/images') {
+        const allImages  = await this.homeyApi.images.getImages();
+        const allDevices = await this.homeyApi.devices.getDevices();
+        const cameras = Object.values(allDevices)
+          .filter(d => d.class === 'camera' && Array.isArray(d.images) && d.images.length)
+          .map(d => ({ id: d.id, name: d.name, images: d.images }));
+        const speakers = Object.values(allDevices)
+          .filter(d => (d.class === 'speaker' || d.class === 'mediaplayer') && Array.isArray(d.images) && d.images.length)
+          .map(d => ({ id: d.id, name: d.name, images: d.images }));
+        return { homeyImages: allImages, cameras, speakers };
+      }
+
+      // GET /debug/cover/<deviceId>
+      const coverMatch = ep.match(/^\/debug\/cover\/([^/]+)$/);
+      if (coverMatch) {
+        const deviceId = coverMatch[1];
+        const isUuid = (s) => typeof s === 'string' && s.length > 20 && s.includes('-');
+        const resolveUrl = (raw) => {
+          if (!raw) return null;
+          if (raw.startsWith('http')) return raw;
+          if (raw.startsWith('/'))    return `${this.homeyBaseUrl}${raw}`;
+          return null;
+        };
+        const cached = this._deviceCache && this._deviceCache[deviceId];
+        const device = cached || await this.homeyApi.devices.getDevice({ id: deviceId });
+        const imgs   = device ? device.images : null;
+        let resolved = null;
+        let rawEntry = null;
+        if (Array.isArray(imgs)) {
+          for (const entry of imgs) {
+            if (entry && entry.imageObj && isUuid(entry.imageObj.id)) {
+              rawEntry = entry.imageObj;
+              resolved = resolveUrl(entry.imageObj.url) || `${this.homeyBaseUrl}/api/image/${entry.imageObj.id}`;
+              break;
+            }
+          }
+        }
+        const token = await this._getOwnerToken();
+        const extBase = this._getExternalBaseUrl(null);
+        const resolvedExternal = resolved
+          ? resolved.replace(this.homeyBaseUrl, extBase)
+          : null;
+        return {
+          deviceId,
+          deviceName:   device ? device.name : null,
+          homeyBaseUrl: extBase,
+          rawImageObj:  rawEntry,
+          resolvedUrl:  resolvedExternal,
+          hasToken:     !!token,
+          hint: resolvedExternal
+            ? 'Open resolvedUrl in browser (append ?authorization=<token> if 401)'
+            : 'No image found in device.images',
+        };
+      }
+    }
+    throw new Error('Not found');
+  }
+
   async onUninit() {
     if (this._sseHeartbeat)   clearInterval(this._sseHeartbeat);
     if (this._flowCacheTimer)   clearTimeout(this._flowCacheTimer);
@@ -1922,5 +2109,12 @@ class ShellyWallDisplayApp extends Homey.App {
   }
 
 }
+
+// High-frequency polling paths that should not appear in the debug log buffer
+ShellyWallDisplayApp.SILENT_PATHS = new Set([
+  '/api/devices', '/api/energy', '/api/zones', '/api/flows',
+  '/api/settings', '/api/client-ip', '/ping',
+  '/api/debug/logs',
+]);
 
 module.exports = ShellyWallDisplayApp;

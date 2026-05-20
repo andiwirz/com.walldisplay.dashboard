@@ -1,4 +1,8 @@
 {
+  "1.3.18": {
+    "en": "CPU fix: fallback poll interval raised from 10 s to 120 s when SSE is active; device cache TTL extended from 60 s to 5 min (makeCapabilityInstance keeps values live); flow.update listener removed (fired on every execution, not just structural changes); device.update no longer replaces capabilitiesObj on every capability change; Debug tab output fields always visible; Debug API (logs, images, speaker cover) now works in Homey mobile app via api.js",
+    "de": "CPU-Fix: Fallback-Poll-Intervall bei aktivem SSE von 10 s auf 120 s erhöht; Gerätecache-TTL von 60 s auf 5 min verlängert (makeCapabilityInstance hält Werte live); flow.update-Listener entfernt (feuerte bei jeder Ausführung, nicht nur bei strukturellen Änderungen); device.update ersetzt capabilitiesObj nicht mehr bei jeder Capability-Änderung; Debug-Tab-Ausgabefelder immer sichtbar; Debug-API (Logs, Bilder, Speaker-Cover) funktioniert jetzt in der Homey-App via api.js"
+  },
   "1.3.17": {
     "en": "Debug endpoint /api/debug/cover/:deviceId resolves and returns the album art URL for a speaker without fetching — allows direct browser testing of the image URL for troubleshooting",
     "de": "Debug-Endpoint /api/debug/cover/:deviceId löst die Albumcover-URL eines Speakers auf und gibt sie zurück ohne zu laden — ermöglicht direktes Browser-Testen der Bild-URL zur Fehlersuche"

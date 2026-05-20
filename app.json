@@ -1,6 +1,6 @@
 {
   "id": "com.walldisplay.dashboard",
-  "version": "1.3.17",
+  "version": "1.3.18",
   "compatibility": ">=5.0.0",
   "sdk": 3,
   "brandColor": "#E8001D",
@@ -30,6 +30,20 @@
   "permissions": [
     "homey:manager:api"
   ],
+  "api": {
+    "getDebugLogs": {
+      "method": "GET",
+      "path": "/debug/logs"
+    },
+    "getDebugImages": {
+      "method": "GET",
+      "path": "/debug/images"
+    },
+    "postDebugCover": {
+      "method": "POST",
+      "path": "/debug/cover"
+    }
+  },
   "images": {
     "small": "/assets/images/small.png",
     "large": "/assets/images/large.png",

@@ -2035,8 +2035,15 @@
           var d = devices[data.deviceId];
           if (d) {
             if (!d.capabilitiesObj) d.capabilitiesObj = {};
-            if (!d.capabilitiesObj[data.capabilityId]) d.capabilitiesObj[data.capabilityId] = {};
-            d.capabilitiesObj[data.capabilityId].value = data.value;
+            // Batched format: { updates: { capId: value, … } }
+            if (data.updates) {
+              var keys = Object.keys(data.updates);
+              for (var ki = 0; ki < keys.length; ki++) {
+                var capId = keys[ki];
+                if (!d.capabilitiesObj[capId]) d.capabilitiesObj[capId] = {};
+                d.capabilitiesObj[capId].value = data.updates[capId];
+              }
+            }
             _scheduleCardUpdate(data.deviceId);
           }
         }
@@ -2069,7 +2076,8 @@
   // ── #2 Adaptives Polling (30 s mit SSE, 10 s ohne) ──
   function startPolling() {
     if (pollTimer) return;
-    _schedulePoll(10000);
+    // If SSE is available, delay the first fallback poll — SSE handles real-time updates.
+    _schedulePoll(_sseActive ? 120000 : 10000);
   }
 
   function _schedulePoll(delay) {
@@ -2085,8 +2093,9 @@
             }
           });
         }
-        // Kürzeres Intervall wenn SSE nicht aktiv (kein Echtzeit-Push)
-        _schedulePoll(_sseActive ? 10000 : 5000);
+        // SSE aktiv: makeCapabilityInstance hält alle Werte live → nur seltener Safety-Poll.
+        // SSE inaktiv: häufiger pollen da kein Echtzeit-Push.
+        _schedulePoll(_sseActive ? 120000 : 10000);
       });
     }, delay);
   }

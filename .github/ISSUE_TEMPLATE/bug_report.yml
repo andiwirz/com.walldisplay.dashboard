@@ -1,0 +1,121 @@
+name: Bug Report
+description: Something isn't working as expected
+title: "[Bug] "
+labels: [bug]
+assignees: [andiwirz]
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug. Please fill in as much detail as possible — it helps a lot!
+
+  - type: markdown
+    attributes:
+      value: "## Environment"
+
+  - type: input
+    id: app_version
+    attributes:
+      label: App Version
+      description: Found in Homey app → More Apps → Shelly Wall Display Dashboard
+      placeholder: e.g. 1.3.18
+    validations:
+      required: true
+
+  - type: dropdown
+    id: homey_model
+    attributes:
+      label: Homey Model
+      options:
+        - Homey Pro (2023)
+        - Homey Pro (2019)
+        - Homey Early 2019
+        - Homey Early 2016
+        - Other
+    validations:
+      required: true
+
+  - type: input
+    id: homey_firmware
+    attributes:
+      label: Homey Firmware Version
+      placeholder: e.g. 12.3.1
+    validations:
+      required: true
+
+  - type: input
+    id: display
+    attributes:
+      label: Display / Browser
+      placeholder: e.g. Shelly Wall Display / Chrome on Windows / Safari on iPhone
+    validations:
+      required: true
+
+  - type: markdown
+    attributes:
+      value: "## Problem"
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: A clear and concise description of the problem.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to Reproduce
+      placeholder: |
+        1.
+        2.
+        3.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behaviour
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual Behaviour
+    validations:
+      required: true
+
+  - type: markdown
+    attributes:
+      value: "## Debug Info"
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: App Logs
+      description: |
+        Homey app → Shelly Wall Display Dashboard → Settings → **Debug** tab.
+        Enable "App Logging", reproduce the issue, then click **Load** under App Logs and paste the output here.
+      render: text
+    validations:
+      required: false
+
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots
+      description: Drag and drop screenshots or a screen recording here.
+    validations:
+      required: false
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional Context
+      description: Network setup, VPN, Homey remote access, or anything else that might help.
+    validations:
+      required: false

@@ -1,0 +1,169 @@
+name: Device Issue
+description: A specific device is not shown correctly, not controllable, or behaving unexpectedly
+title: "[Device] "
+labels: [device]
+assignees: [andiwirz]
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a device issue. Please provide as much detail as possible so the problem can be reproduced.
+
+  - type: markdown
+    attributes:
+      value: "## Environment"
+
+  - type: input
+    id: app_version
+    attributes:
+      label: App Version
+      description: Found in Homey app → More Apps → Shelly Wall Display Dashboard
+      placeholder: e.g. 1.3.18
+    validations:
+      required: true
+
+  - type: dropdown
+    id: homey_model
+    attributes:
+      label: Homey Model
+      options:
+        - Homey Pro (2023)
+        - Homey Pro (2019)
+        - Homey Early 2019
+        - Homey Early 2016
+        - Other
+    validations:
+      required: true
+
+  - type: input
+    id: homey_firmware
+    attributes:
+      label: Homey Firmware Version
+      placeholder: e.g. 12.3.1
+    validations:
+      required: true
+
+  - type: markdown
+    attributes:
+      value: "## Device Details"
+
+  - type: input
+    id: device_name
+    attributes:
+      label: Device Name
+      description: The name of the device as shown in Homey.
+      placeholder: e.g. Living Room Light
+    validations:
+      required: true
+
+  - type: dropdown
+    id: device_class
+    attributes:
+      label: Device Class
+      description: The type of device as shown in Homey.
+      options:
+        - Light
+        - Socket
+        - Thermostat / Heater
+        - Sensor
+        - Lock
+        - Blinds / Curtain / Window Covering
+        - Fan
+        - Home Alarm
+        - TV
+        - Vacuum Cleaner
+        - Solar Panel
+        - Camera
+        - Doorbell
+        - Speaker / Media Player
+        - Button / Remote
+        - Other
+    validations:
+      required: true
+
+  - type: input
+    id: driver_app
+    attributes:
+      label: Homey Driver / App
+      description: The Homey app that provides this device (e.g. "Shelly", "Philips Hue", "Fibaro").
+      placeholder: e.g. Shelly
+    validations:
+      required: true
+
+  - type: input
+    id: capabilities
+    attributes:
+      label: Affected Capabilities
+      description: Which capabilities are affected? (e.g. onoff, dim, measure_temperature)
+      placeholder: e.g. dim, measure_power
+    validations:
+      required: false
+
+  - type: markdown
+    attributes:
+      value: "## Problem"
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: A clear and concise description of what is wrong with this device on the dashboard.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behaviour
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual Behaviour
+    validations:
+      required: true
+
+  - type: markdown
+    attributes:
+      value: "## Debug Info"
+
+  - type: textarea
+    id: image_registry
+    attributes:
+      label: Image Registry (cameras / speakers)
+      description: |
+        Only needed for camera or speaker issues.
+        Homey app → Shelly Wall Display Dashboard → Settings → **Debug** tab → click **Load** under Image Registry and paste the output here.
+      render: text
+    validations:
+      required: false
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: App Logs
+      description: |
+        Homey app → Shelly Wall Display Dashboard → Settings → **Debug** tab.
+        Enable "App Logging", reproduce the issue, then click **Load** under App Logs and paste the output here.
+      render: text
+    validations:
+      required: false
+
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots
+      description: Drag and drop screenshots or a screen recording here.
+    validations:
+      required: false
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional Context
+      description: Anything else that might help — e.g. does the device work correctly in the Homey app itself?
+    validations:
+      required: false

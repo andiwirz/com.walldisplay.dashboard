@@ -2852,20 +2852,38 @@
 
   // Known capability metadata for EV / car devices
   var _evCapMeta = {
-    measure_battery:     { label: 'Battery',        unit: '%',   icon: '🔋' },
-    measure_range:       { label: 'Range',           unit: ' km', icon: '📍' },
-    charging_state:      { label: 'Charging',        unit: '',    icon: '⚡' },
-    alarm_battery:       { label: 'Battery Low',     unit: '',    icon: '⚠️' },
-    locked:              { label: 'Locked',          unit: '',    icon: '🔒' },
-    measure_temperature: { label: 'Temperature',     unit: '°C',  icon: '🌡️' },
-    'measure_temperature.inside':  { label: 'Inside Temp',   unit: '°C', icon: '🌡️' },
-    'measure_temperature.outside': { label: 'Outside Temp',  unit: '°C', icon: '🌡️' },
-    measure_power:       { label: 'Charging Power',  unit: ' W',  icon: '⚡' },
-    meter_power:         { label: 'Energy Used',     unit: ' kWh', icon: '⚡' },
-    odometer:            { label: 'Odometer',        unit: ' km', icon: '🛣️' },
-    onoff:               { label: 'On / Off',        unit: '',    icon: '⏻' },
-    measure_current:     { label: 'Charging Current', unit: ' A', icon: '⚡' },
-    measure_voltage:     { label: 'Voltage',         unit: ' V',  icon: '⚡' },
+    measure_battery:     { label: 'Battery',         unit: '%',    icon: '🔋' },
+    ev_charging_state:   { label: 'Charging State',  unit: '',     icon: '⚡' },
+    measure_range:       { label: 'Range',            unit: ' km',  icon: '📍' },
+    alarm_battery:       { label: 'Battery Low',      unit: '',     icon: '⚠️' },
+    locked:              { label: 'Locked',           unit: '',     icon: '🔒' },
+    measure_temperature: { label: 'Temperature',      unit: '°C',   icon: '🌡️' },
+    'measure_temperature.inside':  { label: 'Inside Temp',    unit: '°C',  icon: '🌡️' },
+    'measure_temperature.outside': { label: 'Outside Temp',   unit: '°C',  icon: '🌡️' },
+    measure_power:       { label: 'Charging Power',   unit: ' W',   icon: '⚡' },
+    meter_power:         { label: 'Energy Used',      unit: ' kWh', icon: '⚡' },
+    odometer:            { label: 'Odometer',         unit: ' km',  icon: '🛣️' },
+    onoff:               { label: 'On / Off',         unit: '',     icon: '⏻' },
+    measure_current:     { label: 'Charging Current', unit: ' A',   icon: '⚡' },
+    measure_voltage:     { label: 'Voltage',          unit: ' V',   icon: '⚡' },
+  };
+
+  // Maps Homey's ev_charging_state enum values to display text, badge class and pulse flag.
+  // Standard Homey values (SDK): charging, plugged_in, discharging, not_connected
+  // Non-standard aliases used by some drivers are mapped to the nearest standard equivalent.
+  var _evChargingStateMap = {
+    // ── Standard Homey SDK values ──────────────────────────────────
+    'charging':        { label: '⚡ Charging',     cls: 'ev-charge-charging',    pulse: true  },
+    'plugged_in':      { label: '🔌 Plugged in',   cls: 'ev-charge-plugged',     pulse: false },
+    'discharging':     { label: '🚗 Driving',      cls: 'ev-charge-discharging', pulse: false },
+    'not_connected':   { label: '— Not connected', cls: 'ev-charge-none',        pulse: false },
+    // ── Non-standard aliases (various car app drivers) ─────────────
+    'plugged_out':     { label: '🔌 Unplugged',    cls: 'ev-charge-none',        pulse: false },
+    'unplugged':       { label: '— Not connected', cls: 'ev-charge-none',        pulse: false },
+    'disconnected':    { label: '— Not connected', cls: 'ev-charge-none',        pulse: false },
+    'connected':       { label: '🔌 Plugged in',   cls: 'ev-charge-plugged',     pulse: false },
+    'fully_charged':   { label: '✅ Full',          cls: 'ev-charge-plugged',     pulse: false },
+    'waiting':         { label: '🔌 Plugged in',   cls: 'ev-charge-plugged',     pulse: false },
   };
 
   function _evCapLabel(key) {
@@ -2922,20 +2940,36 @@
       html += '<div class="ev-unavailable">⚠️ Offline</div>';
     }
 
-    // Battery progress bar
+    // Battery section: bar + integrated charging state badge
     if (battery !== null) {
       var pct = Math.max(0, Math.min(100, battery));
       var barColor = pct <= 20 ? 'var(--danger)' : pct <= 40 ? '#FF9500' : 'var(--green)';
+
+      // ev_charging_state — standard Homey EV capability
+      var chargeEntry = caps.ev_charging_state;
+      var chargeVal   = chargeEntry ? chargeEntry.value : null;
+      var chargeMeta  = chargeVal ? (_evChargingStateMap[chargeVal] || { label: String(chargeVal), cls: 'ev-charge-none', pulse: false }) : null;
+
+      html += '<div class="ev-battery-section">';
+      if (chargeMeta) {
+        html += '<div class="ev-battery-status-row">';
+        html += '<span class="ev-charge-badge ' + chargeMeta.cls + '">' + chargeMeta.label + '</span>';
+        html += '<span class="ev-battery-pct">' + Math.round(pct) + '%</span>';
+        html += '</div>';
+      }
       html += '<div class="ev-battery-bar-wrap">';
       html += '<div class="ev-battery-bar-track">';
-      html += '<div class="ev-battery-bar-fill" style="width:' + pct + '%;background:' + barColor + '"></div>';
+      html += '<div class="ev-battery-bar-fill' + (chargeMeta && chargeMeta.pulse ? ' is-charging' : '') + '" style="width:' + pct + '%;background:' + barColor + '"></div>';
       html += '</div>';
-      html += '<div class="ev-battery-pct">' + Math.round(pct) + '%</div>';
+      if (!chargeMeta) html += '<div class="ev-battery-pct">' + Math.round(pct) + '%</div>';
+      html += '</div>';
       html += '</div>';
     }
 
-    // Capability cards (all except battery, which is shown as bar)
-    var capKeys = Object.keys(caps).filter(function(k) { return k !== 'measure_battery'; });
+    // Capability cards — exclude measure_battery and ev_charging_state (both handled above)
+    var capKeys = Object.keys(caps).filter(function(k) {
+      return k !== 'measure_battery' && k !== 'ev_charging_state';
+    });
     if (capKeys.length > 0) {
       html += '<div class="ev-caps-grid">';
       for (var i = 0; i < capKeys.length; i++) {

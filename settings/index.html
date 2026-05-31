@@ -1976,10 +1976,13 @@
     // ── EV Dashboard ──────────────────────────────────────────────────
 
     // Capability label map (same keys as dashboard client.js)
+    // Standard Homey EV capabilities — auto-selected for new devices
+    var _evStandardCaps = ['measure_battery', 'ev_charging_state'];
+
     var _evCapLabels = {
       measure_battery:              'Battery (%)',
+      ev_charging_state:            'Charging State',
       measure_range:                'Range (km)',
-      charging_state:               'Charging',
       alarm_battery:                'Battery Low',
       locked:                       'Locked',
       measure_temperature:          'Temperature (°C)',
@@ -2096,6 +2099,9 @@
         });
 
         list.innerHTML = '';
+        // If no caps saved yet, pre-select the Homey standard EV caps
+        var autoSelect = selectedCaps.length === 0;
+
         keys.forEach(function(key) {
           var raw   = capObj[key];
           // capabilitiesObj entries are objects { value, title, units, … }
@@ -2104,7 +2110,12 @@
           // Prefer Homey's title, fall back to our label map, then raw key
           var label = (isObj && raw.title) ? raw.title : (_evCapLabels[key] || key);
           var valStr = (val === null || val === undefined) ? '' : (' — ' + String(val).slice(0, 30));
-          var checked = selectedCaps.indexOf(key) !== -1;
+          var isStandard = _evStandardCaps.indexOf(key) !== -1;
+          var checked = autoSelect ? isStandard : (selectedCaps.indexOf(key) !== -1);
+
+          var badge = isStandard
+            ? '<span style="font-size:10px;font-weight:600;background:#fff3e0;color:#e09518;border-radius:4px;padding:1px 6px;flex-shrink:0;">EV</span>'
+            : '';
 
           var row = document.createElement('label');
           row.className = 'item-row';
@@ -2113,6 +2124,7 @@
             '<input type="checkbox" style="width:16px;height:16px;accent-color:#F5A623;flex-shrink:0;" ' +
               'value="' + key + '"' + (checked ? ' checked' : '') + '>' +
             '<span style="font-size:14px;color:#222;flex:1;">' + label + '</span>' +
+            badge +
             '<span style="font-size:11px;color:#aaa;">' + valStr + '</span>';
           list.appendChild(row);
         });

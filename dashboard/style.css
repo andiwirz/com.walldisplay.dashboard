@@ -1914,6 +1914,30 @@ html, body {
   margin-top: -6px;
 }
 
+.ev-battery-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ev-battery-status-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.ev-charge-badge {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 20px;
+  letter-spacing: 0.02em;
+}
+.ev-charge-charging    { background: rgba(52,199,89,0.15);  color: var(--green);       }
+.ev-charge-plugged     { background: rgba(245,166,35,0.15); color: var(--accent);      }
+.ev-charge-discharging { background: rgba(142,142,147,0.12); color: var(--text-muted); }
+.ev-charge-none        { background: rgba(142,142,147,0.10); color: var(--text-muted); }
+
 .ev-battery-bar-wrap {
   display: flex;
   align-items: center;
@@ -1934,6 +1958,13 @@ html, body {
   height: 100%;
   border-radius: 7px;
   transition: width 0.5s ease;
+}
+.ev-battery-bar-fill.is-charging {
+  animation: ev-charge-pulse 2s ease-in-out infinite;
+}
+@keyframes ev-charge-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.65; }
 }
 
 .ev-battery-pct {

@@ -19,6 +19,7 @@
     <div class="header-right">
       <button id="view-toggle" class="view-toggle-btn" onclick="toggleView()">⊞ All</button>
       <button id="energy-btn" class="energy-btn" onclick="openEnergyModal()" aria-label="Energy dashboard" title="Energy">⚡</button>
+      <button id="ev-btn" class="ev-btn" onclick="openEvModal()" aria-label="EV dashboard" title="EV" style="display:none">🚗</button>
       <button id="theme-toggle" class="theme-toggle-btn" onclick="toggleTheme()" aria-label="Toggle dark mode">🔆</button>
       <span id="clock" class="clock"></span>
     </div>
@@ -75,6 +76,19 @@
       </div>
       <div id="energy-body" class="energy-body">
         <div class="energy-spinner"><div class="spinner"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- EV Modal -->
+  <div id="ev-modal" class="ev-modal" style="display:none" onclick="closeEvModal()">
+    <div class="ev-modal-inner" onclick="event.stopPropagation()">
+      <div class="ev-modal-hdr">
+        <span class="ev-modal-title">🚗 EV</span>
+        <button class="ev-close-btn" onclick="closeEvModal()">✕</button>
+      </div>
+      <div id="ev-body" class="ev-body">
+        <div class="ev-spinner"><div class="spinner"></div></div>
       </div>
     </div>
   </div>

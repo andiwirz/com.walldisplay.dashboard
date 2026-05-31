@@ -500,6 +500,9 @@ class ShellyWallDisplayApp extends Homey.App {
           zoneOrder: this.homey.settings.get('zoneOrder') || [],
           coverFullscreen: this.homey.settings.get('coverFullscreen') !== false,
           coverFullscreenDelay: this.homey.settings.get('coverFullscreenDelay') || 20,
+          evEnabled: this.homey.settings.get('evEnabled') === true,
+          evDeviceId: this.homey.settings.get('evDeviceId') || null,
+          evCapabilities: this.homey.settings.get('evCapabilities') || [],
         }));
         return;
       }
@@ -907,6 +910,59 @@ class ShellyWallDisplayApp extends Homey.App {
           res.writeHead(404);
           res.end(JSON.stringify({ error: e.message }));
         }
+        return;
+      }
+
+      // GET /api/ev — current capability values for the configured EV device
+      if (url.pathname === '/api/ev' && req.method === 'GET') {
+        const evDeviceId = this.homey.settings.get('evDeviceId');
+        if (!evDeviceId) {
+          res.writeHead(404, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'no device' }));
+          return;
+        }
+        const devices = await this._getDevicesCache();
+        const device  = devices[evDeviceId];
+        if (!device) {
+          res.writeHead(404, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'device not found' }));
+          return;
+        }
+        const evCaps  = this.homey.settings.get('evCapabilities') || [];
+        const capObj  = device.capabilitiesObj || {};
+        const caps    = {};
+        for (const key of evCaps) {
+          if (Object.prototype.hasOwnProperty.call(capObj, key)) {
+            const entry = capObj[key];
+            // capabilitiesObj entries are objects { value, title, units, … }
+            if (entry !== null && typeof entry === 'object') {
+              caps[key] = { value: entry.value, title: entry.title || key, units: entry.units || '' };
+            } else {
+              caps[key] = { value: entry, title: key, units: '' };
+            }
+          }
+        }
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({
+          id:        device.id,
+          name:      device.name,
+          available: device.available,
+          caps,
+        }));
+        return;
+      }
+
+      // GET /api/ev-image — serves the uploaded EV car image (stored as base64 in settings)
+      if (url.pathname === '/api/ev-image' && req.method === 'GET') {
+        const imgData = this.homey.settings.get('evImageData');
+        if (!imgData || typeof imgData !== 'string' || !imgData.startsWith('data:')) {
+          res.writeHead(404); res.end('no image'); return;
+        }
+        const match = imgData.match(/^data:([^;]+);base64,(.+)$/s);
+        if (!match) { res.writeHead(400); res.end('invalid'); return; }
+        const buf = Buffer.from(match[2], 'base64');
+        res.writeHead(200, { 'Content-Type': match[1], 'Cache-Control': 'no-cache' });
+        res.end(buf);
         return;
       }
 
@@ -2114,7 +2170,7 @@ class ShellyWallDisplayApp extends Homey.App {
 ShellyWallDisplayApp.SILENT_PATHS = new Set([
   '/api/devices', '/api/energy', '/api/zones', '/api/flows',
   '/api/settings', '/api/client-ip', '/ping',
-  '/api/debug/logs',
+  '/api/debug/logs', '/api/ev', '/api/ev-image',
 ]);
 
 module.exports = ShellyWallDisplayApp;

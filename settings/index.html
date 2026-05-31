@@ -655,6 +655,54 @@
       <div class="status" id="energy-status"></div>
     </div>
 
+    <!-- EV Dashboard -->
+    <div class="card">
+      <div class="card-title" data-i18n="evTitle">EV Dashboard</div>
+      <div class="toggle-row">
+        <span class="toggle-label" data-i18n="evLabel">Show EV button in header</span>
+        <label class="toggle-switch">
+          <input type="checkbox" id="ev-toggle" onchange="onEvToggle()">
+          <span class="toggle-track"></span>
+        </label>
+      </div>
+      <p class="toggle-hint" data-i18n="evHint">When enabled, a 🚗 button appears in the dashboard header.</p>
+
+      <div id="ev-config" style="display:none;margin-top:14px;">
+        <!-- Device picker -->
+        <div style="margin-bottom:12px;">
+          <label style="font-size:13px;font-weight:600;color:#555;display:block;margin-bottom:6px;" data-i18n="evDeviceLabel">Vehicle</label>
+          <select id="ev-device-select" style="width:100%;padding:9px 10px;border:1px solid #ddd;border-radius:7px;font-size:14px;background:#fff;"
+                  onchange="onEvDeviceChange()">
+            <option value="">— Select a device —</option>
+          </select>
+          <p class="hint" data-i18n="evDeviceHint">Select the Homey device that represents your car.</p>
+        </div>
+
+        <!-- Capability picker (shown after device is selected) -->
+        <div id="ev-caps-wrap" style="display:none;margin-bottom:12px;">
+          <label style="font-size:13px;font-weight:600;color:#555;display:block;margin-bottom:8px;" data-i18n="evCapsLabel">Show on dashboard</label>
+          <div id="ev-caps-list" style="display:flex;flex-direction:column;gap:6px;"></div>
+        </div>
+
+        <!-- Car image upload -->
+        <div style="margin-bottom:4px;">
+          <label style="font-size:13px;font-weight:600;color:#555;display:block;margin-bottom:6px;" data-i18n="evImageLabel">Car Image (optional)</label>
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+            <img id="ev-img-preview" src="" alt="" style="display:none;width:80px;height:50px;object-fit:cover;border-radius:8px;border:1px solid #ddd;">
+            <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;background:#f0f0f0;border:none;border-radius:7px;padding:8px 14px;font-size:13px;font-weight:500;color:#444;">
+              <input type="file" id="ev-img-input" accept="image/*" style="display:none" onchange="onEvImageSelected()">
+              📷 <span data-i18n="evImageChoose">Choose image</span>
+            </label>
+            <button id="ev-img-clear" style="display:none;background:none;border:1px solid #ddd;border-radius:7px;padding:7px 10px;font-size:13px;color:#e53935;cursor:pointer;" onclick="clearEvImage()">✕</button>
+          </div>
+          <p class="hint" data-i18n="evImageHint">JPG or PNG. Compressed automatically to save space.</p>
+        </div>
+      </div>
+
+      <button class="save-btn" onclick="saveEvSettings()" data-i18n="save">Save</button>
+      <div class="status" id="ev-status"></div>
+    </div>
+
     <!-- View Toggle Button -->
     <div class="card">
       <div class="card-title" data-i18n="viewToggleTitle">View Toggle Button</div>
@@ -878,6 +926,18 @@
         energySaved:      'Setting saved',
         batteryInvertLabel: 'Invert battery sign',
         batteryInvertHint:  'Enable if your battery shows "Charging" when it should show "Discharging" (e.g. GoodWe, some Fronius systems).',
+        evTitle:          'EV Dashboard',
+        evLabel:          'Show EV button in header',
+        evHint:           'When enabled, a 🚗 button appears in the dashboard header.',
+        evDeviceLabel:    'Vehicle',
+        evDeviceHint:     'Select the Homey device that represents your car.',
+        evCapsLabel:      'Show on dashboard',
+        evImageLabel:     'Car Image (optional)',
+        evImageChoose:    'Choose image',
+        evImageHint:      'JPG or PNG. Compressed automatically to save space.',
+        evSaved:          'EV settings saved',
+        evLoadingDevices: 'Loading devices…',
+        evLoadingCaps:    'Loading capabilities…',
         pinTitle:         'Alarm PIN',
         pinLabel:         'PIN for alarm tiles (4 digits, empty = disabled)',
         pinHint:          'Required when arming or disarming the alarm.',
@@ -1015,6 +1075,18 @@
         energySaved:      'Einstellung gespeichert',
         batteryInvertLabel: 'Batterie-Vorzeichen invertieren',
         batteryInvertHint:  'Aktivieren wenn die Batterie "Charging" zeigt obwohl sie entlädt (z.B. GoodWe, manche Fronius-Systeme).',
+        evTitle:          'EV-Dashboard',
+        evLabel:          '🚗-Schaltfläche in der Kopfzeile anzeigen',
+        evHint:           'Wenn aktiviert, erscheint ein 🚗-Button in der Dashboard-Kopfzeile.',
+        evDeviceLabel:    'Fahrzeug',
+        evDeviceHint:     'Homey-Gerät auswählen, das das Auto repräsentiert.',
+        evCapsLabel:      'Im Dashboard anzeigen',
+        evImageLabel:     'Auto-Bild (optional)',
+        evImageChoose:    'Bild auswählen',
+        evImageHint:      'JPG oder PNG. Wird automatisch komprimiert.',
+        evSaved:          'EV-Einstellungen gespeichert',
+        evLoadingDevices: 'Geräte laden…',
+        evLoadingCaps:    'Capabilities laden…',
         pinTitle:         'Alarm-PIN',
         pinLabel:         'PIN für Alarm-Kacheln (4 Ziffern, leer = kein PIN)',
         pinHint:          'Beim Scharfschalten/Entschärfen wird dieser PIN abgefragt.',
@@ -1485,6 +1557,14 @@
       document.getElementById('energy-toggle').checked = energyEnabled !== false;
       document.getElementById('battery-invert-toggle').checked = batteryInvertSign === true;
       updateTileLabel(tileSize);
+      // ── EV Dashboard ───────────────────────────────────────────────
+      var savedEvEnabled  = await hGetSafe('evEnabled', false);
+      var savedEvDeviceId = await hGetSafe('evDeviceId', '');
+      var savedEvCaps     = await hGetSafe('evCapabilities', []);
+      var savedEvImgData  = await hGetSafe('evImageData', '');
+      document.getElementById('ev-toggle').checked = savedEvEnabled === true;
+      _applyEvConfigVisibility(savedEvEnabled === true);
+      _applyEvImagePreview(savedEvImgData);
 
       if (storedUrl) {
         _dashboardBase = storedUrl;
@@ -1497,6 +1577,8 @@
         urlEl.textContent = T.urlUnknown;
         urlEl.removeAttribute('href');
       }
+      // Load EV devices AFTER _dashboardBase is set
+      _loadEvDevices(savedEvDeviceId, savedEvCaps);
 
       // ── Display Profiles ──────────────────────────────────────────
       var savedProfiles = await hGetSafe('displayProfiles', []);
@@ -1889,6 +1971,221 @@
         await hSet('batteryInvertSign', invert);
         showStatus('energy-status', T.energySaved, true);
       } catch (e) { showStatus('energy-status', T.errorPrefix + e.message, false); }
+    }
+
+    // ── EV Dashboard ──────────────────────────────────────────────────
+
+    // Capability label map (same keys as dashboard client.js)
+    var _evCapLabels = {
+      measure_battery:              'Battery (%)',
+      measure_range:                'Range (km)',
+      charging_state:               'Charging',
+      alarm_battery:                'Battery Low',
+      locked:                       'Locked',
+      measure_temperature:          'Temperature (°C)',
+      'measure_temperature.inside': 'Inside Temp (°C)',
+      'measure_temperature.outside':'Outside Temp (°C)',
+      measure_power:                'Charging Power (W)',
+      meter_power:                  'Energy Used (kWh)',
+      odometer:                     'Odometer (km)',
+      onoff:                        'On / Off',
+      measure_current:              'Charging Current (A)',
+      measure_voltage:              'Voltage (V)',
+    };
+
+    var _evPendingDeviceId = '';
+    var _evPendingCaps     = [];
+
+    function _applyEvConfigVisibility(enabled) {
+      document.getElementById('ev-config').style.display = enabled ? '' : 'none';
+    }
+
+    function onEvToggle() {
+      var enabled = document.getElementById('ev-toggle').checked;
+      _applyEvConfigVisibility(enabled);
+    }
+
+    function _applyEvImagePreview(dataUrl) {
+      var preview = document.getElementById('ev-img-preview');
+      var clearBtn = document.getElementById('ev-img-clear');
+      if (dataUrl && dataUrl.startsWith('data:')) {
+        preview.src = dataUrl;
+        preview.style.display = '';
+        clearBtn.style.display = '';
+      } else {
+        preview.src = '';
+        preview.style.display = 'none';
+        clearBtn.style.display = 'none';
+      }
+    }
+
+    async function _loadEvDevices(preselectedId, preselectedCaps) {
+      _evPendingDeviceId = preselectedId || '';
+      _evPendingCaps     = Array.isArray(preselectedCaps) ? preselectedCaps : [];
+      var sel = document.getElementById('ev-device-select');
+      sel.innerHTML = '<option value="">— ' + (T.evLoadingDevices || 'Loading…') + ' —</option>';
+
+      var storedUrl = _dashboardBase || ('http://' + window.location.hostname + ':7575');
+      try {
+        var resp = await fetch(storedUrl + '/api/alldevices');
+        if (!resp.ok) throw new Error('HTTP ' + resp.status);
+        var devices = await resp.json();
+
+        // Sort: car class first, then alphabetically
+        devices.sort(function(a, b) {
+          var ac = (a.class === 'car') ? 0 : 1;
+          var bc = (b.class === 'car') ? 0 : 1;
+          if (ac !== bc) return ac - bc;
+          return a.name.localeCompare(b.name);
+        });
+
+        sel.innerHTML = '<option value="">— Select a device —</option>';
+        devices.forEach(function(d) {
+          var opt = document.createElement('option');
+          opt.value = d.id;
+          opt.textContent = (d.class === 'car' ? '🚗 ' : '') + d.name;
+          if (d.id === _evPendingDeviceId) opt.selected = true;
+          sel.appendChild(opt);
+        });
+
+        if (_evPendingDeviceId) {
+          await _loadEvCapabilities(_evPendingDeviceId, _evPendingCaps);
+        }
+      } catch (e) {
+        sel.innerHTML = '<option value="">— Could not load devices —</option>';
+      }
+    }
+
+    async function onEvDeviceChange() {
+      var deviceId = document.getElementById('ev-device-select').value;
+      _evPendingDeviceId = deviceId;
+      _evPendingCaps = [];
+      if (deviceId) {
+        await _loadEvCapabilities(deviceId, []);
+      } else {
+        document.getElementById('ev-caps-wrap').style.display = 'none';
+        document.getElementById('ev-caps-list').innerHTML = '';
+      }
+    }
+
+    async function _loadEvCapabilities(deviceId, selectedCaps) {
+      var wrap = document.getElementById('ev-caps-wrap');
+      var list = document.getElementById('ev-caps-list');
+      list.innerHTML = '<div style="color:#888;font-size:13px;">' + (T.evLoadingCaps || 'Loading…') + '</div>';
+      wrap.style.display = '';
+
+      var storedUrl = _dashboardBase || ('http://' + window.location.hostname + ':7575');
+      try {
+        var resp = await fetch(storedUrl + '/api/device/' + encodeURIComponent(deviceId) + '/caps');
+        if (!resp.ok) throw new Error('HTTP ' + resp.status);
+        var data = await resp.json();
+        var capObj = data.capabilitiesObj || {};
+        var keys = Object.keys(capObj);
+
+        if (keys.length === 0) {
+          list.innerHTML = '<div style="color:#888;font-size:13px;">No capabilities found.</div>';
+          return;
+        }
+
+        // Sort: known caps first, then alphabetically
+        keys.sort(function(a, b) {
+          var ak = _evCapLabels[a] ? 0 : 1;
+          var bk = _evCapLabels[b] ? 0 : 1;
+          if (ak !== bk) return ak - bk;
+          return a.localeCompare(b);
+        });
+
+        list.innerHTML = '';
+        keys.forEach(function(key) {
+          var raw   = capObj[key];
+          // capabilitiesObj entries are objects { value, title, units, … }
+          var isObj = (raw !== null && typeof raw === 'object');
+          var val   = isObj ? raw.value : raw;
+          // Prefer Homey's title, fall back to our label map, then raw key
+          var label = (isObj && raw.title) ? raw.title : (_evCapLabels[key] || key);
+          var valStr = (val === null || val === undefined) ? '' : (' — ' + String(val).slice(0, 30));
+          var checked = selectedCaps.indexOf(key) !== -1;
+
+          var row = document.createElement('label');
+          row.className = 'item-row';
+          row.style.cssText = 'display:flex;align-items:center;gap:10px;padding:6px 4px;border-radius:6px;cursor:pointer;';
+          row.innerHTML =
+            '<input type="checkbox" style="width:16px;height:16px;accent-color:#F5A623;flex-shrink:0;" ' +
+              'value="' + key + '"' + (checked ? ' checked' : '') + '>' +
+            '<span style="font-size:14px;color:#222;flex:1;">' + label + '</span>' +
+            '<span style="font-size:11px;color:#aaa;">' + valStr + '</span>';
+          list.appendChild(row);
+        });
+      } catch (e) {
+        list.innerHTML = '<div style="color:#c62828;font-size:13px;">Could not load: ' + e.message + '</div>';
+      }
+    }
+
+    function onEvImageSelected() {
+      var input = document.getElementById('ev-img-input');
+      var file  = input.files && input.files[0];
+      if (!file) return;
+      // Compress to max 800×480 JPEG at quality 0.78
+      var reader = new FileReader();
+      reader.onload = function(e) {
+        var img = new Image();
+        img.onload = function() {
+          var maxW = 800, maxH = 480;
+          var w = img.naturalWidth, h = img.naturalHeight;
+          var scale = Math.min(maxW / w, maxH / h, 1);
+          var cw = Math.round(w * scale), ch = Math.round(h * scale);
+          var canvas = document.createElement('canvas');
+          canvas.width = cw; canvas.height = ch;
+          var ctx = canvas.getContext('2d');
+          var isPng = file.type === 'image/png';
+          if (!isPng) {
+            // JPEG has no alpha — fill with white so transparency doesn't become black
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, cw, ch);
+          }
+          ctx.drawImage(img, 0, 0, cw, ch);
+          var dataUrl = isPng
+            ? canvas.toDataURL('image/png')          // preserve transparency
+            : canvas.toDataURL('image/jpeg', 0.78);  // compress opaque images
+          _applyEvImagePreview(dataUrl);
+          // Store in a temporary variable — saved on saveEvSettings()
+          _evPendingImageData = dataUrl;
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+      // Reset file input so the same file can be selected again
+      input.value = '';
+    }
+
+    var _evPendingImageData = null; // null = no change; '' = cleared; 'data:…' = new image
+
+    function clearEvImage() {
+      _evPendingImageData = '';
+      _applyEvImagePreview('');
+    }
+
+    async function saveEvSettings() {
+      var enabled  = document.getElementById('ev-toggle').checked;
+      var deviceId = document.getElementById('ev-device-select').value;
+
+      // Collect selected capabilities
+      var capCheckboxes = document.querySelectorAll('#ev-caps-list input[type="checkbox"]:checked');
+      var caps = [];
+      capCheckboxes.forEach(function(cb) { caps.push(cb.value); });
+
+      try {
+        await hSet('evEnabled', enabled);
+        await hSet('evDeviceId', deviceId);
+        await hSet('evCapabilities', caps);
+        if (_evPendingImageData !== null) {
+          await hSet('evImageData', _evPendingImageData);
+          _evPendingImageData = null;
+        }
+        showStatus('ev-status', T.evSaved, true);
+      } catch (e) {
+        showStatus('ev-status', T.errorPrefix + e.message, false);
+      }
     }
 
     // ── Display Profiles ──────────────────────────────────────────────

@@ -1096,6 +1096,8 @@
         _alarmPin = cfg.alarmPin || '';
         var btn = document.getElementById('energy-btn');
         if (btn) btn.style.display = cfg.energyEnabled === false ? 'none' : '';
+        var evBtn = document.getElementById('ev-btn');
+        if (evBtn) evBtn.style.display = cfg.evEnabled ? '' : 'none';
         // Kachelgrösse: 1=90px 2=110px 3=130px(default) 4=165px 5=210px
         var tilePx = [90, 110, 130, 165, 210];
         var ts = (cfg.tileSize >= 1 && cfg.tileSize <= 5) ? cfg.tileSize : 3;
@@ -2843,5 +2845,139 @@
   window.speakerToggleShuffle = speakerToggleShuffle;
   window.speakerCycleRepeat   = speakerCycleRepeat;
   window.speakerToggleMute    = speakerToggleMute;
+
+  // ── EV Dashboard ─────────────────────────────────────────────────────
+
+  var _evTimer = null;
+
+  // Known capability metadata for EV / car devices
+  var _evCapMeta = {
+    measure_battery:     { label: 'Battery',        unit: '%',   icon: '🔋' },
+    measure_range:       { label: 'Range',           unit: ' km', icon: '📍' },
+    charging_state:      { label: 'Charging',        unit: '',    icon: '⚡' },
+    alarm_battery:       { label: 'Battery Low',     unit: '',    icon: '⚠️' },
+    locked:              { label: 'Locked',          unit: '',    icon: '🔒' },
+    measure_temperature: { label: 'Temperature',     unit: '°C',  icon: '🌡️' },
+    'measure_temperature.inside':  { label: 'Inside Temp',   unit: '°C', icon: '🌡️' },
+    'measure_temperature.outside': { label: 'Outside Temp',  unit: '°C', icon: '🌡️' },
+    measure_power:       { label: 'Charging Power',  unit: ' W',  icon: '⚡' },
+    meter_power:         { label: 'Energy Used',     unit: ' kWh', icon: '⚡' },
+    odometer:            { label: 'Odometer',        unit: ' km', icon: '🛣️' },
+    onoff:               { label: 'On / Off',        unit: '',    icon: '⏻' },
+    measure_current:     { label: 'Charging Current', unit: ' A', icon: '⚡' },
+    measure_voltage:     { label: 'Voltage',         unit: ' V',  icon: '⚡' },
+  };
+
+  function _evCapLabel(key) {
+    return (_evCapMeta[key] || {}).label || key;
+  }
+  function _evCapIcon(key) {
+    return (_evCapMeta[key] || {}).icon || '●';
+  }
+  function _evCapUnit(key) {
+    return (_evCapMeta[key] || {}).unit || '';
+  }
+
+  function _escHtml(s) {
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  function _formatEvCapValue(key, val, units) {
+    if (typeof val === 'boolean') {
+      if (key === 'locked')         return val ? '🔒 Locked' : '🔓 Unlocked';
+      if (key === 'onoff')          return val ? 'On' : 'Off';
+      if (key === 'alarm_battery')  return val ? '⚠️ Low' : 'OK';
+      if (key === 'charging_state') return val ? 'Charging' : 'Not charging';
+      return val ? 'Yes' : 'No';
+    }
+    if (typeof val === 'number') {
+      var rounded = Math.round(val * 10) / 10;
+      var u = units || _evCapUnit(key);
+      return rounded + (u ? ' ' + u : '');
+    }
+    if (val === null || val === undefined) return '—';
+    if (typeof val === 'string') return val;
+    return String(val);
+  }
+
+  function _renderEvBody(body, data) {
+    if (!data || data.error) {
+      body.innerHTML = '<div class="ev-error">No EV device configured.<br>Configure it in the app settings.</div>';
+      return;
+    }
+
+    var caps = data.caps || {};
+    // Each entry: { value, title, units }
+    var batteryEntry = caps.measure_battery;
+    var battery = (batteryEntry && typeof batteryEntry.value === 'number') ? batteryEntry.value : null;
+
+    var html = '';
+
+    // Car image (hidden via onerror if not uploaded)
+    html += '<div class="ev-car-img-wrap" id="ev-img-wrap"><img class="ev-car-img" src="/api/ev-image" onerror="var w=document.getElementById(\'ev-img-wrap\');if(w)w.style.display=\'none\'" alt=""></div>';
+
+    // Name + availability
+    html += '<div class="ev-device-name">' + _escHtml(data.name) + '</div>';
+    if (!data.available) {
+      html += '<div class="ev-unavailable">⚠️ Offline</div>';
+    }
+
+    // Battery progress bar
+    if (battery !== null) {
+      var pct = Math.max(0, Math.min(100, battery));
+      var barColor = pct <= 20 ? 'var(--danger)' : pct <= 40 ? '#FF9500' : 'var(--green)';
+      html += '<div class="ev-battery-bar-wrap">';
+      html += '<div class="ev-battery-bar-track">';
+      html += '<div class="ev-battery-bar-fill" style="width:' + pct + '%;background:' + barColor + '"></div>';
+      html += '</div>';
+      html += '<div class="ev-battery-pct">' + Math.round(pct) + '%</div>';
+      html += '</div>';
+    }
+
+    // Capability cards (all except battery, which is shown as bar)
+    var capKeys = Object.keys(caps).filter(function(k) { return k !== 'measure_battery'; });
+    if (capKeys.length > 0) {
+      html += '<div class="ev-caps-grid">';
+      for (var i = 0; i < capKeys.length; i++) {
+        var key   = capKeys[i];
+        var entry = caps[key];                          // { value, title, units }
+        var val   = entry ? entry.value   : null;
+        var label = (entry && entry.title)  ? entry.title  : _evCapLabel(key);
+        var units = (entry && entry.units)  ? entry.units  : null;
+        html += '<div class="ev-cap-card">';
+        html += '<div class="ev-cap-icon">' + _evCapIcon(key) + '</div>';
+        html += '<div class="ev-cap-value">' + _escHtml(_formatEvCapValue(key, val, units)) + '</div>';
+        html += '<div class="ev-cap-label">' + _escHtml(label) + '</div>';
+        html += '</div>';
+      }
+      html += '</div>';
+    }
+
+    body.innerHTML = html;
+  }
+
+  function _fetchEv() {
+    var body = document.getElementById('ev-body');
+    if (!body) return;
+    xhr('GET', '/api/ev', null, function(err, data) {
+      _renderEvBody(body, err ? null : data);
+    });
+  }
+
+  function openEvModal() {
+    document.getElementById('ev-modal').style.display = 'flex';
+    // Show spinner while loading
+    var body = document.getElementById('ev-body');
+    if (body) body.innerHTML = '<div class="ev-spinner"><div class="spinner"></div></div>';
+    _fetchEv();
+    if (!_evTimer) _evTimer = setInterval(_fetchEv, 30000);
+  }
+  window.openEvModal = openEvModal;
+
+  function closeEvModal() {
+    document.getElementById('ev-modal').style.display = 'none';
+    if (_evTimer) { clearInterval(_evTimer); _evTimer = null; }
+  }
+  window.closeEvModal = closeEvModal;
 
 })();

@@ -45,6 +45,21 @@ The app runs a local HTTP/WebSocket server on your Homey that emulates the Home 
 - **Exclude support** — devices marked as "Exclude from Energy" in Homey are automatically hidden
 - **Enable / disable** — the ⚡ Energy button can be hidden via the settings page
 
+### EV Dashboard
+- **Dedicated EV panel** — tap the 🚗 header button to open a modal with your electric vehicle's live status; disabled by default, enabled in the Design settings
+- **Any Homey device** — pick any device from your Homey as the EV; not limited to a specific driver
+- **Car image** — upload a PNG or JPEG photo of your car; PNG transparency is preserved (no black background)
+- **Battery bar** — live state-of-charge bar with percentage label; pulses when actively charging
+- **Charging state badge** — `ev_charging_state` shown as a colored pill above the battery bar:
+  - ⚡ Charging (green, pulsing bar)
+  - 🔌 Plugged in / Waiting (amber)
+  - 🔌 Unplugged (`plugged_out`) (grey)
+  - 🚗 Driving / Discharging (grey)
+  - — Not connected (grey)
+- **Capability cards** — select any device capabilities in the settings; each shows an icon, formatted value, and label
+- **Capability picker** — standard EV caps (`measure_battery`, `ev_charging_state`) are pre-selected and highlighted with an orange "EV" badge in the settings
+- **Auto-refresh** — EV data polls every 30 seconds while the modal is open
+
 ### Reliability & Performance
 - **Instant capability updates** — per-device `makeCapabilityInstance` subscriptions (homey-api V3) fire the moment Homey commits any capability value change; physical switch presses appear on the dashboard in under 1 second
 - **SSE fast path** — capability changes are broadcast over Server-Sent Events immediately; the card updates within a single animation frame
@@ -100,7 +115,7 @@ Homey App (com.walldisplay.dashboard)
 | Doorbell | 🔔 | — | Snapshot image |
 | Speaker / Media Player | 🔊 🎵 | Play/Pause, Skip, Volume (via modal); album art fullscreen with Ken Burns zoom | Track info |
 | Button / Remote | 🔘 🕹️ | — | — |
-| Car | 🚗 | — | — |
+| Car / EV | 🚗 | — | Battery (SoC %), Charging State, Range, and more via EV Dashboard |
 
 ---
 
@@ -138,6 +153,7 @@ The settings page is organised into four tabs:
 | **Header** | Show or hide the header bar (title, clock, buttons) | Enabled |
 | **Energy Dashboard** | Show or hide the ⚡ Energy button in the dashboard header | Enabled |
 | **Invert battery sign** | Flip the sign of battery power readings for inverters that report positive = discharging | Disabled |
+| **EV Dashboard** | Show or hide the 🚗 EV button; select the EV device, pick capabilities, and optionally upload a car image | Disabled |
 | **View Toggle Button** | Show or hide the Rooms / All button; set the default view | Enabled / All |
 | **Font Size** | Text size on device and flow tiles (1–5) | 1 |
 | **Tile Width** | Width of device tiles: XS / S / M / L / XL | M |
@@ -188,6 +204,7 @@ Tools for diagnosing camera, speaker, and logging issues. All output is shown in
 | ⊞ All / ⊟ Rooms button | Switch between flat list and room-grouped view |
 | ☀️ / 🌙 button | Toggle dark / light mode |
 | ⚡ button | Open Energy Dashboard |
+| 🚗 button | Open EV Dashboard |
 | Tap header logo | Manual refresh |
 
 ---
@@ -207,6 +224,8 @@ Tools for diagnosing camera, speaker, and logging issues. All output is shown in
 | `/api/settings` | GET / POST | Read or update app settings |
 | `/api/device/:id/capability/:cap` | POST | Set a device capability value |
 | `/api/camera/:id` | GET | Latest camera snapshot (proxied from Homey) |
+| `/api/ev` | GET | EV device live data (name, availability, selected capabilities) |
+| `/api/ev-image` | GET | Car image binary (PNG or JPEG, as uploaded) |
 | `/api/icon-proxy` | GET | Proxy for external device icon URLs |
 | `/device-icons/:name.svg` | GET | Named device icons (served locally) |
 | `/api/config` | GET | Simulated Home Assistant config |

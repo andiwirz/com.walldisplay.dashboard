@@ -11,7 +11,7 @@ The app runs a local HTTP/WebSocket server on your Homey that emulates the Home 
 ### Device Control
 - **Live dashboard** — all Homey devices as touch tiles, real-time state updates via Server-Sent Events (SSE) with adaptive fallback polling
 - **Device control** — toggle lights, sockets, locks, fans, blinds, heaters, TVs, and more directly from the wall
-- **Dimmer support** — adjust brightness or blind position with a slider
+- **Dimmer support** — tap anywhere on a dimmer tile to toggle on/off; drag the slider to adjust brightness; both gestures work independently
 - **Alarm control** — arm, disarm, or partially arm your home alarm; view motion and contact alerts
 - **PIN protection** — optional 4-digit PIN for the home alarm, configurable in the settings page
 - **Camera & doorbell snapshots** — tap a camera or doorbell tile to view the latest image with auto-refresh
@@ -33,6 +33,8 @@ The app runs a local HTTP/WebSocket server on your Homey that emulates the Home 
 - **Tile layout** — values, status and device name always aligned to the bottom of each tile for a clean, consistent look
 - **Dark / light mode** — toggle between themes via the header button; preference is saved per browser
 - **Clock** — live clock in the header, drift-corrected
+- **Tile Colors** — optional state-based tile coloring: choose Subtle or Strong intensity, set a custom active color (default green), an optional inactive color for switchable devices, and a flow button color; sensors and cameras are never tinted
+- **Header-hidden shortcuts** — when the header is hidden for a clean full-screen look, ⚡ Energy and 🚗 EV shortcut tiles appear automatically in the flow area so both dashboards remain accessible
 
 ### Energy Dashboard
 - **Flow diagram** — Tesla-style animated SVG with dark circular nodes and colored rings showing real-time energy flows between Solar, Grid, Home, and Battery
@@ -149,8 +151,9 @@ The settings page is organised into four tabs:
 |---|---|---|
 | **Dashboard Title** | Name shown in the top-left of the dashboard header | `My Homey` |
 | **Accent Color** | Highlight color used for active tiles, toggles, and interactive elements | `#F5A623` |
+| **Tile Colors** | State-based tile coloring: Off / Subtle / Strong intensity; configurable active color, optional inactive color (switchable devices only), and flow button color | Off |
 | **Tile Shape** | Corner radius of tiles: Sharp / Rounded / Pill | Rounded |
-| **Header** | Show or hide the header bar (title, clock, buttons) | Enabled |
+| **Header** | Show or hide the header bar (title, clock, buttons). When hidden, ⚡ and 🚗 shortcut tiles appear in the flow area automatically. | Enabled |
 | **Energy Dashboard** | Show or hide the ⚡ Energy button in the dashboard header | Enabled |
 | **Invert battery sign** | Flip the sign of battery power readings for inverters that report positive = discharging | Disabled |
 | **EV Dashboard** | Show or hide the 🚗 EV button; select the EV device, pick capabilities, and optionally upload a car image | Disabled |
@@ -194,7 +197,8 @@ Tools for diagnosing camera, speaker, and logging issues. All output is shown in
 | Interaction | Action |
 |---|---|
 | Tap tile | Toggle device on/off (where supported) |
-| Tap dimmer / blind tile | Adjust slider |
+| Tap dimmer tile (not on slider) | Toggle light on/off |
+| Drag dimmer / blind slider | Adjust brightness or position |
 | Long-press tile (400 ms) | Start drag & drop to reorder |
 | Tap room title | Collapse / expand room tiles |
 | Tap camera / doorbell tile | Open live snapshot |

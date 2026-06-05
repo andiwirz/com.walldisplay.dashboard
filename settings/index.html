@@ -608,6 +608,60 @@
       <div class="status" id="accent-color-status"></div>
     </div>
 
+    <!-- Tile Colors -->
+    <div class="card">
+      <div class="card-title" data-i18n="tileColorTitle">Tile Colors</div>
+      <label data-i18n="tileColorModeLabel" style="font-size:13px;color:#555;">Color intensity</label>
+      <div class="seg-btn-group" id="tile-color-mode-group" style="margin-top:6px;">
+        <button class="seg-btn active" data-value="off"    onclick="setTileColorMode('off')"    data-i18n="tileColorOff">Off</button>
+        <button class="seg-btn"        data-value="subtle" onclick="setTileColorMode('subtle')" data-i18n="tileColorSubtle">Subtle</button>
+        <button class="seg-btn"        data-value="strong" onclick="setTileColorMode('strong')" data-i18n="tileColorStrong">Strong</button>
+      </div>
+      <div id="tile-color-on-wrap" style="display:none;margin-top:14px;">
+        <!-- Active color -->
+        <label style="font-size:13px;font-weight:600;color:#555;display:block;margin-bottom:6px;" data-i18n="tileColorOnLabel">Active tile color</label>
+        <div style="display:flex;align-items:center;gap:12px;">
+          <input type="color" id="tile-color-on-input" value="#34C759"
+                 style="width:48px;height:40px;border:none;padding:0;background:none;cursor:pointer;border-radius:8px;"
+                 oninput="document.getElementById('tile-color-on-hex').textContent=this.value;">
+          <span id="tile-color-on-hex" style="font-family:monospace;font-size:14px;color:#555;">#34C759</span>
+          <button class="btn-small" onclick="resetTileColorOn()" data-i18n="tileColorOnReset">Reset</button>
+        </div>
+        <p class="hint" data-i18n="tileColorOnHint">Color shown when a device is switched on.</p>
+
+        <!-- Inactive color -->
+        <div style="display:flex;align-items:center;gap:10px;margin-top:14px;margin-bottom:6px;">
+          <label style="font-size:13px;font-weight:600;color:#555;" data-i18n="tileColorOffLabel">Inactive tile color</label>
+          <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:#888;cursor:pointer;margin-left:4px;">
+            <input type="checkbox" id="tile-color-off-enabled" onchange="onTileColorOffToggle()">
+            <span data-i18n="tileColorOffEnable">Enable</span>
+          </label>
+        </div>
+        <div id="tile-color-off-picker" style="display:none;align-items:center;gap:12px;">
+          <input type="color" id="tile-color-off-input" value="#8E8E93"
+                 style="width:48px;height:40px;border:none;padding:0;background:none;cursor:pointer;border-radius:8px;"
+                 oninput="document.getElementById('tile-color-off-hex').textContent=this.value;">
+          <span id="tile-color-off-hex" style="font-family:monospace;font-size:14px;color:#555;">#8E8E93</span>
+          <button class="btn-small" onclick="resetTileColorOff()" data-i18n="tileColorOffReset">Reset</button>
+        </div>
+        <p class="hint" data-i18n="tileColorOffHint">Color shown when a device is switched off. Disabled = default background.</p>
+
+        <!-- Flow color -->
+        <label style="font-size:13px;font-weight:600;color:#555;display:block;margin-top:14px;margin-bottom:6px;" data-i18n="tileColorFlowLabel">Flow button color</label>
+        <div style="display:flex;align-items:center;gap:12px;">
+          <input type="color" id="tile-color-flow-input" value="#AF52DE"
+                 style="width:48px;height:40px;border:none;padding:0;background:none;cursor:pointer;border-radius:8px;"
+                 oninput="document.getElementById('tile-color-flow-hex').textContent=this.value;">
+          <span id="tile-color-flow-hex" style="font-family:monospace;font-size:14px;color:#555;">#AF52DE</span>
+          <button class="btn-small" onclick="resetTileColorFlow()" data-i18n="tileColorFlowReset">Reset</button>
+        </div>
+        <p class="hint" data-i18n="tileColorFlowHint">Color for flow buttons on the dashboard.</p>
+      </div>
+      <p class="hint" style="margin-top:8px;" data-i18n="tileColorHint">Tiles get a colored background based on their state.</p>
+      <button class="save-btn" onclick="saveTileColors()" data-i18n="save">Save</button>
+      <div class="status" id="tile-color-status"></div>
+    </div>
+
     <!-- Tile Shape -->
     <div class="card">
       <div class="card-title" data-i18n="tileRadiusTitle">Tile Shape</div>
@@ -952,6 +1006,23 @@
         accentColorHint:    '💡 Used for highlights, toggles and active tiles. Default: #F5A623',
         accentColorSaved:   'Color saved',
         accentColorReset:   'Reset',
+        tileColorTitle:     'Tile Colors',
+        tileColorModeLabel: 'Color intensity',
+        tileColorOff:       'Off',
+        tileColorSubtle:    'Subtle',
+        tileColorStrong:    'Strong',
+        tileColorOnLabel:   'Active tile color',
+        tileColorOnReset:   'Reset',
+        tileColorOnHint:    'Color shown when a device is switched on.',
+        tileColorOffLabel:  'Inactive tile color',
+        tileColorOffEnable: 'Enable',
+        tileColorOffReset:  'Reset',
+        tileColorOffHint:   'Color shown when a switchable device (light, socket, blind…) is off. Sensors and cameras are not affected.',
+        tileColorFlowLabel: 'Flow button color',
+        tileColorFlowReset: 'Reset',
+        tileColorFlowHint:  'Color for flow buttons on the dashboard.',
+        tileColorHint:      '💡 Tiles get a colored background based on their state.',
+        tileColorSaved:     'Colors saved',
         tileRadiusTitle:    'Tile Shape',
         tileRadiusSharp:    'Sharp',
         tileRadiusRounded:  'Rounded',
@@ -1101,6 +1172,23 @@
         accentColorHint:    '💡 Farbe für Highlights, Toggles und aktive Kacheln. Standard: #F5A623',
         accentColorSaved:   'Farbe gespeichert',
         accentColorReset:   'Zurücksetzen',
+        tileColorTitle:     'Kachelfarben',
+        tileColorModeLabel: 'Farbintensität',
+        tileColorOff:       'Aus',
+        tileColorSubtle:    'Subtil',
+        tileColorStrong:    'Stark',
+        tileColorOnLabel:   'Farbe aktiver Kacheln',
+        tileColorOnReset:   'Zurücksetzen',
+        tileColorOnHint:    'Farbe, die angezeigt wird, wenn ein Gerät eingeschaltet ist.',
+        tileColorOffLabel:  'Farbe inaktiver Kacheln',
+        tileColorOffEnable: 'Aktivieren',
+        tileColorOffReset:  'Zurücksetzen',
+        tileColorOffHint:   'Farbe für schaltbare Geräte (Licht, Steckdose, Rollo…) im Aus-Zustand. Sensoren und Kameras werden nicht eingefärbt.',
+        tileColorFlowLabel: 'Flow-Button-Farbe',
+        tileColorFlowReset: 'Zurücksetzen',
+        tileColorFlowHint:  'Farbe der Flow-Buttons im Dashboard.',
+        tileColorHint:      '💡 Kacheln erhalten je nach Zustand einen farbigen Hintergrund.',
+        tileColorSaved:     'Farben gespeichert',
         tileRadiusTitle:    'Kachelform',
         tileRadiusSharp:    'Eckig',
         tileRadiusRounded:  'Abgerundet',
@@ -1524,6 +1612,10 @@
       var savedDashboardTitle = await hGetSafe('dashboardTitle', '');
       var savedFontSize       = await hGetSafe('fontSize', 1);
       var savedAccentColor    = await hGetSafe('accentColor', '#F5A623');
+      var savedTileColorMode  = await hGetSafe('tileColorMode', 'off');
+      var savedTileColorOn    = await hGetSafe('tileColorOn',   '#34C759');
+      var savedTileColorOff   = await hGetSafe('tileColorOff',  '');
+      var savedTileColorFlow  = await hGetSafe('tileColorFlow', '#AF52DE');
       var savedTileRadius     = await hGetSafe('tileRadius', 'rounded');
       var savedHeaderHidden   = await hGetSafe('headerHidden', false);
       var savedViewDefault    = await hGetSafe('viewDefault', 'all');
@@ -1543,6 +1635,24 @@
       setFlowPosition(savedFlowPosition, true);
       updateFontLabel(savedFontSize);
       setAccentColorInput(savedAccentColor);
+      setTileColorMode(savedTileColorMode, true);
+      var tcOnInp = document.getElementById('tile-color-on-input');
+      var tcOnHex = document.getElementById('tile-color-on-hex');
+      if (tcOnInp) tcOnInp.value = savedTileColorOn;
+      if (tcOnHex) tcOnHex.textContent = savedTileColorOn;
+      var offEnabled = savedTileColorOff && /^#[0-9a-fA-F]{6}$/.test(savedTileColorOff);
+      var tcOffEnab = document.getElementById('tile-color-off-enabled');
+      var tcOffPick = document.getElementById('tile-color-off-picker');
+      var tcOffInp  = document.getElementById('tile-color-off-input');
+      var tcOffHex  = document.getElementById('tile-color-off-hex');
+      if (tcOffEnab) tcOffEnab.checked = !!offEnabled;
+      if (tcOffPick) tcOffPick.style.display = offEnabled ? 'flex' : 'none';
+      if (offEnabled && tcOffInp) tcOffInp.value = savedTileColorOff;
+      if (offEnabled && tcOffHex) tcOffHex.textContent = savedTileColorOff;
+      var tcFlowInp = document.getElementById('tile-color-flow-input');
+      var tcFlowHex = document.getElementById('tile-color-flow-hex');
+      if (tcFlowInp) tcFlowInp.value = savedTileColorFlow;
+      if (tcFlowHex) tcFlowHex.textContent = savedTileColorFlow;
       setTileRadius(savedTileRadius, true);
       document.getElementById('header-hidden-toggle').checked = !savedHeaderHidden;
       document.getElementById('view-btn-toggle').checked = !savedViewBtnHidden;
@@ -1755,6 +1865,47 @@
         await hSet('accentColor', hex);
         showStatus('accent-color-status', T.accentColorSaved, true);
       } catch (e) { showStatus('accent-color-status', T.errorPrefix + e.message, false); }
+    }
+
+    function setTileColorMode(value, silent) {
+      document.querySelectorAll('#tile-color-mode-group .seg-btn').forEach(function(btn) {
+        btn.classList.toggle('active', btn.getAttribute('data-value') === value);
+      });
+      document.getElementById('tile-color-on-wrap').style.display = value !== 'off' ? '' : 'none';
+    }
+    function resetTileColorOn() {
+      document.getElementById('tile-color-on-input').value = '#34C759';
+      document.getElementById('tile-color-on-hex').textContent = '#34C759';
+    }
+    function onTileColorOffToggle() {
+      var enabled = document.getElementById('tile-color-off-enabled').checked;
+      document.getElementById('tile-color-off-picker').style.display = enabled ? 'flex' : 'none';
+    }
+    function resetTileColorOff() {
+      document.getElementById('tile-color-off-input').value = '#8E8E93';
+      document.getElementById('tile-color-off-hex').textContent = '#8E8E93';
+    }
+    function resetTileColorFlow() {
+      document.getElementById('tile-color-flow-input').value = '#AF52DE';
+      document.getElementById('tile-color-flow-hex').textContent = '#AF52DE';
+    }
+    async function saveTileColors() {
+      var modeBtn = document.querySelector('#tile-color-mode-group .seg-btn.active');
+      var mode    = modeBtn ? modeBtn.getAttribute('data-value') : 'off';
+      var colorOn = document.getElementById('tile-color-on-input').value;
+      if (!/^#[0-9a-fA-F]{6}$/.test(colorOn)) colorOn = '#34C759';
+      var offEnabled = document.getElementById('tile-color-off-enabled').checked;
+      var colorOff   = offEnabled ? document.getElementById('tile-color-off-input').value : '';
+      if (colorOff && !/^#[0-9a-fA-F]{6}$/.test(colorOff)) colorOff = '';
+      var colorFlow  = document.getElementById('tile-color-flow-input').value;
+      if (!/^#[0-9a-fA-F]{6}$/.test(colorFlow)) colorFlow = '#AF52DE';
+      try {
+        await hSet('tileColorMode', mode);
+        await hSet('tileColorOn',   colorOn);
+        await hSet('tileColorOff',  colorOff || false);
+        await hSet('tileColorFlow', colorFlow);
+        showStatus('tile-color-status', T.tileColorSaved, true);
+      } catch (e) { showStatus('tile-color-status', T.errorPrefix + e.message, false); }
     }
 
     async function setTileRadius(value, silent) {

@@ -503,6 +503,10 @@ class ShellyWallDisplayApp extends Homey.App {
           evEnabled: this.homey.settings.get('evEnabled') === true,
           evDeviceId: this.homey.settings.get('evDeviceId') || null,
           evCapabilities: this.homey.settings.get('evCapabilities') || [],
+          tileColorMode: this.homey.settings.get('tileColorMode') || 'off',
+          tileColorOn:   this.homey.settings.get('tileColorOn')   || '#34C759',
+          tileColorOff:  this.homey.settings.get('tileColorOff')  || '',
+          tileColorFlow: this.homey.settings.get('tileColorFlow') || '#AF52DE',
         }));
         return;
       }
@@ -511,7 +515,7 @@ class ShellyWallDisplayApp extends Homey.App {
       if (url.pathname === '/api/settings' && req.method === 'POST') {
         const body = await this._readBody(req);
         const { key, value } = JSON.parse(body);
-        const allowed = ['port', 'enabledDevices', 'alarmPin', 'energyEnabled', 'batteryInvertSign', 'tileSize', 'tileHeight', 'enabledFlows', 'homeyToken', 'flowTileWidth', 'dashboardTitle', 'fontSize', 'accentColor', 'tileRadius', 'headerHidden', 'viewDefault', 'viewBtnHidden', 'zoneOrder', 'coverFullscreen', 'coverFullscreenDelay', 'defaultProfileZones', 'defaultProfileDevices'];
+        const allowed = ['port', 'enabledDevices', 'alarmPin', 'energyEnabled', 'batteryInvertSign', 'tileSize', 'tileHeight', 'enabledFlows', 'homeyToken', 'flowTileWidth', 'dashboardTitle', 'fontSize', 'accentColor', 'tileRadius', 'headerHidden', 'viewDefault', 'viewBtnHidden', 'zoneOrder', 'coverFullscreen', 'coverFullscreenDelay', 'defaultProfileZones', 'defaultProfileDevices', 'tileColorMode', 'tileColorOn', 'tileColorOff', 'tileColorFlow'];
         if (!allowed.includes(key)) {
           res.writeHead(400);
           res.end(JSON.stringify({ error: 'Not allowed' }));

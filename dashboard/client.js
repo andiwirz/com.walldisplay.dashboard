@@ -40,6 +40,9 @@
   var _flowTileMatch = false; // true = Breite wie Gerätekacheln
   var _flowConfirm   = false; // true = Bestätigung vor Flow-Start
   var _flowPosition  = 'top'; // 'top' | 'bottom'
+  var _headerHidden  = false; // true = Header ausgeblendet → Dashboard-Tiles im Grid
+  var _energyEnabled = true;  // ⚡ Energy Button aktiv
+  var _evEnabled     = false; // 🚗 EV Button aktiv
   var eventSource = null;
   var pollTimer = null;
   var _alarmPin = '';
@@ -1093,11 +1096,13 @@
 
     xhr('GET', '/api/settings', null, function (err, cfg) {
       if (!err && cfg) {
-        _alarmPin = cfg.alarmPin || '';
+        _alarmPin      = cfg.alarmPin || '';
+        _energyEnabled = cfg.energyEnabled !== false;
+        _evEnabled     = cfg.evEnabled === true;
         var btn = document.getElementById('energy-btn');
-        if (btn) btn.style.display = cfg.energyEnabled === false ? 'none' : '';
+        if (btn) btn.style.display = _energyEnabled ? '' : 'none';
         var evBtn = document.getElementById('ev-btn');
-        if (evBtn) evBtn.style.display = cfg.evEnabled ? '' : 'none';
+        if (evBtn) evBtn.style.display = _evEnabled ? '' : 'none';
         // Kachelgrösse: 1=90px 2=110px 3=130px(default) 4=165px 5=210px
         var tilePx = [90, 110, 130, 165, 210];
         var ts = (cfg.tileSize >= 1 && cfg.tileSize <= 5) ? cfg.tileSize : 3;
@@ -1143,9 +1148,43 @@
         // Kachelform
         var radii = { sharp: '6px', rounded: '14px', pill: '28px' };
         root.style.setProperty('--radius', radii[cfg.tileRadius] || '14px');
+        // Kachelfarben (Tile Color Mode)
+        var colorMode = cfg.tileColorMode || 'off';
+        var colorOn   = cfg.tileColorOn   || '#34C759';
+        var colorOff  = cfg.tileColorOff  || '';
+        var colorFlow = cfg.tileColorFlow || '#AF52DE';
+        document.body.classList.remove('tile-colors-subtle', 'tile-colors-strong');
+        if (colorMode !== 'off') {
+          document.body.classList.add('tile-colors-' + colorMode);
+          var onA     = colorMode === 'strong' ? 0.28 : 0.16;
+          var shadowA = colorMode === 'strong' ? 0.24 : 0.13;
+          var flowA   = colorMode === 'strong' ? 0.18 : 0.10;
+          // Active color
+          var cr = parseInt(colorOn.slice(1,3),16), cg = parseInt(colorOn.slice(3,5),16), cb = parseInt(colorOn.slice(5,7),16);
+          root.style.setProperty('--tc-on-bg',     'rgba('+cr+','+cg+','+cb+','+onA+')');
+          root.style.setProperty('--tc-on-shadow', '0 2px 12px rgba('+cr+','+cg+','+cb+','+shadowA+'), 0 0 1px rgba('+cr+','+cg+','+cb+',0.2)');
+          // Inactive color (optional)
+          if (colorOff && /^#[0-9a-fA-F]{6}$/.test(colorOff)) {
+            var or2 = parseInt(colorOff.slice(1,3),16), og2 = parseInt(colorOff.slice(3,5),16), ob2 = parseInt(colorOff.slice(5,7),16);
+            root.style.setProperty('--tc-off-bg', 'rgba('+or2+','+og2+','+ob2+','+onA+')');
+          } else {
+            root.style.removeProperty('--tc-off-bg');
+          }
+          // Flow color
+          var fr = parseInt(colorFlow.slice(1,3),16), fg = parseInt(colorFlow.slice(3,5),16), fb = parseInt(colorFlow.slice(5,7),16);
+          root.style.setProperty('--tc-flow-bg',     'rgba('+fr+','+fg+','+fb+','+flowA+')');
+          root.style.setProperty('--tc-flow-border', 'rgba('+fr+','+fg+','+fb+','+(flowA*1.6)+')');
+        } else {
+          root.style.removeProperty('--tc-on-bg');
+          root.style.removeProperty('--tc-on-shadow');
+          root.style.removeProperty('--tc-off-bg');
+          root.style.removeProperty('--tc-flow-bg');
+          root.style.removeProperty('--tc-flow-border');
+        }
         // Header ausblenden
+        _headerHidden = cfg.headerHidden === true;
         var header = document.querySelector('.header');
-        if (cfg.headerHidden) {
+        if (_headerHidden) {
           if (header) header.style.display = 'none';
           root.style.setProperty('--header-h', '0px');
         } else {
@@ -1332,13 +1371,34 @@
   // ── Flow-Sektion ─────────────────────────────────────
   var _flowsData = {}; // id → { id, name, type }
 
+  function buildDashboardShortcutTile(icon, label, onClick) {
+    var tile = createElement('button', 'flow-tile dashboard-shortcut-tile');
+    var iconEl = createElement('span', 'flow-tile-icon');
+    iconEl.textContent = icon;
+    tile.appendChild(iconEl);
+    var nameEl = createElement('span', 'flow-tile-name');
+    nameEl.textContent = label;
+    tile.appendChild(nameEl);
+    tile.addEventListener('click', onClick);
+    return tile;
+  }
+
   function renderFlowSection(container) {
     var section = createElement('div', 'flow-section');
-
 
     var grid = createElement('div', 'flow-grid' + (_flowTileMatch ? ' flow-grid-fixed' : ''));
     section.appendChild(grid);
     container.appendChild(section);
+
+    // Dashboard-Shortcut-Tiles: nur wenn Header ausgeblendet
+    if (_headerHidden) {
+      if (_energyEnabled) {
+        grid.appendChild(buildDashboardShortcutTile('⚡', 'Energy', function () { openEnergyModal(); }));
+      }
+      if (_evEnabled) {
+        grid.appendChild(buildDashboardShortcutTile('🚗', 'EV', function () { openEvModal(); }));
+      }
+    }
 
     // Flows vom Server laden (Namen + Typen)
     xhr('GET', '/api/flows', null, function (err, flows) {
@@ -1579,6 +1639,7 @@
     if (isOn || isArmed) card.classList.add('on');
     if (wcState === 'up') card.classList.add('on');
     if (caps[CAP.INPUT_EXT_1] && caps[CAP.INPUT_EXT_1].value === true) card.classList.add('open');
+    if (hasOnOff || hasDim || hasAlarm || hasWcState) card.classList.add('is-switchable');
 
     if (d.class === 'camera' || d.class === 'doorbell') {
       card.classList.add('clickable');
@@ -1610,11 +1671,12 @@
       }(d.id));
     }
 
-    if (!isSpeaker && !isThermostat && (hasAlarm || (hasOnOff && !hasDim))) {
+    if (!isSpeaker && !isThermostat && (hasAlarm || hasOnOff)) {
       card.classList.add('clickable');
       (function (deviceId) {
         card.addEventListener('click', function (e) {
           if (e.target.classList.contains('device-toggle')) return;
+          if (e.target.tagName === 'INPUT') return; // Dim-/Blind-Slider ignorieren
           var dv = devices[deviceId];
           if (!dv) return;
           var cv = dv.capabilitiesObj || {};

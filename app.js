@@ -57,6 +57,9 @@ class ShellyWallDisplayApp extends Homey.App {
   async onInit() {
     this.log('Shelly Wall Display App gestartet');
     this.sseClients = new Set();
+    // Auto-set weather location from Homey geolocation if not yet configured
+    this._initWeatherLocation();
+
     // Device-Cache (60 s TTL, sofort invalidiert durch device.update-Events)
     this._deviceCache   = null;
     this._deviceCacheTs = 0;
@@ -507,6 +510,12 @@ class ShellyWallDisplayApp extends Homey.App {
           tileColorOn:   this.homey.settings.get('tileColorOn')   || '#34C759',
           tileColorOff:  this.homey.settings.get('tileColorOff')  || '',
           tileColorFlow: this.homey.settings.get('tileColorFlow') || '#AF52DE',
+          weatherEnabled:   this.homey.settings.get('weatherEnabled')   === true,
+          weatherHeaderBtn: this.homey.settings.get('weatherHeaderBtn') === true,
+          weatherLat:       this.homey.settings.get('weatherLat')       || null,
+          weatherLon:       this.homey.settings.get('weatherLon')       || null,
+          weatherCity:      this.homey.settings.get('weatherCity')      || '',
+          weatherUnit:      this.homey.settings.get('weatherUnit')      || 'celsius',
         }));
         return;
       }
@@ -515,7 +524,7 @@ class ShellyWallDisplayApp extends Homey.App {
       if (url.pathname === '/api/settings' && req.method === 'POST') {
         const body = await this._readBody(req);
         const { key, value } = JSON.parse(body);
-        const allowed = ['port', 'enabledDevices', 'alarmPin', 'energyEnabled', 'batteryInvertSign', 'tileSize', 'tileHeight', 'enabledFlows', 'homeyToken', 'flowTileWidth', 'dashboardTitle', 'fontSize', 'accentColor', 'tileRadius', 'headerHidden', 'viewDefault', 'viewBtnHidden', 'zoneOrder', 'coverFullscreen', 'coverFullscreenDelay', 'defaultProfileZones', 'defaultProfileDevices', 'tileColorMode', 'tileColorOn', 'tileColorOff', 'tileColorFlow'];
+        const allowed = ['port', 'enabledDevices', 'alarmPin', 'energyEnabled', 'batteryInvertSign', 'tileSize', 'tileHeight', 'enabledFlows', 'homeyToken', 'flowTileWidth', 'dashboardTitle', 'fontSize', 'accentColor', 'tileRadius', 'headerHidden', 'viewDefault', 'viewBtnHidden', 'zoneOrder', 'coverFullscreen', 'coverFullscreenDelay', 'defaultProfileZones', 'defaultProfileDevices', 'tileColorMode', 'tileColorOn', 'tileColorOff', 'tileColorFlow', 'weatherEnabled', 'weatherHeaderBtn', 'weatherLat', 'weatherLon', 'weatherCity', 'weatherUnit'];
         if (!allowed.includes(key)) {
           res.writeHead(400);
           res.end(JSON.stringify({ error: 'Not allowed' }));
@@ -554,6 +563,22 @@ class ShellyWallDisplayApp extends Homey.App {
         const ip = (req.socket.remoteAddress || '').replace(/^::ffff:/, '');
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ ip }));
+        return;
+      }
+
+      // GET /api/location — Homey's physical location from ManagerGeolocation
+      if (url.pathname === '/api/location' && req.method === 'GET') {
+        try {
+          const lat = this.homey.geolocation.getLatitude();
+          const lon = this.homey.geolocation.getLongitude();
+          const acc = this.homey.geolocation.getAccuracy();
+          const mode = this.homey.geolocation.getMode();
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ lat, lon, accuracy: acc, mode }));
+        } catch (e) {
+          res.writeHead(500);
+          res.end(JSON.stringify({ error: e.message }));
+        }
         return;
       }
 
@@ -1905,6 +1930,22 @@ class ShellyWallDisplayApp extends Homey.App {
   // Device-Cache mit 60 s TTL — wird sofort durch device.update-Events invalidiert.
   // Speichert nur Plain-Objects (nicht die rohen SDK-DeviceInstance-Objekte),
   // um Prototype-Ketten, EventEmitter-Referenzen und internen SDK-State zu vermeiden.
+  _initWeatherLocation() {
+    try {
+      const lat = this.homey.settings.get('weatherLat');
+      const lon = this.homey.settings.get('weatherLon');
+      if (lat != null && lon != null) return; // already set
+      const homeyLat = this.homey.geolocation.getLatitude();
+      const homeyLon = this.homey.geolocation.getLongitude();
+      if (homeyLat == null || homeyLon == null) return;
+      this.homey.settings.set('weatherLat', homeyLat);
+      this.homey.settings.set('weatherLon', homeyLon);
+      this.log('Weather location auto-set from Homey geolocation:', homeyLat, homeyLon);
+    } catch (e) {
+      this.error('Could not auto-set weather location:', e.message);
+    }
+  }
+
   async _getDevicesCache() {
     const now = Date.now();
     // 5-min TTL — makeCapabilityInstance + device.update keep values fresh in real-time.

@@ -18,6 +18,7 @@
     </div>
     <div class="header-right">
       <button id="view-toggle" class="view-toggle-btn" onclick="toggleView()">⊞ All</button>
+      <button id="weather-btn" class="weather-hdr-btn" onclick="openWeatherModal()" aria-label="Weather" title="Weather" style="display:none">🌤️</button>
       <button id="energy-btn" class="energy-btn" onclick="openEnergyModal()" aria-label="Energy dashboard" title="Energy">⚡</button>
       <button id="ev-btn" class="ev-btn" onclick="openEvModal()" aria-label="EV dashboard" title="EV" style="display:none">🚗</button>
       <button id="theme-toggle" class="theme-toggle-btn" onclick="toggleTheme()" aria-label="Toggle dark mode">🔆</button>
@@ -76,6 +77,23 @@
       </div>
       <div id="energy-body" class="energy-body">
         <div class="energy-spinner"><div class="spinner"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Weather Modal -->
+  <div id="weather-modal" class="weather-modal" style="display:none" onclick="closeWeatherModal()">
+    <div class="weather-modal-inner" onclick="event.stopPropagation()">
+      <div class="weather-modal-hdr">
+        <span class="weather-modal-title">🌤️ Weather</span>
+        <div class="weather-tabs">
+          <button id="weather-tab-today" class="weather-tab active" onclick="switchWeatherTab('today')">Today</button>
+          <button id="weather-tab-week"  class="weather-tab"        onclick="switchWeatherTab('week')">7 Days</button>
+        </div>
+        <button class="weather-close-btn" onclick="closeWeatherModal()">✕</button>
+      </div>
+      <div id="weather-body" class="weather-body">
+        <div class="wm-spinner"><div class="spinner"></div></div>
       </div>
     </div>
   </div>

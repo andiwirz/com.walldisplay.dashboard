@@ -43,6 +43,14 @@
   var _headerHidden  = false; // true = Header ausgeblendet → Dashboard-Tiles im Grid
   var _energyEnabled = true;  // ⚡ Energy Button aktiv
   var _evEnabled     = false; // 🚗 EV Button aktiv
+  var _weatherEnabled   = false;
+  var _weatherHeaderBtn = false;
+  var _weatherLat       = null;
+  var _weatherLon       = null;
+  var _weatherCity      = '';
+  var _weatherUnit      = 'celsius';
+  var _weatherData      = null;
+  var _weatherTimer     = null;
   var eventSource = null;
   var pollTimer = null;
   var _alarmPin = '';
@@ -1103,6 +1111,23 @@
         if (btn) btn.style.display = _energyEnabled ? '' : 'none';
         var evBtn = document.getElementById('ev-btn');
         if (evBtn) evBtn.style.display = _evEnabled ? '' : 'none';
+        // Wetter-Dashboard
+        _weatherEnabled   = cfg.weatherEnabled   === true;
+        _weatherHeaderBtn = cfg.weatherHeaderBtn !== false;
+        var weatherBtn = document.getElementById('weather-btn');
+        if (weatherBtn) weatherBtn.style.display = _weatherHeaderBtn ? '' : 'none';
+        _weatherLat  = cfg.weatherLat  || null;
+        _weatherLon  = cfg.weatherLon  || null;
+        _weatherCity = cfg.weatherCity || '';
+        _weatherUnit = cfg.weatherUnit || 'celsius';
+        if (_weatherTimer) { clearInterval(_weatherTimer); _weatherTimer = null; }
+        // Fetch wenn Kachel ODER Header-Button aktiv ist
+        if ((_weatherEnabled || _weatherHeaderBtn) && _weatherLat && _weatherLon) {
+          fetchWeather();
+          _weatherTimer = setInterval(fetchWeather, 30 * 60 * 1000);
+        } else {
+          _weatherData = null;
+        }
         // Kachelgrösse: 1=90px 2=110px 3=130px(default) 4=165px 5=210px
         var tilePx = [90, 110, 130, 165, 210];
         var ts = (cfg.tileSize >= 1 && cfg.tileSize <= 5) ? cfg.tileSize : 3;
@@ -1371,6 +1396,251 @@
   // ── Flow-Sektion ─────────────────────────────────────
   var _flowsData = {}; // id → { id, name, type }
 
+  // ── Weather Widget ──────────────────────────────────────────────────────
+
+  var WMO_EMOJI = {
+    0:'☀️', 1:'🌤️', 2:'⛅', 3:'☁️',
+    45:'🌫️', 48:'🌫️',
+    51:'🌦️', 53:'🌦️', 55:'🌦️', 56:'🌨️', 57:'🌨️',
+    61:'🌧️', 63:'🌧️', 65:'🌧️', 66:'🌨️', 67:'🌨️',
+    71:'🌨️', 73:'🌨️', 75:'❄️', 77:'🌨️',
+    80:'🌦️', 81:'🌧️', 82:'⛈️', 85:'🌨️', 86:'❄️',
+    95:'⛈️', 96:'⛈️', 99:'⛈️'
+  };
+
+  var WMO_DESC = {
+    0:'Clear sky', 1:'Mainly clear', 2:'Partly cloudy', 3:'Overcast',
+    45:'Fog', 48:'Freezing fog',
+    51:'Light drizzle', 53:'Drizzle', 55:'Dense drizzle',
+    56:'Light freezing drizzle', 57:'Freezing drizzle',
+    61:'Light rain', 63:'Rain', 65:'Heavy rain',
+    66:'Light freezing rain', 67:'Freezing rain',
+    71:'Light snow', 73:'Snow', 75:'Heavy snow', 77:'Snow grains',
+    80:'Rain showers', 81:'Moderate showers', 82:'Heavy showers',
+    85:'Snow showers', 86:'Heavy snow showers',
+    95:'Thunderstorm', 96:'Thunderstorm', 99:'Thunderstorm'
+  };
+
+  var _weatherModalTab = 'today';
+
+  function fetchWeather() {
+    if ((!_weatherEnabled && !_weatherHeaderBtn) || !_weatherLat || !_weatherLon) return;
+    var unitParam = _weatherUnit === 'fahrenheit' ? 'fahrenheit' : 'celsius';
+    var url = 'https://api.open-meteo.com/v1/forecast'
+      + '?latitude='  + _weatherLat
+      + '&longitude=' + _weatherLon
+      + '&current=temperature_2m,weather_code,wind_speed_10m,relative_humidity_2m,apparent_temperature,surface_pressure'
+      + '&hourly=temperature_2m,weather_code,precipitation_probability'
+      + '&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,precipitation_sum,wind_speed_10m_max,sunrise,sunset'
+      + '&temperature_unit=' + unitParam
+      + '&wind_speed_unit=kmh'
+      + '&timezone=auto'
+      + '&forecast_days=7';
+    var req = new XMLHttpRequest();
+    req.open('GET', url, true);
+    req.onload = function () {
+      if (req.status === 200) {
+        try {
+          _weatherData = JSON.parse(req.responseText);
+          var existing = document.getElementById('weather-widget');
+          if (existing && existing.parentNode) {
+            var updated = buildWeatherTile();
+            existing.parentNode.replaceChild(updated, existing);
+          }
+          // Re-render modal if already open
+          var modal = document.getElementById('weather-modal');
+          if (modal && modal.style.display !== 'none') renderWeatherModal();
+        } catch (e) {}
+      }
+    };
+    req.send();
+  }
+
+  function openWeatherModal() {
+    document.getElementById('weather-modal').style.display = 'flex';
+    _weatherModalTab = 'today';
+    document.getElementById('weather-tab-today').classList.add('active');
+    document.getElementById('weather-tab-week').classList.remove('active');
+    renderWeatherModal();
+    if (!_weatherData) fetchWeather();
+  }
+  window.openWeatherModal = openWeatherModal;
+
+  function closeWeatherModal() {
+    document.getElementById('weather-modal').style.display = 'none';
+  }
+  window.closeWeatherModal = closeWeatherModal;
+
+  function switchWeatherTab(tab) {
+    _weatherModalTab = tab;
+    document.getElementById('weather-tab-today').classList.toggle('active', tab === 'today');
+    document.getElementById('weather-tab-week').classList.toggle('active', tab === 'week');
+    renderWeatherModal();
+  }
+  window.switchWeatherTab = switchWeatherTab;
+
+  function renderWeatherModal() {
+    var body = document.getElementById('weather-body');
+    if (!body) return;
+    if (!_weatherData || !_weatherData.current) {
+      body.innerHTML = '<div class="wm-spinner"><div class="spinner"></div></div>';
+      return;
+    }
+    if (_weatherModalTab === 'today') {
+      renderWeatherToday(body);
+    } else {
+      renderWeather7Days(body);
+    }
+  }
+
+  function renderWeatherToday(body) {
+    var d = _weatherData;
+    var cur = d.current;
+    var u = _weatherUnit === 'fahrenheit' ? '°F' : '°C';
+    var code = cur.weather_code || 0;
+    var emoji = WMO_EMOJI[code] !== undefined ? WMO_EMOJI[code] : '🌡️';
+    var desc  = WMO_DESC[code] || '';
+
+    // Current overview
+    var html =
+      '<div class="wm-current">' +
+        '<div class="wm-current-main">' +
+          '<div class="wm-big-emoji">' + emoji + '</div>' +
+          '<div>' +
+            '<div class="wm-big-temp">' + Math.round(cur.temperature_2m) + u + '</div>' +
+            '<div class="wm-big-desc">' + desc + '</div>' +
+            '<div class="wm-city-name">' + _weatherCity + '</div>' +
+          '</div>' +
+        '</div>' +
+        '<div class="wm-details">' +
+          '<div class="wm-detail-item"><div class="wm-detail-label">Feels like</div><div class="wm-detail-value">' + Math.round(cur.apparent_temperature) + u + '</div></div>' +
+          '<div class="wm-detail-item"><div class="wm-detail-label">Humidity</div><div class="wm-detail-value">' + cur.relative_humidity_2m + '%</div></div>' +
+          '<div class="wm-detail-item"><div class="wm-detail-label">Wind</div><div class="wm-detail-value">' + Math.round(cur.wind_speed_10m) + ' km/h</div></div>' +
+          '<div class="wm-detail-item"><div class="wm-detail-label">Pressure</div><div class="wm-detail-value">' + Math.round(cur.surface_pressure) + ' hPa</div></div>' +
+        '</div>' +
+      '</div>';
+
+    // Hourly forecast — next 24 h
+    // Use current.time from the API response as lower bound — it is already in
+    // the location's local timezone (because we request timezone=auto), so no
+    // device-clock arithmetic is needed and timezone/DST bugs are avoided.
+    if (d.hourly && d.hourly.time && d.hourly.time.length) {
+      var nowHourStr = (d.current && d.current.time) ? d.current.time : '';
+
+      // Find start index (first hourly entry >= current observation time)
+      var startIdx = 0;
+      for (var si = 0; si < d.hourly.time.length; si++) {
+        if (d.hourly.time[si] >= nowHourStr) { startIdx = si; break; }
+      }
+
+      html += '<div class="wm-section-title">Hourly</div><div class="wm-hourly-wrap"><div class="wm-hourly">';
+      var count = 0;
+      for (var i = startIdx; i < d.hourly.time.length && count < 8; i += 3) {
+        var hTime  = d.hourly.time[i];
+        var hHour  = hTime.substring(11, 13);
+        var hEmoji = WMO_EMOJI[d.hourly.weather_code[i]] !== undefined ? WMO_EMOJI[d.hourly.weather_code[i]] : '🌡️';
+        var hTemp  = Math.round(d.hourly.temperature_2m[i]);
+        var hRain  = d.hourly.precipitation_probability[i] || 0;
+        html += '<div class="wm-hour">' +
+          '<div class="wm-hour-time">' + hHour + ':00</div>' +
+          '<div class="wm-hour-emoji">' + hEmoji + '</div>' +
+          '<div class="wm-hour-temp">' + hTemp + '°</div>' +
+          '<div class="wm-hour-rain">' + (hRain > 0 ? '💧 ' + hRain + '%' : '') + '</div>' +
+        '</div>';
+        count++;
+      }
+      html += '</div></div>';
+    }
+
+    body.innerHTML = html;
+  }
+
+  function renderWeather7Days(body) {
+    var d = _weatherData;
+    var u = _weatherUnit === 'fahrenheit' ? '°F' : '°C';
+    if (!d.daily || !d.daily.time || !d.daily.time.length) {
+      body.innerHTML = '<div class="wm-empty">No forecast data</div>';
+      return;
+    }
+    var dayNamesEn = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+    var dayNamesDe = ['So','Mo','Di','Mi','Do','Fr','Sa'];
+    var dayNames = (typeof lang !== 'undefined' && lang === 'de') ? dayNamesDe : dayNamesEn;
+
+    var html = '<div class="wm-days">';
+    for (var i = 0; i < d.daily.time.length; i++) {
+      var date    = new Date(d.daily.time[i] + 'T12:00:00');
+      var isToday = (i === 0);
+      var dayName = isToday
+        ? ((typeof lang !== 'undefined' && lang === 'de') ? 'Heute' : 'Today')
+        : dayNames[date.getDay()];
+      var dCode  = d.daily.weather_code[i];
+      var dEmoji = WMO_EMOJI[dCode] !== undefined ? WMO_EMOJI[dCode] : '🌡️';
+      var dDesc  = WMO_DESC[dCode] || '';
+      var dMax   = Math.round(d.daily.temperature_2m_max[i]);
+      var dMin   = Math.round(d.daily.temperature_2m_min[i]);
+      var dRain  = d.daily.precipitation_probability_max[i] || 0;
+      var dWind  = Math.round(d.daily.wind_speed_10m_max[i]);
+
+      html += '<div class="wm-day' + (isToday ? ' wm-day-today' : '') + '">' +
+        '<div class="wm-day-left">' +
+          '<div class="wm-day-name">' + dayName + '</div>' +
+          '<div class="wm-day-desc">' + dDesc + '</div>' +
+        '</div>' +
+        '<div class="wm-day-emoji">' + dEmoji + '</div>' +
+        '<div class="wm-day-right">' +
+          '<div class="wm-day-temps"><span class="wm-day-max">' + dMax + u + '</span><span class="wm-day-min">' + dMin + u + '</span></div>' +
+          '<div class="wm-day-meta">' +
+            (dRain > 0 ? '<span>💧 ' + dRain + '%</span>' : '') +
+            '<span>💨 ' + dWind + ' km/h</span>' +
+          '</div>' +
+        '</div>' +
+      '</div>';
+    }
+    html += '</div>';
+    body.innerHTML = html;
+  }
+
+  function buildWeatherTile() {
+    var tile = createElement('div', 'weather-widget');
+    tile.id = 'weather-widget';
+    tile.style.cursor = 'pointer';
+    tile.addEventListener('click', openWeatherModal);
+
+    if (!_weatherData || !_weatherData.current) {
+      tile.innerHTML =
+        '<div class="weather-left"><div class="weather-emoji">🌡️</div></div>' +
+        '<div class="weather-right"><div class="weather-city">' + (_weatherCity || 'Weather') + '</div>' +
+        '<div class="weather-desc">Loading…</div></div>';
+      return tile;
+    }
+
+    var cur  = _weatherData.current;
+    var code = cur.weather_code || 0;
+    var emoji = WMO_EMOJI[code] !== undefined ? WMO_EMOJI[code] : '🌡️';
+    var desc  = WMO_DESC[code]  || '';
+    var temp  = Math.round(cur.temperature_2m);
+    var unit  = _weatherUnit === 'fahrenheit' ? '°F' : '°C';
+    var wind  = Math.round(cur.wind_speed_10m);
+    var hum   = cur.relative_humidity_2m;
+
+    tile.innerHTML =
+      '<div class="weather-left">' +
+        '<div class="weather-emoji">' + emoji + '</div>' +
+        '<div class="weather-temp">' + temp + unit + '</div>' +
+      '</div>' +
+      '<div class="weather-right">' +
+        '<div class="weather-city">' + _weatherCity + '</div>' +
+        '<div class="weather-desc">' + desc + '</div>' +
+        '<div class="weather-meta">' +
+          '<span>💨 ' + wind + ' km/h</span>' +
+          '<span>💧 ' + hum + '%</span>' +
+        '</div>' +
+      '</div>';
+    return tile;
+  }
+
+  // ── End Weather Widget ──────────────────────────────────────────────────
+
   function buildDashboardShortcutTile(icon, label, onClick) {
     var tile = createElement('button', 'flow-tile dashboard-shortcut-tile');
     var iconEl = createElement('span', 'flow-tile-icon');
@@ -1520,6 +1790,11 @@
     var container = document.getElementById('zones-container');
     container.innerHTML = '';
 
+    // Weather Widget
+    if (_weatherEnabled && _weatherLat && _weatherLon) {
+      container.appendChild(buildWeatherTile());
+    }
+
     // null = alle anzeigen, [] = keine, [ids] = spezifische
     var showFlows = _enabledFlows === null || (_enabledFlows && _enabledFlows.length > 0);
 
@@ -1537,6 +1812,22 @@
     // Flows-Sektion unten (optional)
     if (showFlows && _flowPosition === 'bottom') {
       renderFlowSection(container);
+    }
+
+    // Empty State — keine Geräte konfiguriert / sichtbar
+    if (Object.keys(devices).length === 0) {
+      var es = createElement('div', 'empty-state');
+      es.innerHTML =
+        '<div class="empty-state-icon">🏠</div>' +
+        '<div class="empty-state-title">No devices to show</div>' +
+        '<div class="empty-state-body">' +
+          'Open the <strong>Homey app</strong>, go to ' +
+          '<strong>Apps → Shelly Wall Display Dashboard → Settings</strong> ' +
+          'and enable the devices you want to display.<br><br>' +
+          'If you are accessing the dashboard from a specific device, also check that its ' +
+          '<strong>IP address</strong> is configured under the Profiles tab.' +
+        '</div>';
+      container.appendChild(es);
     }
 
     document.getElementById('loading').style.display = 'none';

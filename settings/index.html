@@ -113,6 +113,32 @@
 
     .card-title-actions { display: flex; gap: 6px; }
 
+    /* ── Collapsible cards ────────────────────────── */
+    .card.collapsible > .card-title:first-child {
+      cursor: pointer;
+      user-select: none;
+      margin-bottom: 0;
+    }
+    .card.collapsible > .card-title:first-child::after {
+      content: '▾';
+      font-size: 14px;
+      color: #ccc;
+      margin-left: 6px;
+      line-height: 1;
+      display: inline-block;
+      transition: transform 0.2s ease;
+      flex-shrink: 0;
+    }
+    .card.collapsible:not(.collapsed) > .card-title:first-child {
+      margin-bottom: 12px;
+    }
+    .card.collapsible.collapsed > .card-title:first-child::after {
+      transform: rotate(-90deg);
+    }
+    .card.collapsible.collapsed > *:not(:first-child) {
+      display: none !important;
+    }
+
     .btn-small {
       background: #f0f0f0;
       border: none;
@@ -584,7 +610,7 @@
   <div class="tab-panel" id="panel-design">
 
     <!-- Dashboard Title -->
-    <div class="card">
+    <div class="card collapsible" data-collapse-key="designTitle">
       <div class="card-title" data-i18n="dashboardTitleTitle">Dashboard Title</div>
       <label for="dashboard-title-input" data-i18n="dashboardTitleLabel">Name shown in the header</label>
       <input type="text" id="dashboard-title-input" maxlength="40" placeholder="My Homey"
@@ -594,8 +620,32 @@
       <div class="status" id="dashboard-title-status"></div>
     </div>
 
+    <!-- Header Hidden -->
+    <div class="card collapsible" data-collapse-key="designHeader">
+      <div class="card-title" data-i18n="headerHiddenTitle">Header</div>
+      <div class="toggle-row">
+        <span class="toggle-label" data-i18n="headerHiddenLabel">Show header bar</span>
+        <label class="toggle-switch">
+          <input type="checkbox" id="header-hidden-toggle" checked onchange="saveHeaderHidden()">
+          <span class="toggle-track"></span>
+        </label>
+      </div>
+      <p class="toggle-hint" data-i18n="headerHiddenHint">When disabled, the title, clock and buttons are hidden for a clean full-screen look.</p>
+      <div class="status" id="header-hidden-status"></div>
+    </div>
+
+    <!-- Flow Position -->
+    <div class="card collapsible" data-collapse-key="designFlowPosition">
+      <div class="card-title" data-i18n="flowPositionTitle">Flow Position</div>
+      <div class="seg-btn-group" id="flow-position-group">
+        <button class="seg-btn active" data-value="top"    onclick="setFlowPosition('top')"    data-i18n="flowPositionTop">Above devices</button>
+        <button class="seg-btn"        data-value="bottom" onclick="setFlowPosition('bottom')" data-i18n="flowPositionBottom">Below devices</button>
+      </div>
+      <div class="status" id="flow-position-status"></div>
+    </div>
+
     <!-- Accent Color -->
-    <div class="card">
+    <div class="card collapsible" data-collapse-key="designAccent">
       <div class="card-title" data-i18n="accentColorTitle">Accent Color</div>
       <div style="display:flex;align-items:center;gap:12px;margin-top:6px;">
         <input type="color" id="accent-color-input" value="#F5A623"
@@ -608,8 +658,22 @@
       <div class="status" id="accent-color-status"></div>
     </div>
 
+    <!-- Font Size -->
+    <div class="card collapsible" data-collapse-key="designFontSize">
+      <div class="card-title" data-i18n="fontSizeTitle">Font Size</div>
+      <div class="tile-slider-wrap">
+        <input type="range" id="font-size-input" min="1" max="5" step="1" value="1"
+               oninput="updateFontLabel(this.value)" onchange="saveFontSize(this.value)">
+        <div class="tile-size-steps" id="font-size-steps">
+          <span class="active">1</span><span>2</span><span>3</span><span>4</span><span>5</span>
+        </div>
+      </div>
+      <p class="hint" data-i18n="fontSizeHint">Adjusts text size on device tiles. Default: 1 (minimum)</p>
+      <div class="status" id="font-size-status"></div>
+    </div>
+
     <!-- Tile Colors -->
-    <div class="card">
+    <div class="card collapsible" data-collapse-key="designTileColors">
       <div class="card-title" data-i18n="tileColorTitle">Tile Colors</div>
       <label data-i18n="tileColorModeLabel" style="font-size:13px;color:#555;">Color intensity</label>
       <div class="seg-btn-group" id="tile-color-mode-group" style="margin-top:6px;">
@@ -663,7 +727,7 @@
     </div>
 
     <!-- Tile Shape -->
-    <div class="card">
+    <div class="card collapsible" data-collapse-key="designTileShape">
       <div class="card-title" data-i18n="tileRadiusTitle">Tile Shape</div>
       <div class="seg-btn-group" id="tile-radius-group">
         <button class="seg-btn" data-value="sharp"   onclick="setTileRadius('sharp')"   data-i18n="tileRadiusSharp">Sharp</button>
@@ -673,22 +737,89 @@
       <div class="status" id="tile-radius-status"></div>
     </div>
 
-    <!-- Header Hidden -->
-    <div class="card">
-      <div class="card-title" data-i18n="headerHiddenTitle">Header</div>
+    <!-- Tile Size -->
+    <div class="card collapsible" data-collapse-key="designTileSize">
+      <div class="card-title" data-i18n="tileSizeTitle">Tile Size</div>
+      <div class="tile-slider-wrap">
+        <input type="range" id="tile-size-input" min="1" max="5" step="1" value="3"
+               oninput="updateTileLabel(this.value)" onchange="saveTileSize(this.value)">
+        <div class="tile-size-steps">
+          <span>XS</span><span>S</span><span>M</span><span>L</span><span>XL</span>
+        </div>
+      </div>
+      <p class="hint" data-i18n="tileSizeHint">Adjusts the size of device tiles on the dashboard. Default: M</p>
+      <div class="status" id="tile-size-status"></div>
+    </div>
+
+    <!-- Tile Height -->
+    <div class="card collapsible" data-collapse-key="designTileHeight">
+      <div class="card-title" data-i18n="tileHeightTitle">Tile Height</div>
+      <div class="seg-btn-group" id="tile-height-group">
+        <button class="seg-btn active" data-value="auto"   onclick="setTileHeight('auto')"   data-i18n="tileHeightAuto">Auto</button>
+        <button class="seg-btn"        data-value="square" onclick="setTileHeight('square')" data-i18n="tileHeightSquare">Same as width</button>
+      </div>
+      <p class="hint" data-i18n="tileHeightHint">Auto: height follows content. Same as width: tiles are at least as tall as wide (square).</p>
+      <div class="status" id="tile-height-status"></div>
+    </div>
+
+    <!-- Flow Tile Width -->
+    <div class="card collapsible" data-collapse-key="designFlowWidth">
+      <div class="card-title" data-i18n="flowTileWidthTitle">Flow Tile Width</div>
+      <div class="seg-btn-group" id="flow-tile-width-group">
+        <button class="seg-btn active" data-value="auto"   onclick="setFlowTileWidth('auto')"  data-i18n="flowTileAuto">Dynamic</button>
+        <button class="seg-btn"        data-value="match"  onclick="setFlowTileWidth('match')" data-i18n="flowTileMatch">Same as devices</button>
+      </div>
+      <div class="status" id="flow-tile-width-status"></div>
+    </div>
+
+
+    <!-- Weather Widget -->
+    <div class="card collapsible" data-collapse-key="designWeather">
+      <div class="card-title" data-i18n="weatherTitle">Weather Dashboard</div>
       <div class="toggle-row">
-        <span class="toggle-label" data-i18n="headerHiddenLabel">Show header bar</span>
+        <span class="toggle-label" data-i18n="weatherLabel">Show weather tile on dashboard</span>
         <label class="toggle-switch">
-          <input type="checkbox" id="header-hidden-toggle" checked onchange="saveHeaderHidden()">
+          <input type="checkbox" id="weather-toggle" onchange="onWeatherToggle()">
           <span class="toggle-track"></span>
         </label>
       </div>
-      <p class="toggle-hint" data-i18n="headerHiddenHint">When disabled, the title, clock and buttons are hidden for a clean full-screen look.</p>
-      <div class="status" id="header-hidden-status"></div>
+      <p class="toggle-hint" data-i18n="weatherHint">Shows current weather at the top of the dashboard using Open-Meteo (free, no API key).</p>
+      <div class="toggle-row" style="margin-top:10px;">
+        <span class="toggle-label" data-i18n="weatherHeaderLabel">Show weather button in header</span>
+        <label class="toggle-switch">
+          <input type="checkbox" id="weather-header-toggle" onchange="saveWeatherHeaderBtn()">
+          <span class="toggle-track"></span>
+        </label>
+      </div>
+      <p class="toggle-hint" data-i18n="weatherHeaderHint">Adds a 🌤️ button to the header bar that opens the weather forecast.</p>
+
+      <div id="weather-config" style="display:none;margin-top:14px;">
+        <!-- City search -->
+        <label style="font-size:13px;font-weight:600;color:#555;display:block;margin-bottom:6px;" data-i18n="weatherLocationLabel">Location</label>
+        <div style="display:flex;gap:8px;margin-bottom:6px;">
+          <input type="text" id="weather-city-input" placeholder="e.g. Zurich"
+                 style="flex:1;padding:9px 10px;border:1px solid #ddd;border-radius:7px;font-size:14px;background:#fff;"
+                 onkeydown="if(event.key==='Enter')searchWeatherCity()">
+          <button class="btn-small" onclick="searchWeatherCity()" data-i18n="weatherSearch" style="padding:8px 14px;">Search</button>
+        </div>
+        <button class="btn-small" onclick="detectWeatherLocation()" data-i18n="weatherDetect" style="margin-bottom:8px;">📍 Use my location</button>
+        <div id="weather-search-results" style="display:none;border:1px solid #ddd;border-radius:8px;overflow:hidden;margin-bottom:10px;"></div>
+        <div id="weather-location-display" style="display:none;font-size:12px;color:#888;margin-bottom:10px;padding:6px 10px;background:#f5f5f5;border-radius:6px;"></div>
+
+        <!-- Unit -->
+        <label style="font-size:13px;font-weight:600;color:#555;display:block;margin-bottom:6px;" data-i18n="weatherUnitLabel">Temperature unit</label>
+        <div class="seg-btn-group" id="weather-unit-group">
+          <button class="seg-btn active" data-value="celsius"    onclick="setWeatherUnit('celsius')"    data-i18n="weatherCelsius">°C</button>
+          <button class="seg-btn"        data-value="fahrenheit" onclick="setWeatherUnit('fahrenheit')" data-i18n="weatherFahrenheit">°F</button>
+        </div>
+      </div>
+
+      <button class="save-btn" onclick="saveWeather()" data-i18n="save" style="margin-top:14px;">Save</button>
+      <div class="status" id="weather-status"></div>
     </div>
 
     <!-- Energy Dashboard -->
-    <div class="card">
+    <div class="card collapsible" data-collapse-key="designEnergy">
       <div class="card-title" data-i18n="energyTitle">Energy Dashboard</div>
       <div class="toggle-row">
         <span class="toggle-label" data-i18n="energyLabel">Show Energy button in header</span>
@@ -710,7 +841,7 @@
     </div>
 
     <!-- EV Dashboard -->
-    <div class="card">
+    <div class="card collapsible" data-collapse-key="designEv">
       <div class="card-title" data-i18n="evTitle">EV Dashboard</div>
       <div class="toggle-row">
         <span class="toggle-label" data-i18n="evLabel">Show EV button in header</span>
@@ -758,7 +889,7 @@
     </div>
 
     <!-- View Toggle Button -->
-    <div class="card">
+    <div class="card collapsible" data-collapse-key="designViewToggle">
       <div class="card-title" data-i18n="viewToggleTitle">View Toggle Button</div>
       <div class="toggle-row">
         <span class="toggle-label" data-i18n="viewBtnLabel">Show Rooms/All button</span>
@@ -777,7 +908,7 @@
     </div>
 
     <!-- Room Order -->
-    <div class="card">
+    <div class="card collapsible" data-collapse-key="designRoomOrder">
       <div class="card-title" data-i18n="roomOrderTitle">Room Order</div>
       <p class="hint" data-i18n="roomOrderHint">Drag to reorder. Only applies to the "By rooms" view.</p>
       <ul id="zone-order-list" class="zone-order-list"></ul>
@@ -785,8 +916,8 @@
     </div>
 
     <!-- Cover Fullscreen -->
-    <div class="card">
-      <div class="card-title" data-i18n="coverFsTitle">Cover Fullscreen</div>
+    <div class="card collapsible" data-collapse-key="designCoverFs">
+      <div class="card-title" data-i18n="coverFsTitle">Music Player Cover Fullscreen</div>
       <div class="toggle-row">
         <span class="toggle-label" data-i18n="coverFsLabel">Show album art in fullscreen when playing</span>
         <label class="toggle-switch">
@@ -803,65 +934,6 @@
         <p class="hint" data-i18n="coverFsDelayHint">Time of inactivity before fullscreen appears. Default: 20 s</p>
       </div>
       <div class="status" id="cover-fs-status"></div>
-    </div>
-
-    <!-- Font Size -->
-    <div class="card">
-      <div class="card-title" data-i18n="fontSizeTitle">Font Size</div>
-      <div class="tile-slider-wrap">
-        <input type="range" id="font-size-input" min="1" max="5" step="1" value="1"
-               oninput="updateFontLabel(this.value)" onchange="saveFontSize(this.value)">
-        <div class="tile-size-steps" id="font-size-steps">
-          <span class="active">1</span><span>2</span><span>3</span><span>4</span><span>5</span>
-        </div>
-      </div>
-      <p class="hint" data-i18n="fontSizeHint">Adjusts text size on device tiles. Default: 1 (minimum)</p>
-      <div class="status" id="font-size-status"></div>
-    </div>
-
-    <!-- Tile Size -->
-    <div class="card">
-      <div class="card-title" data-i18n="tileSizeTitle">Tile Size</div>
-      <div class="tile-slider-wrap">
-        <input type="range" id="tile-size-input" min="1" max="5" step="1" value="3"
-               oninput="updateTileLabel(this.value)" onchange="saveTileSize(this.value)">
-        <div class="tile-size-steps">
-          <span>XS</span><span>S</span><span>M</span><span>L</span><span>XL</span>
-        </div>
-      </div>
-      <p class="hint" data-i18n="tileSizeHint">Adjusts the size of device tiles on the dashboard. Default: M</p>
-      <div class="status" id="tile-size-status"></div>
-    </div>
-
-    <!-- Tile Height -->
-    <div class="card">
-      <div class="card-title" data-i18n="tileHeightTitle">Tile Height</div>
-      <div class="seg-btn-group" id="tile-height-group">
-        <button class="seg-btn active" data-value="auto"   onclick="setTileHeight('auto')"   data-i18n="tileHeightAuto">Auto</button>
-        <button class="seg-btn"        data-value="square" onclick="setTileHeight('square')" data-i18n="tileHeightSquare">Same as width</button>
-      </div>
-      <p class="hint" data-i18n="tileHeightHint">Auto: height follows content. Same as width: tiles are at least as tall as wide (square).</p>
-      <div class="status" id="tile-height-status"></div>
-    </div>
-
-    <!-- Flow Tile Width -->
-    <div class="card">
-      <div class="card-title" data-i18n="flowTileWidthTitle">Flow Tile Width</div>
-      <div class="seg-btn-group" id="flow-tile-width-group">
-        <button class="seg-btn active" data-value="auto"   onclick="setFlowTileWidth('auto')"  data-i18n="flowTileAuto">Dynamic</button>
-        <button class="seg-btn"        data-value="match"  onclick="setFlowTileWidth('match')" data-i18n="flowTileMatch">Same as devices</button>
-      </div>
-      <div class="status" id="flow-tile-width-status"></div>
-    </div>
-
-    <!-- Flow Position -->
-    <div class="card">
-      <div class="card-title" data-i18n="flowPositionTitle">Flow Position</div>
-      <div class="seg-btn-group" id="flow-position-group">
-        <button class="seg-btn active" data-value="top"    onclick="setFlowPosition('top')"    data-i18n="flowPositionTop">Above devices</button>
-        <button class="seg-btn"        data-value="bottom" onclick="setFlowPosition('bottom')" data-i18n="flowPositionBottom">Below devices</button>
-      </div>
-      <div class="status" id="flow-position-status"></div>
     </div>
 
   </div><!-- /panel-design -->
@@ -1023,6 +1095,22 @@
         tileColorFlowHint:  'Color for flow buttons on the dashboard.',
         tileColorHint:      '💡 Tiles get a colored background based on their state.',
         tileColorSaved:     'Colors saved',
+        weatherTitle:       'Weather Dashboard',
+        weatherLabel:       'Show weather tile on dashboard',
+        weatherHint:        'Shows current weather at the top of the dashboard using Open-Meteo (free, no API key).',
+        weatherHeaderLabel: 'Show weather button in header',
+        weatherHeaderHint:  'Adds a 🌤️ button to the header bar that opens the weather forecast.',
+        weatherLocationLabel: 'Location',
+        weatherSearch:      'Search',
+        weatherUnitLabel:   'Temperature unit',
+        weatherCelsius:     '°C',
+        weatherFahrenheit:  '°F',
+        weatherSaved:       'Weather settings saved',
+        weatherSearching:   'Searching…',
+        weatherNoResults:   'No results found',
+        weatherDetect:      '📍 Use Homey\'s location',
+        weatherDetecting:   'Reading Homey\'s location…',
+        weatherDetectError: 'Could not read Homey\'s location',
         tileRadiusTitle:    'Tile Shape',
         tileRadiusSharp:    'Sharp',
         tileRadiusRounded:  'Rounded',
@@ -1042,7 +1130,7 @@
         roomOrderTitle:     'Room Order',
         roomOrderHint:      'Drag to reorder. Only applies to the "By rooms" view.',
         zoneOrderSaved:     'Order saved',
-        coverFsTitle:       'Cover Fullscreen',
+        coverFsTitle:       'Music Player Cover Fullscreen',
         coverFsLabel:       'Show album art in fullscreen when playing',
         coverFsHint:        'When enabled, the album cover fills the screen after the set delay. Tap the cover to return to the player.',
         coverFsDelayTitle:  'Delay (seconds)',
@@ -1189,6 +1277,22 @@
         tileColorFlowHint:  'Farbe der Flow-Buttons im Dashboard.',
         tileColorHint:      '💡 Kacheln erhalten je nach Zustand einen farbigen Hintergrund.',
         tileColorSaved:     'Farben gespeichert',
+        weatherTitle:       'Wetter-Dashboard',
+        weatherLabel:       'Wetter-Kachel auf dem Dashboard anzeigen',
+        weatherHint:        'Zeigt das aktuelle Wetter oben auf dem Dashboard via Open-Meteo (kostenlos, kein API-Key nötig).',
+        weatherHeaderLabel: 'Wetter-Symbol in der Kopfzeile anzeigen',
+        weatherHeaderHint:  'Fügt ein 🌤️-Symbol in die Kopfzeile ein, das die Wetterprognose öffnet.',
+        weatherLocationLabel: 'Standort',
+        weatherSearch:      'Suchen',
+        weatherUnitLabel:   'Temperatureinheit',
+        weatherCelsius:     '°C',
+        weatherFahrenheit:  '°F',
+        weatherSaved:       'Wetter-Einstellungen gespeichert',
+        weatherSearching:   'Suche läuft…',
+        weatherNoResults:   'Keine Ergebnisse gefunden',
+        weatherDetect:      '📍 Homey-Standort verwenden',
+        weatherDetecting:   'Homey-Standort wird gelesen…',
+        weatherDetectError: 'Homey-Standort konnte nicht gelesen werden',
         tileRadiusTitle:    'Kachelform',
         tileRadiusSharp:    'Eckig',
         tileRadiusRounded:  'Abgerundet',
@@ -1208,7 +1312,7 @@
         roomOrderTitle:     'Raumreihenfolge',
         roomOrderHint:      'Ziehen zum Umordnen. Gilt nur für die Ansicht "Nach Räumen".',
         zoneOrderSaved:     'Reihenfolge gespeichert',
-        coverFsTitle:       'Cover Vollbild',
+        coverFsTitle:       'Musikplayer Cover Vollbild',
         coverFsLabel:       'Albumcover bei Wiedergabe im Vollbild anzeigen',
         coverFsHint:        'Wenn aktiviert, füllt das Albumcover nach der eingestellten Zeit den Bildschirm. Tippen auf das Cover kehrt zum Player zurück.',
         coverFsDelayTitle:  'Verzögerung (Sekunden)',
@@ -1577,8 +1681,46 @@
       _Homey = Homey;
       Homey.ready();
       applyI18n();
+      initCollapsibleCards();
       switchTab(_activeTab); // Restore last tab
       loadAll();
+    }
+
+    // Safe storage wrapper — localStorage is blocked in sandboxed iframes (my.homey.app)
+    var _store = (function() {
+      try {
+        localStorage.setItem('__chk__', '1');
+        localStorage.removeItem('__chk__');
+        return {
+          get: function(k) { return localStorage.getItem(k); },
+          set: function(k, v) { localStorage.setItem(k, v); }
+        };
+      } catch (e) {
+        var _mem = {};
+        return {
+          get: function(k) { return _mem.hasOwnProperty(k) ? _mem[k] : null; },
+          set: function(k, v) { _mem[k] = v; }
+        };
+      }
+    })();
+
+    function initCollapsibleCards() {
+      var cards = document.querySelectorAll('#panel-design .card.collapsible');
+      cards.forEach(function(card) {
+        var key = card.getAttribute('data-collapse-key');
+        // Default: collapsed. Only expand if user explicitly opened it before.
+        if (!key || _store.get('collapse_' + key) !== '0') {
+          card.classList.add('collapsed');
+        }
+        var title = card.querySelector(':scope > .card-title');
+        if (!title) return;
+        title.addEventListener('click', function() {
+          card.classList.toggle('collapsed');
+          if (key) {
+            _store.set('collapse_' + key, card.classList.contains('collapsed') ? '1' : '0');
+          }
+        });
+      });
     }
 
     async function hGetSafe(key, fallback) {
@@ -1667,6 +1809,29 @@
       document.getElementById('energy-toggle').checked = energyEnabled !== false;
       document.getElementById('battery-invert-toggle').checked = batteryInvertSign === true;
       updateTileLabel(tileSize);
+      // ── Weather Widget ─────────────────────────────────────────────
+      var savedWeatherEnabled   = await hGetSafe('weatherEnabled', false);
+      var savedWeatherHeaderBtn = await hGetSafe('weatherHeaderBtn', true);
+      var savedWeatherLat     = await hGetSafe('weatherLat', null);
+      var savedWeatherLon     = await hGetSafe('weatherLon', null);
+      var savedWeatherCity    = await hGetSafe('weatherCity', '');
+      var savedWeatherUnit    = await hGetSafe('weatherUnit', 'celsius');
+      document.getElementById('weather-toggle').checked = savedWeatherEnabled === true;
+      document.getElementById('weather-header-toggle').checked = savedWeatherHeaderBtn === true;
+      _updateWeatherConfig();
+      if (savedWeatherCity) {
+        document.getElementById('weather-city-input').value = savedWeatherCity;
+        var locDisp = document.getElementById('weather-location-display');
+        if (locDisp) {
+          locDisp.textContent = '📍 ' + savedWeatherCity + (savedWeatherLat ? ' (' + parseFloat(savedWeatherLat).toFixed(4) + ', ' + parseFloat(savedWeatherLon).toFixed(4) + ')' : '');
+          locDisp.style.display = 'block';
+        }
+      }
+      setWeatherUnit(savedWeatherUnit, true);
+      // Store lat/lon for save
+      _weatherSettingsLat = savedWeatherLat;
+      _weatherSettingsLon = savedWeatherLon;
+
       // ── EV Dashboard ───────────────────────────────────────────────
       var savedEvEnabled  = await hGetSafe('evEnabled', false);
       var savedEvDeviceId = await hGetSafe('evDeviceId', '');
@@ -1907,6 +2072,149 @@
         showStatus('tile-color-status', T.tileColorSaved, true);
       } catch (e) { showStatus('tile-color-status', T.errorPrefix + e.message, false); }
     }
+
+    // ── Weather Widget ──────────────────────────────────────────────────────
+
+    var _weatherSettingsLat = null;
+    var _weatherSettingsLon = null;
+
+    function _updateWeatherConfig() {
+      var tile   = document.getElementById('weather-toggle').checked;
+      var header = document.getElementById('weather-header-toggle').checked;
+      document.getElementById('weather-config').style.display = (tile || header) ? 'block' : 'none';
+    }
+
+    function onWeatherToggle() { _updateWeatherConfig(); }
+
+    function setWeatherUnit(value, silent) {
+      var btns = document.querySelectorAll('#weather-unit-group .seg-btn');
+      btns.forEach(function(b) {
+        b.classList.toggle('active', b.getAttribute('data-value') === value);
+      });
+    }
+
+    function detectWeatherLocation() {
+      var locDisp = document.getElementById('weather-location-display');
+      locDisp.textContent = T.weatherDetecting;
+      locDisp.style.display = 'block';
+
+      // Read location from Homey's ManagerGeolocation via dashboard API
+      dashboardGet('/api/location')
+        .then(function(data) {
+          if (!data || data.lat == null || data.lon == null) {
+            locDisp.style.display = 'none';
+            showStatus('weather-status', T.weatherDetectError, false);
+            return;
+          }
+          var lat = data.lat;
+          var lon = data.lon;
+          _weatherSettingsLat = lat;
+          _weatherSettingsLon = lon;
+
+          // Reverse geocode via Nominatim (OpenStreetMap) to get city name
+          var url = 'https://nominatim.openstreetmap.org/reverse?lat=' + lat + '&lon=' + lon + '&format=json';
+          var req = new XMLHttpRequest();
+          req.open('GET', url, true);
+          req.setRequestHeader('Accept-Language', lang === 'de' ? 'de' : 'en');
+          req.onload = function() {
+            var city = '';
+            try {
+              var d = JSON.parse(req.responseText);
+              city = (d.address && (d.address.city || d.address.town || d.address.village || d.address.municipality)) || d.name || '';
+            } catch(e) {}
+            document.getElementById('weather-city-input').value = city;
+            locDisp.textContent = '📍 ' + (city || 'Homey location') + ' (' + lat.toFixed(4) + ', ' + lon.toFixed(4) + ')';
+            document.getElementById('weather-search-results').style.display = 'none';
+          };
+          req.onerror = function() {
+            locDisp.textContent = '📍 ' + lat.toFixed(4) + ', ' + lon.toFixed(4);
+          };
+          req.send();
+        })
+        .catch(function() {
+          locDisp.style.display = 'none';
+          showStatus('weather-status', T.weatherDetectError, false);
+        });
+    }
+
+    function searchWeatherCity() {
+      var query = document.getElementById('weather-city-input').value.trim();
+      if (!query) return;
+      var resultsEl = document.getElementById('weather-search-results');
+      resultsEl.style.display = 'block';
+      resultsEl.innerHTML = '<div style="padding:10px 14px;font-size:13px;color:#888;">' + T.weatherSearching + '</div>';
+
+      var url = 'https://geocoding-api.open-meteo.com/v1/search?name=' + encodeURIComponent(query) + '&count=5&language=' + (lang === 'de' ? 'de' : 'en') + '&format=json';
+      var req = new XMLHttpRequest();
+      req.open('GET', url, true);
+      req.onload = function() {
+        if (req.status !== 200) {
+          resultsEl.innerHTML = '<div style="padding:10px 14px;font-size:13px;color:#e53935;">Error: ' + req.status + '</div>';
+          return;
+        }
+        try {
+          var data = JSON.parse(req.responseText);
+          if (!data.results || !data.results.length) {
+            resultsEl.innerHTML = '<div style="padding:10px 14px;font-size:13px;color:#888;">' + T.weatherNoResults + '</div>';
+            return;
+          }
+          resultsEl.innerHTML = '';
+          data.results.forEach(function(r) {
+            var item = document.createElement('div');
+            item.style.cssText = 'padding:10px 14px;font-size:13px;cursor:pointer;border-bottom:1px solid #f0f0f0;';
+            var name = r.name + (r.admin1 ? ', ' + r.admin1 : '') + ', ' + r.country;
+            item.textContent = name;
+            item.addEventListener('mouseover', function() { item.style.background = '#f8f8f8'; });
+            item.addEventListener('mouseout',  function() { item.style.background = ''; });
+            item.addEventListener('click', function() {
+              _weatherSettingsLat = r.latitude;
+              _weatherSettingsLon = r.longitude;
+              document.getElementById('weather-city-input').value = r.name;
+              var locDisp = document.getElementById('weather-location-display');
+              locDisp.textContent = '📍 ' + name + ' (' + r.latitude.toFixed(4) + ', ' + r.longitude.toFixed(4) + ')';
+              locDisp.style.display = 'block';
+              resultsEl.style.display = 'none';
+              resultsEl.innerHTML = '';
+            });
+            resultsEl.appendChild(item);
+          });
+        } catch (e) {
+          resultsEl.innerHTML = '<div style="padding:10px 14px;font-size:13px;color:#e53935;">Parse error</div>';
+        }
+      };
+      req.onerror = function() {
+        resultsEl.innerHTML = '<div style="padding:10px 14px;font-size:13px;color:#e53935;">Network error</div>';
+      };
+      req.send();
+    }
+
+    async function saveWeatherHeaderBtn() {
+      _updateWeatherConfig();
+      var enabled = document.getElementById('weather-header-toggle').checked;
+      try {
+        await hSet('weatherHeaderBtn', enabled);
+        showStatus('weather-status', T.weatherSaved, true);
+      } catch (e) { showStatus('weather-status', T.errorPrefix + e.message, false); }
+    }
+
+    async function saveWeather() {
+      var enabled = document.getElementById('weather-toggle').checked;
+      var city    = document.getElementById('weather-city-input').value.trim();
+      var unitBtn = document.querySelector('#weather-unit-group .seg-btn.active');
+      var unit    = unitBtn ? unitBtn.getAttribute('data-value') : 'celsius';
+      try {
+        await hSet('weatherEnabled', enabled);
+        await hSet('weatherUnit', unit);
+        if (_weatherSettingsLat && _weatherSettingsLon) {
+          await hSet('weatherLat',  _weatherSettingsLat);
+          await hSet('weatherLon',  _weatherSettingsLon);
+          await hSet('weatherCity', city);
+        }
+        showStatus('weather-status', T.weatherSaved, true);
+      } catch (e) { showStatus('weather-status', T.errorPrefix + e.message, false); }
+    }
+
+    // ── End Weather Widget ──────────────────────────────────────────────────
 
     async function setTileRadius(value, silent) {
       document.querySelectorAll('#tile-radius-group .seg-btn').forEach(function(btn) {

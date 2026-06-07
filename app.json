@@ -1,6 +1,6 @@
 {
   "id": "com.walldisplay.dashboard",
-  "version": "1.3.23",
+  "version": "1.3.25",
   "compatibility": ">=5.0.0",
   "sdk": 3,
   "brandColor": "#E8001D",
@@ -28,7 +28,8 @@
     "tools"
   ],
   "permissions": [
-    "homey:manager:api"
+    "homey:manager:api",
+    "homey:manager:geolocation"
   ],
   "api": {
     "getDebugLogs": {
@@ -55,6 +56,12 @@
   "homepage": "https://github.com/andiwirz/com.walldisplay.dashboard",
   "support": "https://github.com/andiwirz/com.walldisplay.dashboard/issues",
   "source": "https://github.com/andiwirz/com.walldisplay.dashboard",
+  "changelog": {
+    "1.3.25": {
+      "en": "New: Weather Dashboard — weather tile and/or header button with current conditions, hourly (every 3 h) and 7-day forecast modal. Location is auto-detected from Homey geolocation on first launch. Fixed hourly timezone offset using API current time. Fixed location not saving when tile was disabled. Fixed weather not loading when only header button was active.",
+      "de": "Neu: Wetter-Dashboard — Wetter-Kachel und/oder Kopfzeilen-Symbol mit aktuellen Wetterdaten, stündlicher Prognose (alle 3 h) und 7-Tages-Vorschau. Standort wird beim ersten Start automatisch aus der Homey-Geolokalisierung übernommen. Zeitzonenfehler bei der Stundenanzeige behoben. Fehler beim Speichern eines neuen Standorts behoben. Wetterdaten werden jetzt auch geladen wenn nur das Kopfzeilen-Symbol aktiv ist."
+    }
+  },
   "contributing": {
     "donate": {
       "paypal": {

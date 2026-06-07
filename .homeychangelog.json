@@ -1,4 +1,12 @@
 {
+  "1.3.25": {
+    "en": "New: Weather Dashboard — weather tile and/or header button with current conditions, hourly (every 3 h) and 7-day forecast modal. Location is auto-detected from Homey geolocation on first launch. Fixed hourly timezone offset using API current time. Fixed location not saving when tile was disabled. Fixed weather not loading when only header button was active.",
+    "de": "Neu: Wetter-Dashboard — Wetter-Kachel und/oder Kopfzeilen-Symbol mit aktuellen Wetterdaten, stündlicher Prognose (alle 3 h) und 7-Tages-Vorschau. Standort wird beim ersten Start automatisch aus der Homey-Geolokalisierung übernommen. Zeitzonenfehler bei der Stundenanzeige behoben. Fehler beim Speichern eines neuen Standorts behoben. Wetterdaten werden jetzt auch geladen wenn nur das Kopfzeilen-Symbol aktiv ist."
+  },
+  "1.3.24": {
+    "en": "Empty state: when no devices are visible (nothing configured or all filtered out by the active profile), the dashboard now shows a helpful message explaining how to enable devices in the app settings and how to check the IP-based profile configuration",
+    "de": "Leerer Zustand: wenn keine Geräte sichtbar sind (nichts konfiguriert oder alles durch das aktive Profil gefiltert), zeigt das Dashboard jetzt einen hilfreichen Hinweis, wie Geräte in den App-Einstellungen aktiviert und die IP-basierte Profilkonfiguration geprüft werden kann"
+  },
   "1.3.23": {
     "en": "Header-hidden improvements: Energy and EV dashboard shortcut tiles appear automatically in the flow area when the header is hidden; all modal headers (Energy, EV, Camera, Speaker, Thermostat) now use a fixed height independent of the dashboard header — previously they collapsed to 0 px when the header was hidden; Energy modal tab bar is now perfectly centered using CSS grid layout",
     "de": "Verbesserungen bei ausgeblendetem Header: Energy- und EV-Dashboard-Shortcut-Kacheln erscheinen automatisch im Flow-Bereich wenn der Header ausgeblendet ist; alle Modal-Header (Energy, EV, Kamera, Speaker, Thermostat) nutzen jetzt eine feste Höhe unabhängig vom Dashboard-Header — zuvor kollabierten sie auf 0 px wenn der Header ausgeblendet war; Tab-Leiste im Energy-Modal ist jetzt mit CSS-Grid immer exakt zentriert"

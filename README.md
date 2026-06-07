@@ -36,6 +36,17 @@ The app runs a local HTTP/WebSocket server on your Homey that emulates the Home 
 - **Tile Colors** — optional state-based tile coloring: choose Subtle or Strong intensity, set a custom active color (default green), an optional inactive color for switchable devices, and a flow button color; sensors and cameras are never tinted
 - **Header-hidden shortcuts** — when the header is hidden for a clean full-screen look, ⚡ Energy and 🚗 EV shortcut tiles appear automatically in the flow area so both dashboards remain accessible
 
+### Weather Dashboard
+- **Weather tile** — optional tile at the top of the dashboard showing current conditions: weather emoji, temperature, description, wind speed, and city name; tap to open the forecast modal
+- **Header button** — optional 🌤️ button in the header bar (independent of the tile) that also opens the forecast modal
+- **Forecast modal** — two tabs:
+  - *Today* — current conditions (feels like, humidity, wind, pressure) plus an hourly strip (every 3 hours, full-width, scrollable)
+  - *7 Days* — daily forecast with high/low temperatures, weather emoji, rain probability, and precipitation
+- **Free API** — powered by [Open-Meteo](https://open-meteo.com) — no API key required
+- **Auto-location** — latitude and longitude are automatically populated from Homey's geolocation on first launch; can be overridden with a city search or the 📍 Homey location button in the settings
+- **Temperature unit** — °C or °F, configurable in the Design settings
+- **Disabled by default** — enable the tile and/or header button in the Design settings
+
 ### Energy Dashboard
 - **Flow diagram** — Tesla-style animated SVG with dark circular nodes and colored rings showing real-time energy flows between Solar, Grid, Home, and Battery
 - **T-junction layout** — Solar top-center, Grid bottom-left, Home bottom-right, Battery bottom-center; orthogonal connectors with a single animated dot per active line
@@ -156,6 +167,7 @@ The settings page is organised into four tabs:
 | **Header** | Show or hide the header bar (title, clock, buttons). When hidden, ⚡ and 🚗 shortcut tiles appear in the flow area automatically. | Enabled |
 | **Energy Dashboard** | Show or hide the ⚡ Energy button in the dashboard header | Enabled |
 | **Invert battery sign** | Flip the sign of battery power readings for inverters that report positive = discharging | Disabled |
+| **Weather Dashboard** | Show weather as a tile and/or 🌤️ header button; configure city (auto-detected from Homey geolocation), temperature unit (°C/°F) | Disabled |
 | **EV Dashboard** | Show or hide the 🚗 EV button; select the EV device, pick capabilities, and optionally upload a car image | Disabled |
 | **View Toggle Button** | Show or hide the Rooms / All button; set the default view | Enabled / All |
 | **Font Size** | Text size on device and flow tiles (1–5) | 1 |
@@ -209,6 +221,8 @@ Tools for diagnosing camera, speaker, and logging issues. All output is shown in
 | ☀️ / 🌙 button | Toggle dark / light mode |
 | ⚡ button | Open Energy Dashboard |
 | 🚗 button | Open EV Dashboard |
+| 🌤️ button | Open Weather Dashboard |
+| Tap weather tile | Open Weather Dashboard |
 | Tap header logo | Manual refresh |
 
 ---
@@ -230,6 +244,7 @@ Tools for diagnosing camera, speaker, and logging issues. All output is shown in
 | `/api/camera/:id` | GET | Latest camera snapshot (proxied from Homey) |
 | `/api/ev` | GET | EV device live data (name, availability, selected capabilities) |
 | `/api/ev-image` | GET | Car image binary (PNG or JPEG, as uploaded) |
+| `/api/location` | GET | Homey geolocation (lat, lon, accuracy, mode) |
 | `/api/icon-proxy` | GET | Proxy for external device icon URLs |
 | `/device-icons/:name.svg` | GET | Named device icons (served locally) |
 | `/api/config` | GET | Simulated Home Assistant config |
@@ -242,7 +257,7 @@ Tools for diagnosing camera, speaker, and logging issues. All output is shown in
 
 ## Requirements
 
-- **Homey** with Homey Web API (`homey:manager:api` permission)
+- **Homey** with Homey Web API (`homey:manager:api` permission) and geolocation (`homey:manager:geolocation` for auto-location)
 - **Homey SDK** v3, compatibility `>=5.0.0`
 - A **Shelly Wall Display** or any device / browser that can connect to a local HTTP server
 - A **Personal Access Token** (for flow triggering only)

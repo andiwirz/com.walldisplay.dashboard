@@ -154,7 +154,7 @@ The settings page is organised into four tabs:
 | **Port** | HTTP server port (1024–65535). Server restarts automatically when changed. | `7575` |
 | **Alarm PIN** | Optional 4-digit PIN to arm/disarm the alarm from the dashboard. Leave empty to disable. | — |
 | **Flow Confirmation** | Show a confirmation dialog before triggering a flow | Disabled |
-| **Homey API Token** | Personal Access Token required to trigger flows. Create at **my.homey.app → Account → Developer → API Keys**. | — |
+| **Homey API Token** | Personal Access Token required to trigger flows (**Homey Pro 2023 or later only**). Create at **my.homey.app → Account → Developer → API Keys**. | — |
 
 ### Design
 
@@ -174,7 +174,7 @@ The settings page is organised into four tabs:
 | **Tile Width** | Width of device tiles: XS / S / M / L / XL | M |
 | **Tile Height** | **Auto** — height follows content. **Same as width** — tiles are at least as tall as wide. | Auto |
 | **Flow Tile Width** | **Dynamic** — tiles size to their content. **Same as devices** — match device tile width. | Dynamic |
-| **Flow Position** | Show flow buttons above or below device tiles | Above |
+| **Shortcut Bar Position** | Show the shortcut bar (flows, weather, Energy, EV) above or below device tiles | Above |
 
 ### Profiles
 
@@ -189,7 +189,7 @@ Configure what each display shows. Every profile has two collapsible sections �
 | **Devices** | *All* (no filter) · *None* (hide all devices) · individual device selection grouped by room |
 | **Flows** | *All* (no filter) · *None* (hide all flows) · individual flow selection |
 
-> **Note on flow triggering:** Due to a Homey platform restriction, apps cannot trigger flows using their internal token. A **Personal Access Token** (set in the General tab) is required. Create one at [my.homey.app](https://my.homey.app) under Account → Developer → API Keys with full permissions.
+> **Note on flow triggering:** Due to a Homey platform restriction, apps cannot trigger flows using their internal token. A **Personal Access Token** (set in the General tab) is required — **this feature requires a Homey Pro 2023 or later**. Create one at [my.homey.app](https://my.homey.app) under Account → Developer → API Keys with full permissions.
 
 ### Debug
 
@@ -260,7 +260,7 @@ Tools for diagnosing camera, speaker, and logging issues. All output is shown in
 - **Homey** with Homey Web API (`homey:manager:api` permission) and geolocation (`homey:manager:geolocation` for auto-location)
 - **Homey SDK** v3, compatibility `>=5.0.0`
 - A **Shelly Wall Display** or any device / browser that can connect to a local HTTP server
-- A **Personal Access Token** (for flow triggering only)
+- A **Personal Access Token** (for flow triggering only — requires **Homey Pro 2023 or later**)
 
 ---
 

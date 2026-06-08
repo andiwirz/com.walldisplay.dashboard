@@ -510,6 +510,9 @@ class ShellyWallDisplayApp extends Homey.App {
           tileColorOn:   this.homey.settings.get('tileColorOn')   || '#34C759',
           tileColorOff:  this.homey.settings.get('tileColorOff')  || '',
           tileColorFlow: this.homey.settings.get('tileColorFlow') || '#AF52DE',
+          bgStyle:           this.homey.settings.get('bgStyle')           || 'flat',
+          animMode:          this.homey.settings.get('animMode')          || 'default',
+          headerIconStyle:   this.homey.settings.get('headerIconStyle')   || 'emoji',
           weatherEnabled:   this.homey.settings.get('weatherEnabled')   === true,
           weatherHeaderBtn: this.homey.settings.get('weatherHeaderBtn') === true,
           weatherLat:       this.homey.settings.get('weatherLat')       || null,
@@ -524,7 +527,7 @@ class ShellyWallDisplayApp extends Homey.App {
       if (url.pathname === '/api/settings' && req.method === 'POST') {
         const body = await this._readBody(req);
         const { key, value } = JSON.parse(body);
-        const allowed = ['port', 'enabledDevices', 'alarmPin', 'energyEnabled', 'batteryInvertSign', 'tileSize', 'tileHeight', 'enabledFlows', 'homeyToken', 'flowTileWidth', 'dashboardTitle', 'fontSize', 'accentColor', 'tileRadius', 'headerHidden', 'viewDefault', 'viewBtnHidden', 'zoneOrder', 'coverFullscreen', 'coverFullscreenDelay', 'defaultProfileZones', 'defaultProfileDevices', 'tileColorMode', 'tileColorOn', 'tileColorOff', 'tileColorFlow', 'weatherEnabled', 'weatherHeaderBtn', 'weatherLat', 'weatherLon', 'weatherCity', 'weatherUnit'];
+        const allowed = ['port', 'enabledDevices', 'alarmPin', 'energyEnabled', 'batteryInvertSign', 'tileSize', 'tileHeight', 'enabledFlows', 'homeyToken', 'flowTileWidth', 'dashboardTitle', 'fontSize', 'accentColor', 'tileRadius', 'headerHidden', 'viewDefault', 'viewBtnHidden', 'zoneOrder', 'coverFullscreen', 'coverFullscreenDelay', 'defaultProfileZones', 'defaultProfileDevices', 'tileColorMode', 'tileColorOn', 'tileColorOff', 'tileColorFlow', 'bgStyle', 'animMode', 'headerIconStyle', 'weatherEnabled', 'weatherHeaderBtn', 'weatherLat', 'weatherLon', 'weatherCity', 'weatherUnit'];
         if (!allowed.includes(key)) {
           res.writeHead(400);
           res.end(JSON.stringify({ error: 'Not allowed' }));

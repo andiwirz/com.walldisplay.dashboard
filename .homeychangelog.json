@@ -1,4 +1,16 @@
 {
+  "1.3.28": {
+    "en": "New Design setting: Header Icons — choose between Emoji (default) or SVG line icons for all header buttons (Energy, EV, Weather, theme toggle, view toggle) and the corresponding modal titles. SVG icons use custom symbols and adapt to any accent color and dark/light mode.",
+    "de": "Neue Design-Einstellung: Header-Icons — Wahl zwischen Emoji (Standard) oder SVG-Liniensymbolen für alle Header-Buttons (Energy, EV, Wetter, Thema-Umschalter, Ansicht-Umschalter) und die zugehörigen Modal-Titel. SVG-Icons verwenden eigene Symbole und passen sich Akzentfarbe sowie Hell/Dunkel-Modus an."
+  },
+  "1.3.27": {
+    "en": "New Design settings: Background (Flat / Gradient / Glass with frosted-tile blur effect) and Animations (Off / Default / Lively with spring bounce and fade-in). Fixed tile colors not applying correctly in Glass background mode.",
+    "de": "Neue Design-Einstellungen: Hintergrund (Einfarbig / Verlauf / Glas mit Milchglas-Kacheln) und Animationen (Aus / Standard / Lebendig mit Federbounce und Einblendeffekt). Kachelfarben werden im Glas-Hintergrundmodus jetzt korrekt angewendet."
+  },
+  "1.3.26": {
+    "en": "Weather tile moved into the shortcut bar (same row as flow buttons, Energy and EV); 'Flow Position' setting renamed to 'Shortcut Bar Position' with description; Energy and EV shortcut tiles no longer inherit the flow button color.",
+    "de": "Wetter-Kachel in die Schnellzugriff-Leiste verschoben (gleiche Zeile wie Flow-Schaltflächen, Energy und EV); Einstellung 'Flow-Position' in 'Schnellzugriff-Leiste' umbenannt und mit Beschreibung versehen; Energy- und EV-Shortcut-Kacheln erhalten nicht mehr die Flow-Button-Farbe."
+  },
   "1.3.25": {
     "en": "New: Weather Dashboard — weather tile and/or header button with current conditions, hourly (every 3 h) and 7-day forecast modal. Location is auto-detected from Homey geolocation on first launch. Fixed hourly timezone offset using API current time. Fixed location not saving when tile was disabled. Fixed weather not loading when only header button was active.",
     "de": "Neu: Wetter-Dashboard — Wetter-Kachel und/oder Kopfzeilen-Symbol mit aktuellen Wetterdaten, stündlicher Prognose (alle 3 h) und 7-Tages-Vorschau. Standort wird beim ersten Start automatisch aus der Homey-Geolokalisierung übernommen. Zeitzonenfehler bei der Stundenanzeige behoben. Fehler beim Speichern eines neuen Standorts behoben. Wetterdaten werden jetzt auch geladen wenn nur das Kopfzeilen-Symbol aktiv ist."

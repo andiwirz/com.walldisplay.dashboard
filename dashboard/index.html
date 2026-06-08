@@ -17,11 +17,28 @@
       <span class="header-title" id="header-title">My Homey</span>
     </div>
     <div class="header-right">
-      <button id="view-toggle" class="view-toggle-btn" onclick="toggleView()">⊞ All</button>
-      <button id="weather-btn" class="weather-hdr-btn" onclick="openWeatherModal()" aria-label="Weather" title="Weather" style="display:none">🌤️</button>
-      <button id="energy-btn" class="energy-btn" onclick="openEnergyModal()" aria-label="Energy dashboard" title="Energy">⚡</button>
-      <button id="ev-btn" class="ev-btn" onclick="openEvModal()" aria-label="EV dashboard" title="EV" style="display:none">🚗</button>
-      <button id="theme-toggle" class="theme-toggle-btn" onclick="toggleTheme()" aria-label="Toggle dark mode">🔆</button>
+      <button id="view-toggle" class="view-toggle-btn" onclick="toggleView()">
+        <span class="hdr-emoji">⊞ All</span>
+        <svg class="hdr-svg hdr-svg-all" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        <svg class="hdr-svg hdr-svg-rooms" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="18" rx="1"/><rect x="14" y="3" width="7" height="8" rx="1"/><rect x="14" y="15" width="7" height="6" rx="1"/></svg>
+      </button>
+      <button id="weather-btn" class="weather-hdr-btn" onclick="openWeatherModal()" aria-label="Weather" title="Weather" style="display:none">
+        <span class="hdr-emoji">🌤️</span>
+        <svg class="hdr-svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6,19A5,5 0 0,1 1,14A5,5 0 0,1 6,9C7,6.65 9.3,5 12,5C15.43,5 18.24,7.66 18.5,11.03L19,11A4,4 0 0,1 23,15A4,4 0 0,1 19,19H6M19,13H17V12A5,5 0 0,0 12,7C9.5,7 7.45,8.82 7.06,11.19C6.73,11.07 6.37,11 6,11A3,3 0 0,0 3,14A3,3 0 0,0 6,17H19A2,2 0 0,0 21,15A2,2 0 0,0 19,13Z"/></svg>
+      </button>
+      <button id="energy-btn" class="energy-btn" onclick="openEnergyModal()" aria-label="Energy dashboard" title="Energy">
+        <span class="hdr-emoji">⚡</span>
+        <svg class="hdr-svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M5 20V12H2L12 3L22 12H19V20H5M12 5.69L7 10.19V18H17V10.19L12 5.69M11.5 18V14H9L12.5 7V11H15L11.5 18Z"/></svg>
+      </button>
+      <button id="ev-btn" class="ev-btn" onclick="openEvModal()" aria-label="EV dashboard" title="EV" style="display:none">
+        <span class="hdr-emoji">🚗</span>
+        <svg class="hdr-svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6,11L7,7H17L18,11M18.92,6C18.71,5.4 18.14,5 17.5,5H6.5C5.86,5 5.29,5.4 5.08,6L3,12V20A1,1 0 0,0 4,21H5A1,1 0 0,0 6,20V18H18V20A1,1 0 0,0 19,21H20A1,1 0 0,0 21,20V12L18.92,6M7,16H5V14H7V16M19,16H17V14H19V16M14,16H10V14H14V16Z"/></svg>
+      </button>
+      <button id="theme-toggle" class="theme-toggle-btn" onclick="toggleTheme()" aria-label="Toggle dark mode">
+        <span class="hdr-emoji">🔆</span>
+        <svg class="hdr-svg hdr-svg-light" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="4.22" y1="4.22" x2="7.05" y2="7.05"/><line x1="16.95" y1="16.95" x2="19.78" y2="19.78"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/><line x1="4.22" y1="19.78" x2="7.05" y2="16.95"/><line x1="16.95" y1="7.05" x2="19.78" y2="4.22"/></svg>
+        <svg class="hdr-svg hdr-svg-dark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
       <span id="clock" class="clock"></span>
     </div>
   </header>
@@ -67,7 +84,11 @@
   <div id="energy-modal" class="energy-modal" style="display:none" onclick="closeEnergyModal()">
     <div class="energy-modal-inner" onclick="event.stopPropagation()">
       <div class="energy-modal-hdr">
-        <span class="energy-modal-title">⚡ Energy</span>
+        <span class="energy-modal-title">
+          <span class="hdr-emoji">⚡</span>
+          <svg class="hdr-svg modal-title-svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M5 20V12H2L12 3L22 12H19V20H5M12 5.69L7 10.19V18H17V10.19L12 5.69M11.5 18V14H9L12.5 7V11H15L11.5 18Z"/></svg>
+          Energy
+        </span>
         <div class="energy-tabs">
           <button id="energy-tab-live"    class="energy-tab active" onclick="switchEnergyTab('live')">Live</button>
           <button id="energy-tab-devices" class="energy-tab"        onclick="switchEnergyTab('devices')">Devices</button>
@@ -85,7 +106,11 @@
   <div id="weather-modal" class="weather-modal" style="display:none" onclick="closeWeatherModal()">
     <div class="weather-modal-inner" onclick="event.stopPropagation()">
       <div class="weather-modal-hdr">
-        <span class="weather-modal-title">🌤️ Weather</span>
+        <span class="weather-modal-title">
+          <span class="hdr-emoji">🌤️</span>
+          <svg class="hdr-svg modal-title-svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6,19A5,5 0 0,1 1,14A5,5 0 0,1 6,9C7,6.65 9.3,5 12,5C15.43,5 18.24,7.66 18.5,11.03L19,11A4,4 0 0,1 23,15A4,4 0 0,1 19,19H6M19,13H17V12A5,5 0 0,0 12,7C9.5,7 7.45,8.82 7.06,11.19C6.73,11.07 6.37,11 6,11A3,3 0 0,0 3,14A3,3 0 0,0 6,17H19A2,2 0 0,0 21,15A2,2 0 0,0 19,13Z"/></svg>
+          Weather
+        </span>
         <div class="weather-tabs">
           <button id="weather-tab-today" class="weather-tab active" onclick="switchWeatherTab('today')">Today</button>
           <button id="weather-tab-week"  class="weather-tab"        onclick="switchWeatherTab('week')">7 Days</button>
@@ -102,7 +127,11 @@
   <div id="ev-modal" class="ev-modal" style="display:none" onclick="closeEvModal()">
     <div class="ev-modal-inner" onclick="event.stopPropagation()">
       <div class="ev-modal-hdr">
-        <span class="ev-modal-title">🚗 EV</span>
+        <span class="ev-modal-title">
+          <span class="hdr-emoji">🚗</span>
+          <svg class="hdr-svg modal-title-svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6,11L7,7H17L18,11M18.92,6C18.71,5.4 18.14,5 17.5,5H6.5C5.86,5 5.29,5.4 5.08,6L3,12V20A1,1 0 0,0 4,21H5A1,1 0 0,0 6,20V18H18V20A1,1 0 0,0 19,21H20A1,1 0 0,0 21,20V12L18.92,6M7,16H5V14H7V16M19,16H17V14H19V16M14,16H10V14H14V16Z"/></svg>
+          EV
+        </span>
         <button class="ev-close-btn" onclick="closeEvModal()">✕</button>
       </div>
       <div id="ev-body" class="ev-body">

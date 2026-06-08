@@ -636,12 +636,48 @@
 
     <!-- Flow Position -->
     <div class="card collapsible" data-collapse-key="designFlowPosition">
-      <div class="card-title" data-i18n="flowPositionTitle">Flow Position</div>
+      <div class="card-title" data-i18n="flowPositionTitle">Shortcut Bar Position</div>
+      <div class="hint" data-i18n="flowPositionHint">Defines where the shortcut bar appears — containing flow buttons, weather tile, Energy and EV shortcuts.</div>
       <div class="seg-btn-group" id="flow-position-group">
         <button class="seg-btn active" data-value="top"    onclick="setFlowPosition('top')"    data-i18n="flowPositionTop">Above devices</button>
         <button class="seg-btn"        data-value="bottom" onclick="setFlowPosition('bottom')" data-i18n="flowPositionBottom">Below devices</button>
       </div>
       <div class="status" id="flow-position-status"></div>
+    </div>
+
+    <!-- Background Style -->
+    <div class="card collapsible" data-collapse-key="designBgStyle">
+      <div class="card-title" data-i18n="bgStyleTitle">Background</div>
+      <div class="hint" data-i18n="bgStyleHint">Flat: solid color (default). Gradient: subtle color blend. Glass: gradient with frosted-glass tiles using blur effect.</div>
+      <div class="seg-btn-group" id="bg-style-group">
+        <button class="seg-btn active" data-value="flat"     onclick="setBgStyle('flat')"     data-i18n="bgStyleFlat">Flat</button>
+        <button class="seg-btn"        data-value="gradient" onclick="setBgStyle('gradient')" data-i18n="bgStyleGradient">Gradient</button>
+        <button class="seg-btn"        data-value="glass"    onclick="setBgStyle('glass')"    data-i18n="bgStyleGlass">Glass</button>
+      </div>
+      <div class="status" id="bg-style-status"></div>
+    </div>
+
+    <!-- Animations -->
+    <div class="card collapsible" data-collapse-key="designAnimMode">
+      <div class="card-title" data-i18n="animModeTitle">Animations</div>
+      <div class="hint" data-i18n="animModeHint">Off: no transitions or effects. Default: subtle transitions. Lively: spring bounce on tap, tiles fade in on load.</div>
+      <div class="seg-btn-group" id="anim-mode-group">
+        <button class="seg-btn"        data-value="off"     onclick="setAnimMode('off')"     data-i18n="animModeOff">Off</button>
+        <button class="seg-btn active" data-value="default" onclick="setAnimMode('default')" data-i18n="animModeDefault">Default</button>
+        <button class="seg-btn"        data-value="lively"  onclick="setAnimMode('lively')"  data-i18n="animModeLively">Lively</button>
+      </div>
+      <div class="status" id="anim-mode-status"></div>
+    </div>
+
+    <!-- Header Icons -->
+    <div class="card collapsible" data-collapse-key="designHeaderIcons">
+      <div class="card-title" data-i18n="headerIconsTitle">Header Icons</div>
+      <div class="hint" data-i18n="headerIconsHint">Emoji: classic emoji icons (default). SVG: clean line icons that adapt to any color scheme.</div>
+      <div class="seg-btn-group" id="header-icons-group">
+        <button class="seg-btn active" data-value="emoji" onclick="setHeaderIconStyle('emoji')" data-i18n="headerIconsEmoji">Emoji</button>
+        <button class="seg-btn"        data-value="svg"   onclick="setHeaderIconStyle('svg')"   data-i18n="headerIconsSvg">SVG</button>
+      </div>
+      <div class="status" id="header-icons-status"></div>
     </div>
 
     <!-- Accent Color -->
@@ -1074,6 +1110,23 @@
         dashboardTitleLabel: 'Name shown in the header',
         dashboardTitleHint:  '💡 Default: "My Homey". Shown in the top-left of the dashboard.',
         dashboardTitleSaved: 'Title saved',
+        bgStyleTitle:    'Background',
+        bgStyleHint:     'Flat: solid color (default). Gradient: subtle color blend. Glass: gradient with frosted-glass tiles using blur effect.',
+        bgStyleFlat:     'Flat',
+        bgStyleGradient: 'Gradient',
+        bgStyleGlass:    'Glass',
+        bgStyleSaved:    'Saved',
+        animModeTitle:   'Animations',
+        animModeHint:    'Off: no transitions or effects. Default: subtle transitions. Lively: spring bounce on tap, tiles fade in on load.',
+        animModeOff:     'Off',
+        animModeDefault: 'Default',
+        animModeLively:  'Lively',
+        animModeSaved:   'Saved',
+        headerIconsTitle: 'Header Icons',
+        headerIconsHint:  'Emoji: classic emoji icons (default). SVG: clean line icons that adapt to any color scheme.',
+        headerIconsEmoji: 'Emoji',
+        headerIconsSvg:   'SVG',
+        headerIconsSaved: 'Saved',
         accentColorTitle:   'Accent Color',
         accentColorHint:    '💡 Used for highlights, toggles and active tiles. Default: #F5A623',
         accentColorSaved:   'Color saved',
@@ -1147,13 +1200,14 @@
         flowConfirmLabel:   'Ask before starting a flow',
         flowConfirmHint:    'When enabled, a confirmation dialog appears before any flow is started.',
         flowConfirmSaved:   'Setting saved',
-        flowPositionTitle:  'Flow Position',
+        flowPositionTitle:  'Shortcut Bar Position',
+        flowPositionHint:   'Defines where the shortcut bar appears — containing flow buttons, weather tile, Energy and EV shortcuts.',
         flowPositionTop:    'Above devices',
         flowPositionBottom: 'Below devices',
         flowPositionSaved:  'Saved',
         patTitle:         'Homey API Token',
         patLabel:         'Personal Access Token (required for Flow triggering)',
-        patHint:          '💡 Create at: my.homey.app → ⚙ → API → New Token. Required to start flows from the dashboard.',
+        patHint:          '💡 Requires Homey Pro 2023 or later. Create at: my.homey.app → ⚙ → API → New Token. Required to start flows from the dashboard.',
         patSaved:         'Token saved',
         patRemoved:       'Token removed',
         devicesTitle:     'Devices on Dashboard',
@@ -1256,6 +1310,23 @@
         dashboardTitleLabel: 'Name in der Kopfzeile',
         dashboardTitleHint:  '💡 Standard: "My Homey". Wird oben links im Dashboard angezeigt.',
         dashboardTitleSaved: 'Titel gespeichert',
+        bgStyleTitle:    'Hintergrund',
+        bgStyleHint:     'Einfarbig: einheitliche Hintergrundfarbe (Standard). Verlauf: subtiler Farbverlauf. Glas: Verlauf mit Milchglas-Kacheln (Blur-Effekt).',
+        bgStyleFlat:     'Einfarbig',
+        bgStyleGradient: 'Verlauf',
+        bgStyleGlass:    'Glas',
+        bgStyleSaved:    'Gespeichert',
+        animModeTitle:   'Animationen',
+        animModeHint:    'Aus: keine Übergänge oder Effekte. Standard: dezente Übergänge. Lebendig: Federbounce beim Tippen, Kacheln blenden beim Laden ein.',
+        animModeOff:     'Aus',
+        animModeDefault: 'Standard',
+        animModeLively:  'Lebendig',
+        animModeSaved:   'Gespeichert',
+        headerIconsTitle: 'Header-Icons',
+        headerIconsHint:  'Emoji: klassische Emoji-Icons (Standard). SVG: cleane Liniensymbole, die sich an jedes Farbschema anpassen.',
+        headerIconsEmoji: 'Emoji',
+        headerIconsSvg:   'SVG',
+        headerIconsSaved: 'Gespeichert',
         accentColorTitle:   'Akzentfarbe',
         accentColorHint:    '💡 Farbe für Highlights, Toggles und aktive Kacheln. Standard: #F5A623',
         accentColorSaved:   'Farbe gespeichert',
@@ -1329,13 +1400,14 @@
         flowConfirmLabel:   'Vor dem Starten eines Flows bestätigen',
         flowConfirmHint:    'Wenn aktiviert, erscheint vor jedem Flow-Start ein Bestätigungs-Dialog.',
         flowConfirmSaved:   'Einstellung gespeichert',
-        flowPositionTitle:  'Flow-Position',
+        flowPositionTitle:  'Schnellzugriff-Leiste',
+        flowPositionHint:   'Legt fest, wo die Schnellzugriff-Leiste erscheint — sie enthält Flow-Schaltflächen, die Wetter-Kachel sowie Energy- und EV-Shortcuts.',
         flowPositionTop:    'Über den Geräten',
         flowPositionBottom: 'Unter den Geräten',
         flowPositionSaved:  'Gespeichert',
         patTitle:         'Homey API Token',
         patLabel:         'Personal Access Token (für Flow-Auslösung erforderlich)',
-        patHint:          '💡 Erstellen unter: my.homey.app → ⚙ → API → Neues Token. Wird benötigt, um Flows vom Dashboard zu starten.',
+        patHint:          '💡 Erfordert Homey Pro 2023 oder neuer. Erstellen unter: my.homey.app → ⚙ → API → Neues Token. Wird benötigt, um Flows vom Dashboard zu starten.',
         patSaved:         'Token gespeichert',
         patRemoved:       'Token entfernt',
         devicesTitle:     'Geräte auf Dashboard',
@@ -1759,6 +1831,9 @@
       var savedTileColorOff   = await hGetSafe('tileColorOff',  '');
       var savedTileColorFlow  = await hGetSafe('tileColorFlow', '#AF52DE');
       var savedTileRadius     = await hGetSafe('tileRadius', 'rounded');
+      var savedBgStyle          = await hGetSafe('bgStyle', 'flat');
+      var savedAnimMode         = await hGetSafe('animMode', 'default');
+      var savedHeaderIconStyle  = await hGetSafe('headerIconStyle', 'emoji');
       var savedHeaderHidden   = await hGetSafe('headerHidden', false);
       var savedViewDefault    = await hGetSafe('viewDefault', 'all');
       var savedViewBtnHidden    = await hGetSafe('viewBtnHidden', false);
@@ -1796,6 +1871,9 @@
       if (tcFlowInp) tcFlowInp.value = savedTileColorFlow;
       if (tcFlowHex) tcFlowHex.textContent = savedTileColorFlow;
       setTileRadius(savedTileRadius, true);
+      setBgStyle(savedBgStyle, true);
+      setAnimMode(savedAnimMode, true);
+      setHeaderIconStyle(savedHeaderIconStyle, true);
       document.getElementById('header-hidden-toggle').checked = !savedHeaderHidden;
       document.getElementById('view-btn-toggle').checked = !savedViewBtnHidden;
       setViewDefault(savedViewDefault, true);
@@ -2225,6 +2303,39 @@
         await hSet('tileRadius', value);
         showStatus('tile-radius-status', T.tileRadiusSaved, true);
       } catch (e) { showStatus('tile-radius-status', T.errorPrefix + e.message, false); }
+    }
+
+    async function setBgStyle(value, silent) {
+      document.querySelectorAll('#bg-style-group .seg-btn').forEach(function(btn) {
+        btn.classList.toggle('active', btn.getAttribute('data-value') === value);
+      });
+      if (silent) return;
+      try {
+        await hSet('bgStyle', value);
+        showStatus('bg-style-status', T.bgStyleSaved, true);
+      } catch (e) { showStatus('bg-style-status', T.errorPrefix + e.message, false); }
+    }
+
+    async function setAnimMode(value, silent) {
+      document.querySelectorAll('#anim-mode-group .seg-btn').forEach(function(btn) {
+        btn.classList.toggle('active', btn.getAttribute('data-value') === value);
+      });
+      if (silent) return;
+      try {
+        await hSet('animMode', value);
+        showStatus('anim-mode-status', T.animModeSaved, true);
+      } catch (e) { showStatus('anim-mode-status', T.errorPrefix + e.message, false); }
+    }
+
+    async function setHeaderIconStyle(value, silent) {
+      document.querySelectorAll('#header-icons-group .seg-btn').forEach(function(btn) {
+        btn.classList.toggle('active', btn.getAttribute('data-value') === value);
+      });
+      if (silent) return;
+      try {
+        await hSet('headerIconStyle', value);
+        showStatus('header-icons-status', T.headerIconsSaved, true);
+      } catch (e) { showStatus('header-icons-status', T.errorPrefix + e.message, false); }
     }
 
     async function saveHeaderHidden() {

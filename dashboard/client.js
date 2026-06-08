@@ -947,7 +947,11 @@
   function applyTheme(t) {
     document.documentElement.setAttribute('data-theme', t === 'dark' ? 'dark' : '');
     var btn = document.getElementById('theme-toggle');
-    if (btn) btn.textContent = t === 'dark' ? '🌙' : '🔆';
+    if (btn) {
+      var emoji = btn.querySelector('.hdr-emoji');
+      if (emoji) emoji.textContent = t === 'dark' ? '🌙' : '🔆';
+      else btn.textContent = t === 'dark' ? '🌙' : '🔆';
+    }
   }
 
   function toggleTheme() {
@@ -985,7 +989,11 @@
     var btn = document.getElementById('view-toggle');
     if (!btn) return;
     btn.style.display = _viewBtnHidden ? 'none' : '';
-    btn.textContent = viewMode === 'zones' ? '⊞ All' : '⊟ Rooms';
+    var label = viewMode === 'zones' ? '⊞ All' : '⊟ Rooms';
+    var emoji = btn.querySelector('.hdr-emoji');
+    if (emoji) emoji.textContent = label;
+    else btn.textContent = label;
+    document.body.classList.toggle('view-zones', viewMode === 'zones');
     btn.setAttribute('aria-label', viewMode === 'zones' ? 'Show all devices' : 'Group by rooms');
   }
 
@@ -1206,6 +1214,19 @@
           root.style.removeProperty('--tc-flow-bg');
           root.style.removeProperty('--tc-flow-border');
         }
+        // Hintergrund-Stil
+        var bgStyle = cfg.bgStyle || 'flat';
+        document.body.classList.remove('bg-gradient', 'bg-glass');
+        if (bgStyle === 'gradient') document.body.classList.add('bg-gradient');
+        if (bgStyle === 'glass')    document.body.classList.add('bg-glass');
+        // Animations-Modus
+        var animMode = cfg.animMode || 'default';
+        document.body.classList.remove('anim-off', 'anim-lively');
+        if (animMode === 'off')    document.body.classList.add('anim-off');
+        if (animMode === 'lively') document.body.classList.add('anim-lively');
+        // Header Icon Style
+        var headerIconStyle = cfg.headerIconStyle || 'emoji';
+        document.body.classList.toggle('hdr-icons-svg', headerIconStyle === 'svg');
         // Header ausblenden
         _headerHidden = cfg.headerHidden === true;
         var header = document.querySelector('.header');
@@ -1603,7 +1624,6 @@
   function buildWeatherTile() {
     var tile = createElement('div', 'weather-widget');
     tile.id = 'weather-widget';
-    tile.style.cursor = 'pointer';
     tile.addEventListener('click', openWeatherModal);
 
     if (!_weatherData || !_weatherData.current) {
@@ -1659,6 +1679,11 @@
     var grid = createElement('div', 'flow-grid' + (_flowTileMatch ? ' flow-grid-fixed' : ''));
     section.appendChild(grid);
     container.appendChild(section);
+
+    // Weather tile — always in the flow grid when enabled
+    if (_weatherEnabled && _weatherLat && _weatherLon) {
+      grid.appendChild(buildWeatherTile());
+    }
 
     // Dashboard-Shortcut-Tiles: nur wenn Header ausgeblendet
     if (_headerHidden) {
@@ -1789,11 +1814,6 @@
     updateViewToggle();
     var container = document.getElementById('zones-container');
     container.innerHTML = '';
-
-    // Weather Widget
-    if (_weatherEnabled && _weatherLat && _weatherLon) {
-      container.appendChild(buildWeatherTile());
-    }
 
     // null = alle anzeigen, [] = keine, [ids] = spezifische
     var showFlows = _enabledFlows === null || (_enabledFlows && _enabledFlows.length > 0);

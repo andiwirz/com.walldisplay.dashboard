@@ -45,6 +45,110 @@
   filter: brightness(0) saturate(100%) invert(70%) sepia(80%) saturate(500%) hue-rotate(10deg) brightness(110%);
 }
 
+/* ── Animation Modes ─────────────────────────── */
+
+/* Off: alle Transitions und Animationen deaktivieren */
+body.anim-off *, body.anim-off *::before, body.anim-off *::after {
+  transition: none !important;
+  animation: none !important;
+}
+
+/* Lively: verstärkte Animationen */
+body.anim-lively .device-card {
+  transition: background 0.25s, box-shadow 0.25s, transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+}
+body.anim-lively .device-card.clickable:active {
+  transform: scale(0.93) !important;
+  transition: transform 0.1s ease !important;
+}
+body.anim-lively .flow-tile {
+  transition: background 0.2s, border-color 0.2s, transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+}
+body.anim-lively .flow-tile:active {
+  transform: scale(0.91) !important;
+  transition: transform 0.08s ease !important;
+}
+body.anim-lively .weather-widget {
+  transition: opacity 0.2s, transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+}
+body.anim-lively .weather-widget:active {
+  transform: scale(0.95) !important;
+}
+
+/* Lively: Tile-Einblendanimation beim Rendern */
+@keyframes tile-appear {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+body.anim-lively .device-card {
+  animation: tile-appear 0.3s ease both;
+}
+body.anim-lively .flow-tile {
+  animation: tile-appear 0.3s ease both;
+}
+
+/* ── Background Styles ────────────────────────── */
+
+/* Gradient — light */
+body.bg-gradient {
+  background: linear-gradient(145deg, #e8eeff 0%, #f2f2f7 45%, #f0f8f0 100%);
+}
+/* Gradient — dark */
+[data-theme="dark"] body.bg-gradient,
+body[data-theme="dark"].bg-gradient {
+  background: linear-gradient(145deg, #1a1a2e 0%, #1c1c1e 50%, #0d1a14 100%);
+}
+
+/* Glass — light: gradient bg + frosted tiles */
+body.bg-glass {
+  background: linear-gradient(145deg, #dce8ff 0%, #eef4ff 40%, #e8f0ff 100%);
+}
+body.bg-glass .device-card,
+body.bg-glass .flow-tile,
+body.bg-glass .weather-widget,
+body.bg-glass .header {
+  background: rgba(255, 255, 255, 0.55) !important;
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border-color: rgba(255, 255, 255, 0.6) !important;
+}
+body.bg-glass .device-card.on {
+  background: rgba(255, 248, 236, 0.7) !important;
+}
+/* Glass — dark */
+[data-theme="dark"] body.bg-glass,
+body[data-theme="dark"].bg-glass {
+  background: linear-gradient(145deg, #0d1020 0%, #1c1c1e 50%, #0a1510 100%);
+}
+body[data-theme="dark"].bg-glass .device-card,
+body[data-theme="dark"].bg-glass .flow-tile,
+body[data-theme="dark"].bg-glass .weather-widget,
+body[data-theme="dark"].bg-glass .header,
+[data-theme="dark"] body.bg-glass .device-card,
+[data-theme="dark"] body.bg-glass .flow-tile,
+[data-theme="dark"] body.bg-glass .weather-widget,
+[data-theme="dark"] body.bg-glass .header {
+  background: rgba(44, 44, 46, 0.55) !important;
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+/* Glass + Tile Colors: Kachelfarben bleiben aktiv, backdrop-filter vom Basis-Glas bleibt */
+body.bg-glass.tile-colors-subtle .device-card.on:not(.open),
+body.bg-glass.tile-colors-strong .device-card.on:not(.open) {
+  background: var(--tc-on-bg, rgba(255,248,236,0.7)) !important;
+}
+body.bg-glass.tile-colors-subtle .device-card.is-switchable:not(.on):not(.open),
+body.bg-glass.tile-colors-strong .device-card.is-switchable:not(.on):not(.open) {
+  background: var(--tc-off-bg, rgba(255,255,255,0.55)) !important;
+}
+body.bg-glass.tile-colors-subtle .flow-tile:not(.dashboard-shortcut-tile),
+body.bg-glass.tile-colors-strong .flow-tile:not(.dashboard-shortcut-tile) {
+  background: var(--tc-flow-bg, rgba(255,255,255,0.55)) !important;
+  border-color: var(--tc-flow-border, rgba(255,255,255,0.6)) !important;
+}
+
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 html, body {
@@ -80,6 +184,7 @@ html, body {
   gap: 10px;
 }
 
+.logo rect { fill: var(--accent); }
 .logo {
   width: 30px;
   height: 30px;
@@ -280,8 +385,8 @@ body.tile-colors-strong .device-card.is-switchable:not(.on):not(.open) {
   background: var(--tc-off-bg, var(--surface));
 }
 
-body.tile-colors-subtle .flow-tile,
-body.tile-colors-strong .flow-tile {
+body.tile-colors-subtle .flow-tile:not(.dashboard-shortcut-tile),
+body.tile-colors-strong .flow-tile:not(.dashboard-shortcut-tile) {
   background: var(--tc-flow-bg, var(--surface));
   border-color: var(--tc-flow-border, var(--border));
 }
@@ -1846,6 +1951,34 @@ body.tile-colors-strong .flow-tile {
 }
 .weather-hdr-btn:hover { color: var(--accent); }
 
+/* ── Header Icon Style (Emoji / SVG) ─────────── */
+/* SVG icons are hidden by default; emoji spans always visible */
+.hdr-svg {
+  display: none;
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+  vertical-align: middle;
+}
+/* In SVG mode: hide emoji, show SVGs */
+body.hdr-icons-svg .hdr-emoji { display: none; }
+body.hdr-icons-svg .hdr-svg   { display: inline-block; }
+
+/* Modal title SVGs slightly larger */
+.modal-title-svg { width: 22px; height: 22px; margin-right: 4px; vertical-align: middle; }
+
+/* Theme toggle: only one SVG shown at a time */
+body.hdr-icons-svg #theme-toggle .hdr-svg-dark  { display: none; }
+body.hdr-icons-svg #theme-toggle .hdr-svg-light { display: inline-block; }
+html[data-theme="dark"] body.hdr-icons-svg #theme-toggle .hdr-svg-light { display: none; }
+html[data-theme="dark"] body.hdr-icons-svg #theme-toggle .hdr-svg-dark  { display: inline-block; }
+
+/* View toggle: show grid/rooms icon depending on current mode */
+body.hdr-icons-svg #view-toggle .hdr-svg-all   { display: inline-block; }
+body.hdr-icons-svg #view-toggle .hdr-svg-rooms { display: none; }
+body.view-zones.hdr-icons-svg #view-toggle .hdr-svg-all   { display: none; }
+body.view-zones.hdr-icons-svg #view-toggle .hdr-svg-rooms { display: inline-block; }
+
 /* ── EV Modal ─────────────────────────────────── */
 .ev-modal {
   position: fixed;
@@ -2228,30 +2361,36 @@ body.tile-colors-strong .flow-tile {
 .wm-spinner   { display: flex; justify-content: center; padding: 40px; }
 .wm-empty     { text-align: center; color: var(--text-muted); padding: 40px; font-size: 14px; }
 
-/* ── Weather Widget ─────────────────────────────────────────────────────── */
+/* ── Weather Widget (flow-grid tile) ────────────────────────────────────── */
 .weather-widget {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 16px;
+  justify-content: center;
+  gap: 6px;
   background: var(--surface);
   border-radius: var(--radius);
-  padding: 14px 18px;
-  margin-bottom: 12px;
+  padding: 12px 14px;
   box-shadow: var(--shadow);
   overflow: hidden;
+  cursor: pointer;
+  min-width: var(--tile-min, 130px);
+  flex: 1 1 var(--tile-min, 130px);
+  max-width: calc(var(--tile-min, 130px) * 2);
+  transition: opacity 0.15s;
 }
+.weather-widget:hover { opacity: 0.85; }
 .weather-left {
   display: flex;
   align-items: center;
-  gap: 10px;
-  flex-shrink: 0;
+  gap: 8px;
 }
 .weather-emoji {
-  font-size: 38px;
+  font-size: 30px;
   line-height: 1;
 }
 .weather-temp {
-  font-size: 30px;
+  font-size: 26px;
   font-weight: 700;
   color: var(--text);
   line-height: 1;
@@ -2259,27 +2398,30 @@ body.tile-colors-strong .flow-tile {
 .weather-right {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  align-items: center;
+  gap: 2px;
   min-width: 0;
+  width: 100%;
 }
 .weather-city {
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 700;
   color: var(--text);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  max-width: 100%;
 }
 .weather-desc {
-  font-size: 12px;
+  font-size: 11px;
   color: var(--text-muted);
 }
 .weather-meta {
   display: flex;
-  gap: 12px;
-  font-size: 12px;
+  gap: 8px;
+  font-size: 11px;
   color: var(--text-muted);
-  margin-top: 2px;
+  margin-top: 1px;
 }
 
 .empty-state {

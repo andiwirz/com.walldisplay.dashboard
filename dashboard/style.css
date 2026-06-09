@@ -53,39 +53,56 @@ body.anim-off *, body.anim-off *::before, body.anim-off *::after {
   animation: none !important;
 }
 
-/* Lively: verstärkte Animationen */
+/* Lively: verstärkte Transitions + Spring-Bounce */
 body.anim-lively .device-card {
-  transition: background 0.25s, box-shadow 0.25s, transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+  transition: background 0.25s, box-shadow 0.3s, transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+}
+body.anim-lively .device-card.clickable:hover {
+  transform: translateY(-3px) scale(1.02) !important;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.18) !important;
 }
 body.anim-lively .device-card.clickable:active {
-  transform: scale(0.93) !important;
-  transition: transform 0.1s ease !important;
-}
-body.anim-lively .flow-tile {
-  transition: background 0.2s, border-color 0.2s, transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
-}
-body.anim-lively .flow-tile:active {
-  transform: scale(0.91) !important;
+  transform: scale(0.88) !important;
   transition: transform 0.08s ease !important;
 }
-body.anim-lively .weather-widget {
-  transition: opacity 0.2s, transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+body.anim-lively .flow-tile {
+  transition: background 0.2s, border-color 0.2s, transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+}
+body.anim-lively .flow-tile:hover {
+  transform: translateY(-3px) scale(1.03) !important;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.15) !important;
+}
+body.anim-lively .flow-tile:active {
+  transform: scale(0.88) !important;
+  transition: transform 0.08s ease !important;
 }
 body.anim-lively .weather-widget:active {
   transform: scale(0.95) !important;
+  transition: transform 0.08s ease !important;
 }
 
-/* Lively: Tile-Einblendanimation beim Rendern */
+/* Lively: Tile-Einblendanimation mit Spring-Bounce + Stagger */
 @keyframes tile-appear {
-  from { opacity: 0; transform: translateY(10px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; transform: translateY(16px) scale(0.95); }
+  to   { opacity: 1; transform: translateY(0)    scale(1); }
 }
-body.anim-lively .device-card {
-  animation: tile-appear 0.3s ease both;
-}
+body.anim-lively .device-card,
 body.anim-lively .flow-tile {
-  animation: tile-appear 0.3s ease both;
+  animation: tile-appear 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) both;
 }
+body.anim-lively .device-card:nth-child(1),  body.anim-lively .flow-tile:nth-child(1)  { animation-delay: 0.03s; }
+body.anim-lively .device-card:nth-child(2),  body.anim-lively .flow-tile:nth-child(2)  { animation-delay: 0.07s; }
+body.anim-lively .device-card:nth-child(3),  body.anim-lively .flow-tile:nth-child(3)  { animation-delay: 0.11s; }
+body.anim-lively .device-card:nth-child(4),  body.anim-lively .flow-tile:nth-child(4)  { animation-delay: 0.15s; }
+body.anim-lively .device-card:nth-child(5),  body.anim-lively .flow-tile:nth-child(5)  { animation-delay: 0.19s; }
+body.anim-lively .device-card:nth-child(6),  body.anim-lively .flow-tile:nth-child(6)  { animation-delay: 0.23s; }
+body.anim-lively .device-card:nth-child(7),  body.anim-lively .flow-tile:nth-child(7)  { animation-delay: 0.27s; }
+body.anim-lively .device-card:nth-child(8),  body.anim-lively .flow-tile:nth-child(8)  { animation-delay: 0.31s; }
+body.anim-lively .device-card:nth-child(9),  body.anim-lively .flow-tile:nth-child(9)  { animation-delay: 0.34s; }
+body.anim-lively .device-card:nth-child(10), body.anim-lively .flow-tile:nth-child(10) { animation-delay: 0.37s; }
+body.anim-lively .device-card:nth-child(11), body.anim-lively .flow-tile:nth-child(11) { animation-delay: 0.40s; }
+body.anim-lively .device-card:nth-child(12), body.anim-lively .flow-tile:nth-child(12) { animation-delay: 0.43s; }
+body.anim-lively .device-card:nth-child(n+13), body.anim-lively .flow-tile:nth-child(n+13) { animation-delay: 0.46s; }
 
 /* ── Background Styles ────────────────────────── */
 
@@ -1694,6 +1711,61 @@ body.tile-colors-strong .flow-tile:not(.dashboard-shortcut-tile) {
   .speaker-btn-prev,
   .speaker-btn-next   { width: 54px; height: 54px; }
   .speaker-btn-play   { width: 68px; height: 68px; }
+}
+
+/* ── Lock-Modal ──────────────────────────────────── */
+.lock-modal {
+  position: fixed; inset: 0; z-index: 1100;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(0,0,0,0.45); backdrop-filter: blur(4px);
+}
+.lock-modal-inner {
+  background: var(--surface);
+  border-radius: 20px;
+  padding: 24px;
+  min-width: 260px; max-width: 340px; width: 88%;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.3);
+}
+.lock-modal-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 16px;
+}
+.lock-modal-name {
+  font-size: 16px; font-weight: 600; color: var(--text);
+}
+.lock-modal-close {
+  background: none; border: none; cursor: pointer;
+  font-size: 18px; color: var(--text-secondary); padding: 4px 8px;
+  border-radius: 8px;
+}
+.lock-modal-close:hover { background: var(--bg); }
+.lock-modal-status {
+  text-align: center; font-size: 22px; font-weight: 700;
+  padding: 14px 12px; border-radius: 12px;
+  background: var(--bg); margin-bottom: 16px;
+  transition: color 0.2s;
+}
+.lock-modal-status.locked   { color: var(--accent); }
+.lock-modal-status.unlocked { color: var(--text-secondary); }
+.lock-modal-actions {
+  display: flex; flex-direction: column; gap: 8px;
+}
+.lock-action-btn {
+  background: var(--bg);
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  padding: 13px 16px;
+  font-size: 15px; font-weight: 500;
+  cursor: pointer; text-align: left;
+  color: var(--text);
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+.lock-action-btn.active {
+  border-color: var(--accent); color: var(--accent);
+  font-weight: 600;
+}
+.lock-action-btn:hover {
+  background: var(--accent); color: #fff; border-color: var(--accent);
 }
 
 /* ── Thermostat-Modal ─────────────────────────────── */

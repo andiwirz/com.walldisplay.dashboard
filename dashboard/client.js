@@ -32,6 +32,8 @@
     VOLUME_MUTE:     'volume_mute',
     TARGET_TEMP:     'target_temperature',
     THERMOSTAT_MODE: 'thermostat_mode',
+    LOCKED:          'locked',
+    LOCK_MODE:       'lock_mode',
   };
 
   var zones = {};
@@ -1225,7 +1227,7 @@
         if (animMode === 'off')    document.body.classList.add('anim-off');
         if (animMode === 'lively') document.body.classList.add('anim-lively');
         // Header Icon Style
-        var headerIconStyle = cfg.headerIconStyle || 'emoji';
+        var headerIconStyle = cfg.headerIconStyle || 'svg';
         document.body.classList.toggle('hdr-icons-svg', headerIconStyle === 'svg');
         // Header ausblenden
         _headerHidden = cfg.headerHidden === true;
@@ -1942,15 +1944,17 @@
     var hasWcState = capIds.indexOf(CAP.WC_STATE) !== -1 && capIds.indexOf(CAP.WC_SET) === -1;
     var isSpeaker    = d.class === 'speaker' || d.class === 'mediaplayer';
     var isThermostat = capIds.indexOf(CAP.TARGET_TEMP) !== -1;
+    var isLock       = d.class === 'lock';
     var isOn         = hasOnOff && caps[CAP.ONOFF] && caps[CAP.ONOFF].value === true;
     var alarmCap  = hasAlarm ? getAlarmCapability(d) : null;
     var isArmed   = alarmCap ? alarmIsArmed(alarmCap.value) : false;
     var wcState   = hasWcState && caps[CAP.WC_STATE] ? caps[CAP.WC_STATE].value : null;
+    var isLocked  = isLock && caps[CAP.LOCKED] && caps[CAP.LOCKED].value === true;
 
-    if (isOn || isArmed) card.classList.add('on');
+    if (isOn || isArmed || isLocked) card.classList.add('on');
     if (wcState === 'up') card.classList.add('on');
     if (caps[CAP.INPUT_EXT_1] && caps[CAP.INPUT_EXT_1].value === true) card.classList.add('open');
-    if (hasOnOff || hasDim || hasAlarm || hasWcState) card.classList.add('is-switchable');
+    if (hasOnOff || hasDim || hasAlarm || hasWcState || isLock) card.classList.add('is-switchable');
 
     if (d.class === 'camera' || d.class === 'doorbell') {
       card.classList.add('clickable');
@@ -1982,7 +1986,15 @@
       }(d.id));
     }
 
-    if (!isSpeaker && !isThermostat && (hasAlarm || hasOnOff)) {
+    // Lock → Modal öffnen (Modal = Bestätigung + Aktionsauswahl)
+    if (isLock) {
+      card.classList.add('clickable');
+      (function (deviceId) {
+        card.addEventListener('click', function () { openLockModal(deviceId); });
+      }(d.id));
+    }
+
+    if (!isSpeaker && !isThermostat && !isLock && (hasAlarm || hasOnOff)) {
       card.classList.add('clickable');
       (function (deviceId) {
         card.addEventListener('click', function (e) {
@@ -2090,6 +2102,11 @@
     var hasOnOff   = capIds.indexOf(CAP.ONOFF) !== -1;
     var hasAlarm   = d.class === 'homealarm' || capIds.indexOf(CAP.HOMEALARM) !== -1;
     var hasWcState = capIds.indexOf(CAP.WC_STATE) !== -1 && capIds.indexOf(CAP.WC_SET) === -1;
+
+    if (d.class === 'lock') {
+      var lkLocked = caps[CAP.LOCKED] && caps[CAP.LOCKED].value === true;
+      return lkLocked ? 'Locked' : 'Unlocked';
+    }
 
     if (d.class === 'speaker' || d.class === 'mediaplayer') {
       var track   = caps[CAP.SPEAKER_TRACK]  && caps[CAP.SPEAKER_TRACK].value;
@@ -2302,8 +2319,10 @@
     var alarmCapU  = hasAlarm ? getAlarmCapability(d) : null;
     var isArmed    = alarmCapU ? alarmIsArmed(alarmCapU.value) : false;
     var wcStateVal = hasWcState && caps[CAP.WC_STATE] ? caps[CAP.WC_STATE].value : null;
+    var isLockU    = d.class === 'lock';
+    var isLockedU  = isLockU && caps[CAP.LOCKED] && caps[CAP.LOCKED].value === true;
 
-    if (isOn || isArmed || wcStateVal === 'up') card.classList.add('on');
+    if (isOn || isArmed || wcStateVal === 'up' || isLockedU) card.classList.add('on');
     else card.classList.remove('on');
 
     if (caps[CAP.INPUT_EXT_1] && caps[CAP.INPUT_EXT_1].value === true) card.classList.add('open');
@@ -2357,6 +2376,8 @@
     if (_speakerModalId === deviceId) _updateSpeakerModal();
     // Thermostat-Modal live aktualisieren wenn offen
     if (_thermostatModalId === deviceId) _updateThermostatModal();
+    // Lock-Modal live aktualisieren wenn offen
+    if (_lockModalId === deviceId) _updateLockModal();
 
     // Alarme (dot-Index muss mit buildValueElements übereinstimmen)
     var dots = card.querySelectorAll('.alarm-dot');
@@ -3105,6 +3126,183 @@
     var muted = ((devices[_speakerModalId].capabilitiesObj || {})[CAP.VOLUME_MUTE] || {}).value === true;
     setCapability(_speakerModalId, CAP.VOLUME_MUTE, !muted);
   }
+
+  // ── Lock-Modal ────────────────────────────────────
+  var _lockModalId = null;
+
+  // Gibt die beste Enum-Capability für Lock-Aktionen zurück
+  // (lock_mode standard oder beliebige Nuki-eigene Enum-Cap)
+  function _getLockActionCap(d) {
+    var caps   = d.capabilitiesObj || {};
+    var capIds = d.capabilities    || [];
+    // 1. Standard lock_mode
+    if (caps[CAP.LOCK_MODE] && Array.isArray(caps[CAP.LOCK_MODE].values) && caps[CAP.LOCK_MODE].values.length) {
+      return CAP.LOCK_MODE;
+    }
+    // 2. Jede andere Enum-Capability (Nuki-eigene etc.)
+    var skip = [CAP.LOCKED, 'measure_battery', 'alarm_battery', CAP.THERMOSTAT_MODE,
+                CAP.HOMEALARM_STATE, CAP.HOMEALARM, CAP.WC_STATE, CAP.SPEAKER_REPEAT,
+                'button_action', CAP.ONOFF, CAP.MEASURE_TEMP, CAP.MEASURE_HUMIDITY];
+    for (var i = 0; i < capIds.length; i++) {
+      var cid = capIds[i];
+      if (skip.indexOf(cid) !== -1) continue;
+      var cap = caps[cid];
+      if (cap && Array.isArray(cap.values) && cap.values.length >= 2) return cid;
+    }
+    return null;
+  }
+
+  function openLockModal(deviceId) {
+    _lockModalId = deviceId;
+    var d = devices[deviceId];
+    if (!d) return;
+    document.getElementById('lock-modal-name').textContent = d.name;
+    document.getElementById('lock-modal').style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+    _updateLockModal();
+  }
+
+  function closeLockModal() {
+    document.getElementById('lock-modal').style.display = 'none';
+    document.body.style.overflow = '';
+    _lockModalId = null;
+  }
+
+  function _updateLockModal() {
+    if (!_lockModalId) return;
+    var d = devices[_lockModalId];
+    if (!d) return;
+    var caps   = d.capabilitiesObj || {};
+    var capIds = d.capabilities    || [];
+
+    // Status anzeigen
+    var isLocked  = caps[CAP.LOCKED] && caps[CAP.LOCKED].value === true;
+    var statusEl  = document.getElementById('lock-modal-status');
+    statusEl.textContent = isLocked ? '🔒 Locked' : '🔓 Unlocked';
+    statusEl.className   = 'lock-modal-status ' + (isLocked ? 'locked' : 'unlocked');
+
+    // Aktions-Buttons aufbauen
+    var actionsEl = document.getElementById('lock-modal-actions');
+    actionsEl.innerHTML = '';
+
+    var lockIcons = {
+      locked:                '🔒',
+      unlocked:              '🔓',
+      unlatched:             '🚪',
+      lock_n_go:             '🏃',
+      lock_n_go_with_unlatch:'🏃',
+      open:                  '🔓',
+      close:                 '🔒',
+      button_unlatch:        '🚪',
+      button_lock_n_go:      '🏃',
+      button_lock_n_go_unlatch: '🏃',
+      button_open:           '🔓',
+      button_lock:           '🔒',
+      button_unlock:         '🔓',
+    };
+    var lockLabels = {
+      locked:                'Lock',
+      unlocked:              'Unlock',
+      unlatched:             'Open door',
+      lock_n_go:             "Lock 'n' Go",
+      lock_n_go_with_unlatch:"Lock 'n' Go + Open",
+      button_unlatch:        'Open door',
+      button_lock_n_go:      "Lock 'n' Go",
+      button_lock_n_go_unlatch: "Lock 'n' Go + Open",
+      button_open:           'Open',
+      button_lock:           'Lock',
+      button_unlock:         'Unlock',
+    };
+
+    var skipCaps = [CAP.LOCKED, CAP.MEASURE_BATTERY, 'alarm_battery', CAP.THERMOSTAT_MODE,
+                    CAP.HOMEALARM_STATE, CAP.HOMEALARM, CAP.WC_STATE, CAP.SPEAKER_REPEAT,
+                    'button_action', CAP.ONOFF, CAP.MEASURE_TEMP, CAP.MEASURE_HUMIDITY,
+                    CAP.ALARM_MOTION, CAP.ALARM_CONTACT];
+
+    // 1. Lock / Unlock — immer anzeigen wenn locked-Capability vorhanden
+    if (caps[CAP.LOCKED] !== undefined) {
+      [
+        { label: '🔒 Lock',   value: true,  active: isLocked  },
+        { label: '🔓 Unlock', value: false, active: !isLocked },
+      ].forEach(function (a) {
+        var btn = createElement('button', 'lock-action-btn');
+        btn.textContent = a.label;
+        if (a.active) btn.classList.add('active');
+        (function (val) {
+          btn.addEventListener('click', function () {
+            setCapability(_lockModalId, CAP.LOCKED, val);
+            closeLockModal();
+          });
+        }(a.value));
+        actionsEl.appendChild(btn);
+      });
+    }
+
+    // 2. Enum-Capabilities (z.B. lock_mode → Werte als Auswahl)
+    var actionCapId = _getLockActionCap(d);
+    if (actionCapId) {
+      var aCap  = caps[actionCapId];
+      var aVals = aCap.values;
+      var aCur  = aCap.value;
+      aVals.forEach(function (v) {
+        var btn = createElement('button', 'lock-action-btn');
+        if (v.id === aCur) btn.classList.add('active');
+        var icon  = lockIcons[v.id] || '●';
+        var label = lockLabels[v.id] ||
+                    (v.title ? (v.title.en || v.title.de || v.id) : null) ||
+                    v.id.replace(/_/g, ' ').replace(/\b\w/g, function (c) { return c.toUpperCase(); });
+        btn.textContent = icon + ' ' + label;
+        (function (capId, modeId) {
+          btn.addEventListener('click', function () {
+            setCapability(_lockModalId, capId, modeId);
+            closeLockModal();
+          });
+        }(actionCapId, v.id));
+        actionsEl.appendChild(btn);
+      });
+    }
+
+    // 2. Button-Capabilities (setable:true, getable:false — z.B. Nuki "Tür öffnen", "Lock 'n' Go")
+    capIds.forEach(function (cid) {
+      if (skipCaps.indexOf(cid) !== -1) return;
+      var cap = caps[cid];
+      if (!cap) return;
+      // Button erkennen: entweder explizit getable:false oder Wert ist null/false ohne values
+      var isBtn = (cap.setable === true && cap.getable === false) ||
+                  (cap.setable === true && cap.value === null && !Array.isArray(cap.values));
+      if (!isBtn) return;
+      // Label: bekannte ID → fester Text; sonst cap.title; sonst ID als Fallback
+      var label = lockLabels[cid] ||
+                  (cap.title ? (cap.title.en || cap.title.de || cid) : null) ||
+                  cid.replace(/^button_/, '').replace(/_/g, ' ')
+                     .replace(/\b\w/g, function (c) { return c.toUpperCase(); });
+      // Icon: bekannte ID → feste Map; sonst über Label-Text
+      var icon = lockIcons[cid];
+      if (!icon) {
+        var lbl = label.toLowerCase();
+        if (lbl.indexOf('öffnen') !== -1 || lbl.indexOf('unlatch') !== -1 ||
+            (lbl.indexOf('open') !== -1 && lbl.indexOf('lock') === -1)) icon = '🚪';
+        else if (lbl.indexOf('lock') !== -1 && lbl.indexOf('go') !== -1) icon = '🏃';
+        else if (lbl.indexOf('unlock') !== -1 || lbl.indexOf('auf') !== -1) icon = '🔓';
+        else if (lbl.indexOf('lock') !== -1 || lbl.indexOf('ab') !== -1) icon = '🔒';
+        else icon = '●';
+      }
+      var btn = createElement('button', 'lock-action-btn');
+      btn.textContent = icon + ' ' + label;
+      (function (capId) {
+        btn.addEventListener('click', function () {
+          setCapability(_lockModalId, capId, true);
+          closeLockModal();
+        });
+      }(cid));
+      actionsEl.appendChild(btn);
+      hasActions = true;
+    });
+
+  }
+
+  window.openLockModal  = openLockModal;
+  window.closeLockModal = closeLockModal;
 
   // ── Thermostat-Modal ──────────────────────────────
   var _thermostatModalId = null;

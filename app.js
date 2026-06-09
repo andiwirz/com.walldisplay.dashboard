@@ -512,7 +512,7 @@ class ShellyWallDisplayApp extends Homey.App {
           tileColorFlow: this.homey.settings.get('tileColorFlow') || '#AF52DE',
           bgStyle:           this.homey.settings.get('bgStyle')           || 'flat',
           animMode:          this.homey.settings.get('animMode')          || 'default',
-          headerIconStyle:   this.homey.settings.get('headerIconStyle')   || 'emoji',
+          headerIconStyle:   this.homey.settings.get('headerIconStyle')   || 'svg',
           weatherEnabled:   this.homey.settings.get('weatherEnabled')   === true,
           weatherHeaderBtn: this.homey.settings.get('weatherHeaderBtn') === true,
           weatherLat:       this.homey.settings.get('weatherLat')       || null,

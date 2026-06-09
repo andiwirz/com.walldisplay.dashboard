@@ -1,6 +1,6 @@
 {
   "id": "com.walldisplay.dashboard",
-  "version": "1.3.28",
+  "version": "1.3.30",
   "compatibility": ">=5.0.0",
   "sdk": 3,
   "brandColor": "#E8001D",
@@ -57,6 +57,14 @@
   "support": "https://github.com/andiwirz/com.walldisplay.dashboard/issues",
   "source": "https://github.com/andiwirz/com.walldisplay.dashboard",
   "changelog": {
+    "1.3.30": {
+      "en": "SVG icons are now the default for Header Icons. Lively animation mode improved: tiles now enter with a staggered spring-bounce (each tile 40 ms apart), tap feedback increased to scale 0.88, and a hover-lift effect added on desktop.",
+      "de": "SVG-Icons sind nun der Standard für Header-Icons. Animationsmodus Lebendig verbessert: Kacheln erscheinen jetzt gestaffelt mit Spring-Bounce (je 40 ms versetzt), Tap-Feedback auf Scale 0.88 verstärkt und Hover-Lift-Effekt auf Desktop hinzugefügt."
+    },
+    "1.3.29": {
+      "en": "Lock device support: lock tiles show current state (Locked/Unlocked) and tap opens a confirmation modal with all available actions. The modal auto-detects Lock/Unlock (locked capability), enum modes (lock_mode) and button-type actions such as Nuki Open door and Lock n Go. Active state is highlighted. Live updates via SSE.",
+      "de": "Schloss-Unterstützung: Lock-Kacheln zeigen den aktuellen Zustand (Gesperrt/Offen) und ein Tippen öffnet ein Bestätigungs-Modal mit allen verfügbaren Aktionen. Das Modal erkennt automatisch Lock/Unlock (locked-Capability), Enum-Modi (lock_mode) sowie Button-Aktionen wie Nukis Tür öffnen und Lock n Go. Aktiver Zustand ist hervorgehoben. Live-Updates via SSE."
+    },
     "1.3.28": {
       "en": "New Design setting: Header Icons — choose between Emoji (default) or SVG line icons for all header buttons (Energy, EV, Weather, theme toggle, view toggle) and the corresponding modal titles. SVG icons use custom symbols and adapt to any accent color and dark/light mode.",
       "de": "Neue Design-Einstellung: Header-Icons — Wahl zwischen Emoji (Standard) oder SVG-Liniensymbolen für alle Header-Buttons (Energy, EV, Wetter, Thema-Umschalter, Ansicht-Umschalter) und die zugehörigen Modal-Titel. SVG-Icons verwenden eigene Symbole und passen sich Akzentfarbe sowie Hell/Dunkel-Modus an."

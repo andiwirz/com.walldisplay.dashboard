@@ -167,6 +167,18 @@
     </div>
   </div>
 
+  <!-- Lock-Modal -->
+  <div id="lock-modal" class="lock-modal" style="display:none" onclick="if(event.target===this)closeLockModal()">
+    <div class="lock-modal-inner">
+      <div class="lock-modal-header">
+        <span id="lock-modal-name" class="lock-modal-name"></span>
+        <button class="lock-modal-close" onclick="closeLockModal()">✕</button>
+      </div>
+      <div id="lock-modal-status" class="lock-modal-status"></div>
+      <div id="lock-modal-actions" class="lock-modal-actions"></div>
+    </div>
+  </div>
+
   <!-- Thermostat-Modal -->
   <div id="thermostat-modal" class="thermostat-modal" style="display:none" onclick="if(event.target===this)closeThermostatModal()">
     <div class="thermostat-modal-inner">

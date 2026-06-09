@@ -674,8 +674,8 @@
       <div class="card-title" data-i18n="headerIconsTitle">Header Icons</div>
       <div class="hint" data-i18n="headerIconsHint">Emoji: classic emoji icons (default). SVG: clean line icons that adapt to any color scheme.</div>
       <div class="seg-btn-group" id="header-icons-group">
-        <button class="seg-btn active" data-value="emoji" onclick="setHeaderIconStyle('emoji')" data-i18n="headerIconsEmoji">Emoji</button>
-        <button class="seg-btn"        data-value="svg"   onclick="setHeaderIconStyle('svg')"   data-i18n="headerIconsSvg">SVG</button>
+        <button class="seg-btn"        data-value="emoji" onclick="setHeaderIconStyle('emoji')" data-i18n="headerIconsEmoji">Emoji</button>
+        <button class="seg-btn active" data-value="svg"   onclick="setHeaderIconStyle('svg')"   data-i18n="headerIconsSvg">SVG</button>
       </div>
       <div class="status" id="header-icons-status"></div>
     </div>
@@ -1123,7 +1123,7 @@
         animModeLively:  'Lively',
         animModeSaved:   'Saved',
         headerIconsTitle: 'Header Icons',
-        headerIconsHint:  'Emoji: classic emoji icons (default). SVG: clean line icons that adapt to any color scheme.',
+        headerIconsHint:  'SVG: clean line icons that adapt to any color scheme (default). Emoji: classic emoji icons.',
         headerIconsEmoji: 'Emoji',
         headerIconsSvg:   'SVG',
         headerIconsSaved: 'Saved',
@@ -1323,7 +1323,7 @@
         animModeLively:  'Lebendig',
         animModeSaved:   'Gespeichert',
         headerIconsTitle: 'Header-Icons',
-        headerIconsHint:  'Emoji: klassische Emoji-Icons (Standard). SVG: cleane Liniensymbole, die sich an jedes Farbschema anpassen.',
+        headerIconsHint:  'SVG: cleane Liniensymbole, die sich an jedes Farbschema anpassen (Standard). Emoji: klassische Emoji-Icons.',
         headerIconsEmoji: 'Emoji',
         headerIconsSvg:   'SVG',
         headerIconsSaved: 'Gespeichert',
@@ -1833,7 +1833,7 @@
       var savedTileRadius     = await hGetSafe('tileRadius', 'rounded');
       var savedBgStyle          = await hGetSafe('bgStyle', 'flat');
       var savedAnimMode         = await hGetSafe('animMode', 'default');
-      var savedHeaderIconStyle  = await hGetSafe('headerIconStyle', 'emoji');
+      var savedHeaderIconStyle  = await hGetSafe('headerIconStyle', 'svg');
       var savedHeaderHidden   = await hGetSafe('headerHidden', false);
       var savedViewDefault    = await hGetSafe('viewDefault', 'all');
       var savedViewBtnHidden    = await hGetSafe('viewBtnHidden', false);

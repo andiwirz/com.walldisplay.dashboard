@@ -1,4 +1,4 @@
-/* Homey Wall Display – Dashboard Client
+﻿/* Homey Wall Display – Dashboard Client
    Kompatibel mit Android 7 / Chrome 55+ WebView */
 
 (function () {
@@ -2288,6 +2288,38 @@
       added++;
     }
 
+    // Fallback für Custom-Capabilities (z.B. current_quarter_price, solar_forecast_power)
+    if (added === 0) {
+      var fbSkip = [
+        CAP.ONOFF, CAP.DIM, CAP.MEASURE_TEMP, CAP.MEASURE_HUMIDITY, CAP.MEASURE_POWER,
+        CAP.MEASURE_CO2, CAP.WC_SET, CAP.WC_STATE, CAP.LOCKED, CAP.HOMEALARM_STATE,
+        CAP.HOMEALARM, CAP.ALARM_MOTION, CAP.ALARM_CONTACT, CAP.INPUT_EXT_1,
+        CAP.TARGET_TEMP, CAP.THERMOSTAT_MODE, CAP.SPEAKER_PLAYING, CAP.SPEAKER_TRACK,
+        CAP.SPEAKER_ARTIST, CAP.VOLUME_SET, CAP.VOLUME_MUTE, 'measure_battery', 'alarm_battery'
+      ];
+      var fbCapIds = d.capabilities || [];
+      var fbCount  = 0;
+      for (var fi = 0; fi < fbCapIds.length && fbCount < 2; fi++) {
+        var fid = fbCapIds[fi];
+        if (fbSkip.indexOf(fid) !== -1) continue;
+        if (fid.indexOf('_json') !== -1) continue;
+        if (fid.indexOf('_hour_') !== -1 || fid.indexOf('_tomorrow_') !== -1) continue;
+        if (fid.indexOf('debug') !== -1 || fid.indexOf('timeline') !== -1) continue;
+        if (fid.indexOf('button_') === 0) continue;
+        var fcap = caps[fid];
+        if (!fcap || typeof fcap.value !== 'number' || fcap.value === null) continue;
+        var fval  = fcap.value;
+        var funit = fcap.units || '';
+        var fstr  = Math.abs(fval) < 10 ? parseFloat(fval.toFixed(2)) : Math.round(fval);
+        var fel   = createElement('div', 'device-value' + (fbCount === 0 ? ' primary' : ''));
+        fel.setAttribute('data-capid', fid);
+        fel.textContent = fstr + (funit ? ' ' + funit : '');
+        container.appendChild(fel);
+        added++;
+        fbCount++;
+      }
+    }
+
     return added > 0 ? container : null;
   }
 
@@ -2356,6 +2388,17 @@
       prim.innerHTML = (val !== null && val !== undefined ? val.toFixed(1) : '--') +
         '<span class="value-unit"> °C</span>';
     }
+
+    // Fallback-Werte (Custom Capabilities) live aktualisieren
+    card.querySelectorAll('[data-capid]').forEach(function (el) {
+      var cid  = el.getAttribute('data-capid');
+      var fcap = caps[cid];
+      if (!fcap || typeof fcap.value !== 'number') return;
+      var fval  = fcap.value;
+      var funit = fcap.units || '';
+      el.textContent = (Math.abs(fval) < 10 ? parseFloat(fval.toFixed(2)) : Math.round(fval)) +
+        (funit ? ' ' + funit : '');
+    });
 
     var sliders = card.querySelectorAll('.dim-slider');
     sliders.forEach(function (slider) {
@@ -2545,7 +2588,7 @@
   }
 
   // ── Refresh ─────────────────────────────────────────
-  setInterval(loadData, 5 * 60 * 1000);
+  setInterval(loadData, 15 * 60 * 1000);
 
   document.addEventListener('DOMContentLoaded', function () {
     var headerLeft = document.querySelector('.header-left');
@@ -3181,10 +3224,10 @@
       if (opt.value === cur) btn.classList.add('active');
       (function (val) {
         btn.addEventListener('click', function () {
-          requirePin(function () {
-            setCapability(_alarmModalId, ac.capId, val);
-            closeAlarmModal();
-          });
+          var deviceId = _alarmModalId;
+          var capId    = ac.capId;
+          closeAlarmModal();
+          requirePin(function () { setCapability(deviceId, capId, val); });
         });
       }(opt.value));
       actionsEl.appendChild(btn);

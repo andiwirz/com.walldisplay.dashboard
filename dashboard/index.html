@@ -4,6 +4,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#E8001D">
+  <link rel="manifest" href="manifest.webmanifest">
   <title>Shelly Wall Display Dashboard</title>
   <link rel="stylesheet" href="style.css">
 </head>
@@ -164,6 +169,18 @@
         <div id="camera-modal-spinner" class="camera-modal-spinner" style="display:none"></div>
         <div id="camera-modal-error" class="camera-modal-error" style="display:none">No image available</div>
       </div>
+    </div>
+  </div>
+
+  <!-- Alarm-Modal -->
+  <div id="alarm-modal" class="lock-modal" style="display:none" onclick="if(event.target===this)closeAlarmModal()">
+    <div class="lock-modal-inner">
+      <div class="lock-modal-header">
+        <span id="alarm-modal-name" class="lock-modal-name"></span>
+        <button class="lock-modal-close" onclick="closeAlarmModal()">✕</button>
+      </div>
+      <div id="alarm-modal-status" class="lock-modal-status"></div>
+      <div id="alarm-modal-actions" class="lock-modal-actions"></div>
     </div>
   </div>
 

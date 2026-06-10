@@ -1745,8 +1745,9 @@ body.tile-colors-strong .flow-tile:not(.dashboard-shortcut-tile) {
   background: var(--bg); margin-bottom: 16px;
   transition: color 0.2s;
 }
-.lock-modal-status.locked   { color: var(--accent); }
-.lock-modal-status.unlocked { color: var(--text-secondary); }
+.lock-modal-status.locked           { color: var(--accent); }
+.lock-modal-status.partially-armed  { color: #f5a623; }
+.lock-modal-status.unlocked         { color: var(--text-secondary); }
 .lock-modal-actions {
   display: flex; flex-direction: column; gap: 8px;
 }

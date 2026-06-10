@@ -2006,8 +2006,12 @@
           if (hasAlarm) {
             var ac = getAlarmCapability(devices[deviceId]);
             if (ac) {
-              var newVal = ac.isBoolean ? !alarmIsArmed(ac.value) : (alarmIsArmed(ac.value) ? 'disarmed' : 'armed');
-              requirePin(function () { setCapability(deviceId, ac.capId, newVal); });
+              if (ac.capId === CAP.HOMEALARM_STATE) {
+                openAlarmModal(deviceId);
+              } else {
+                var newVal = !alarmIsArmed(ac.value);
+                requirePin(function () { setCapability(deviceId, ac.capId, newVal); });
+              }
             }
           } else {
             setCapability(deviceId, CAP.ONOFF, !(cv[CAP.ONOFF] && cv[CAP.ONOFF].value));
@@ -2068,8 +2072,11 @@
         btn.addEventListener('click', function () {
           var ac = getAlarmCapability(devices[deviceId]);
           if (!ac) return;
-          var newVal = ac.isBoolean ? !alarmIsArmed(ac.value) : (btn.classList.contains('on') ? 'disarmed' : 'armed');
-          requirePin(function () { setCapability(deviceId, ac.capId, newVal); });
+          if (ac.capId === CAP.HOMEALARM_STATE) {
+            openAlarmModal(deviceId);
+          } else {
+            requirePin(function () { setCapability(deviceId, ac.capId, !alarmIsArmed(ac.value)); });
+          }
         });
       }(d.id, alarmToggle));
       header.appendChild(alarmToggle);
@@ -2377,6 +2384,7 @@
     // Thermostat-Modal live aktualisieren wenn offen
     if (_thermostatModalId === deviceId) _updateThermostatModal();
     // Lock-Modal live aktualisieren wenn offen
+    if (_alarmModalId === deviceId) _updateAlarmModal();
     if (_lockModalId === deviceId) _updateLockModal();
 
     // Alarme (dot-Index muss mit buildValueElements übereinstimmen)
@@ -3126,6 +3134,65 @@
     var muted = ((devices[_speakerModalId].capabilitiesObj || {})[CAP.VOLUME_MUTE] || {}).value === true;
     setCapability(_speakerModalId, CAP.VOLUME_MUTE, !muted);
   }
+
+  // ── Alarm-Modal ───────────────────────────────────
+  var _alarmModalId = null;
+
+  function openAlarmModal(deviceId) {
+    _alarmModalId = deviceId;
+    var d = devices[deviceId];
+    if (!d) return;
+    document.getElementById('alarm-modal-name').textContent = d.name;
+    document.getElementById('alarm-modal').style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+    _updateAlarmModal();
+  }
+
+  function closeAlarmModal() {
+    document.getElementById('alarm-modal').style.display = 'none';
+    document.body.style.overflow = '';
+    _alarmModalId = null;
+  }
+
+  function _updateAlarmModal() {
+    if (!_alarmModalId) return;
+    var d = devices[_alarmModalId];
+    if (!d) return;
+    var ac = getAlarmCapability(d);
+    if (!ac) return;
+    var cur = ac.value;
+
+    var statusEl = document.getElementById('alarm-modal-status');
+    var statusLabels = { armed: '🔐 Armed', partially_armed: '🔏 Partially Armed', disarmed: '🔓 Disarmed' };
+    statusEl.textContent = statusLabels[cur] || cur;
+    statusEl.className = 'lock-modal-status ' +
+      (cur === 'armed' ? 'locked' : cur === 'partially_armed' ? 'partially-armed' : 'unlocked');
+
+    var actionsEl = document.getElementById('alarm-modal-actions');
+    actionsEl.innerHTML = '';
+    var options = [
+      { value: 'armed',           label: '🔐 Armed' },
+      { value: 'partially_armed', label: '🔏 Partially Armed' },
+      { value: 'disarmed',        label: '🔓 Disarmed' }
+    ];
+    options.forEach(function (opt) {
+      var btn = createElement('button', 'lock-action-btn');
+      btn.textContent = opt.label;
+      if (opt.value === cur) btn.classList.add('active');
+      (function (val) {
+        btn.addEventListener('click', function () {
+          requirePin(function () {
+            setCapability(_alarmModalId, ac.capId, val);
+            closeAlarmModal();
+          });
+        });
+      }(opt.value));
+      actionsEl.appendChild(btn);
+    });
+  }
+
+  window.openAlarmModal  = openAlarmModal;
+  window.closeAlarmModal = closeAlarmModal;
 
   // ── Lock-Modal ────────────────────────────────────
   var _lockModalId = null;

@@ -1,6 +1,6 @@
 {
   "id": "com.walldisplay.dashboard",
-  "version": "1.3.30",
+  "version": "1.3.32",
   "compatibility": ">=5.0.0",
   "sdk": 3,
   "brandColor": "#E8001D",
@@ -57,6 +57,14 @@
   "support": "https://github.com/andiwirz/com.walldisplay.dashboard/issues",
   "source": "https://github.com/andiwirz/com.walldisplay.dashboard",
   "changelog": {
+    "1.3.32": {
+      "en": "Alarm devices with homealarm_state now open a modal on tap with three choices: Armed, Partially Armed, and Disarmed. The active state is highlighted. PIN confirmation applies to all three actions. Live updates via SSE.",
+      "de": "Alarmgeräte mit homealarm_state öffnen beim Antippen ein Modal mit drei Optionen: Scharf, Teilweise scharf und Unscharf. Der aktive Zustand ist hervorgehoben. PIN-Bestätigung gilt für alle drei Aktionen. Live-Updates via SSE."
+    },
+    "1.3.31": {
+      "en": "PWA support: the dashboard can now be added to the home screen on Android and iOS and opens without the browser address bar (standalone mode). Includes app icons at 192x192 and 512x512.",
+      "de": "PWA-Unterstützung: Das Dashboard kann jetzt auf Android und iOS zum Startbildschirm hinzugefügt werden und öffnet sich ohne Adressleiste (Standalone-Modus). App-Icons in 192x192 und 512x512 enthalten."
+    },
     "1.3.30": {
       "en": "SVG icons are now the default for Header Icons. Lively animation mode improved: tiles now enter with a staggered spring-bounce (each tile 40 ms apart), tap feedback increased to scale 0.88, and a hover-lift effect added on desktop.",
       "de": "SVG-Icons sind nun der Standard für Header-Icons. Animationsmodus Lebendig verbessert: Kacheln erscheinen jetzt gestaffelt mit Spring-Bounce (je 40 ms versetzt), Tap-Feedback auf Scale 0.88 verstärkt und Hover-Lift-Effekt auf Desktop hinzugefügt."

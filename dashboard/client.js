@@ -2158,14 +2158,58 @@
     return '';
   }
 
+  function _energyPriceColorClass(d) {
+    var caps   = d.capabilitiesObj || {};
+    var capIds = d.capabilities    || [];
+    if (capIds.indexOf('current_quarter_price') === -1) return null;
+    var cur = caps['current_quarter_price'] && caps['current_quarter_price'].value;
+    if (typeof cur !== 'number') return null;
+    var jsonCap = caps['quarter_prices_json'];
+    if (!jsonCap || typeof jsonCap.value !== 'string') return null;
+    try {
+      var data    = JSON.parse(jsonCap.value);
+      var now     = Date.now();
+      var horizon = now + 8 * 60 * 60 * 1000;
+      var src     = Array.isArray(data) ? data : (data.today || []).concat(data.tomorrow || []);
+      var prices  = [];
+      src.forEach(function (e) {
+        var ts = e.timestamp || 0;
+        if (ts < now || ts > horizon) return;
+        // Preis-Feld: verschiedene Feldnamen versuchen, dann beliebigen Zahlenwert
+        var p = e.price !== undefined ? e.price :
+                e.value !== undefined ? e.value :
+                e.amount !== undefined ? e.amount :
+                e.spotPrice !== undefined ? e.spotPrice :
+                e.total !== undefined ? e.total : undefined;
+        if (p === undefined) {
+          for (var k in e) {
+            if (typeof e[k] === 'number' && e[k] >= -1 && e[k] <= 10) { p = e[k]; break; }
+          }
+        }
+        if (typeof p === 'number') prices.push(p);
+      });
+      if (prices.length < 3) return null;
+      prices.sort(function (a, b) { return a - b; });
+      var p33 = prices[Math.floor(prices.length / 3)];
+      var p67 = prices[Math.floor(prices.length * 2 / 3)];
+      if (cur <= p33) return 'price-green';
+      if (cur <= p67) return 'price-yellow';
+      return 'price-red';
+    } catch (e) { return null; }
+  }
+
   function buildValueElements(d) {
     var caps      = d.capabilitiesObj || {};
+    var capIds    = d.capabilities    || [];
     var container = createElement('div', 'device-values');
     var added     = 0;
 
     // Primärwert: Temperatur
     var _noTemp = ['socket', 'light', 'windowcoverings', 'shutterblinds', 'blinds', 'curtain'];
-    if (_noTemp.indexOf(d.class) === -1 && caps[CAP.MEASURE_TEMP]) {
+    var _isSocketLike = capIds.indexOf(CAP.ONOFF) !== -1 &&
+                        !!caps[CAP.MEASURE_POWER] &&
+                        capIds.indexOf(CAP.TARGET_TEMP) === -1;
+    if (_noTemp.indexOf(d.class) === -1 && !_isSocketLike && caps[CAP.MEASURE_TEMP]) {
       var el = createElement('div', 'device-value primary');
       var val = caps[CAP.MEASURE_TEMP].value;
       el.innerHTML = (val !== null && val !== undefined ? val.toFixed(1) : '--') +
@@ -2288,14 +2332,31 @@
       added++;
     }
 
+    // Energiepreis-Farbkodierung auf der Kachel
+    var priceColorClass = _energyPriceColorClass(d);
+    if (priceColorClass) {
+      var pcap = caps['current_quarter_price'];
+      var pval = pcap && typeof pcap.value === 'number' ? pcap.value : null;
+      if (pval !== null) {
+        var pel = createElement('div', 'device-value primary ' + priceColorClass);
+        pel.setAttribute('data-capid', 'current_quarter_price');
+        var punit = (pcap.units || '');
+        pel.textContent = parseFloat(pval.toFixed(4)) + (punit ? ' ' + punit : '');
+        container.appendChild(pel);
+        added++;
+      }
+    }
+
     // Fallback für Custom-Capabilities (z.B. current_quarter_price, solar_forecast_power)
-    if (added === 0) {
+    var _fbExcludeClasses = ['speaker', 'mediaplayer', 'homealarm', 'lock', 'light', 'socket'];
+    if (added === 0 && _fbExcludeClasses.indexOf(d.class) === -1) {
       var fbSkip = [
         CAP.ONOFF, CAP.DIM, CAP.MEASURE_TEMP, CAP.MEASURE_HUMIDITY, CAP.MEASURE_POWER,
         CAP.MEASURE_CO2, CAP.WC_SET, CAP.WC_STATE, CAP.LOCKED, CAP.HOMEALARM_STATE,
         CAP.HOMEALARM, CAP.ALARM_MOTION, CAP.ALARM_CONTACT, CAP.INPUT_EXT_1,
         CAP.TARGET_TEMP, CAP.THERMOSTAT_MODE, CAP.SPEAKER_PLAYING, CAP.SPEAKER_TRACK,
-        CAP.SPEAKER_ARTIST, CAP.VOLUME_SET, CAP.VOLUME_MUTE, 'measure_battery', 'alarm_battery'
+        CAP.SPEAKER_ARTIST, CAP.VOLUME_SET, CAP.VOLUME_MUTE, 'measure_battery', 'alarm_battery',
+        'current_quarter_price'
       ];
       var fbCapIds = d.capabilities || [];
       var fbCount  = 0;
@@ -2396,8 +2457,15 @@
       if (!fcap || typeof fcap.value !== 'number') return;
       var fval  = fcap.value;
       var funit = fcap.units || '';
-      el.textContent = (Math.abs(fval) < 10 ? parseFloat(fval.toFixed(2)) : Math.round(fval)) +
-        (funit ? ' ' + funit : '');
+      if (cid === 'current_quarter_price') {
+        el.textContent = parseFloat(fval.toFixed(4)) + (funit ? ' ' + funit : '');
+        el.classList.remove('price-green', 'price-yellow', 'price-red');
+        var cls = _energyPriceColorClass(d);
+        if (cls) el.classList.add(cls);
+      } else {
+        el.textContent = (Math.abs(fval) < 10 ? parseFloat(fval.toFixed(2)) : Math.round(fval)) +
+          (funit ? ' ' + funit : '');
+      }
     });
 
     var sliders = card.querySelectorAll('.dim-slider');

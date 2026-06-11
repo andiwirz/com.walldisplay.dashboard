@@ -995,6 +995,7 @@ body.tile-colors-strong .flow-tile:not(.dashboard-shortcut-tile) {
   justify-content: center;
   background: #000;
   position: relative;
+  min-height: 200px;
 }
 
 .camera-modal-spinner {
@@ -1768,6 +1769,11 @@ body.tile-colors-strong .flow-tile:not(.dashboard-shortcut-tile) {
 .lock-action-btn:hover {
   background: var(--accent); color: #fff; border-color: var(--accent);
 }
+
+/* ── Energy price color coding ───────────────────── */
+.device-value.price-green  { color: #4caf50; font-weight: 600; }
+.device-value.price-yellow { color: #f5a623; font-weight: 600; }
+.device-value.price-red    { color: #e53935; font-weight: 600; }
 
 /* ── Thermostat-Modal ─────────────────────────────── */
 .thermostat-modal {

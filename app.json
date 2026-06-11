@@ -1,6 +1,6 @@
 {
   "id": "com.walldisplay.dashboard",
-  "version": "1.3.34",
+  "version": "1.3.38",
   "compatibility": ">=5.0.0",
   "sdk": 3,
   "brandColor": "#E8001D",
@@ -9,8 +9,8 @@
     "de": "Shelly Wall Display Dashboard"
   },
   "description": {
-    "en": "Your smart home, always in view",
-    "de": "Dein Smart Home, immer im Blick"
+    "en": "Turn any display into your smart home command center",
+    "de": "Verwandle jeden Bildschirm in dein Smart Home Kontrollzentrum"
   },
   "tags": {
     "en": [
@@ -57,6 +57,22 @@
   "support": "https://github.com/andiwirz/com.walldisplay.dashboard/issues",
   "source": "https://github.com/andiwirz/com.walldisplay.dashboard",
   "changelog": {
+    "1.3.38": {
+      "en": "Updated README opening to avoid duplicating the app subtitle. README now leads with Shelly Wall Display as the original use case.",
+      "de": "README-Einleitung überarbeitet, um den App-Untertitel nicht zu wiederholen. README beginnt jetzt mit dem Shelly Wall Display als ursprünglichem Anwendungsfall."
+    },
+    "1.3.37": {
+      "en": "Updated README to clarify the dashboard works on any display, tablet or browser — originally built for Shelly Wall Display.",
+      "de": "README aktualisiert: Das Dashboard funktioniert auf jedem Bildschirm, Tablet oder Browser – ursprünglich entwickelt für das Shelly Wall Display."
+    },
+    "1.3.36": {
+      "en": "Updated app description to clarify the dashboard works on any display, tablet or browser — not just Shelly. Fixed camera modal loading spinner appearing at the top instead of centered.",
+      "de": "App-Beschreibung aktualisiert: Das Dashboard funktioniert auf jedem Bildschirm, Tablet oder Browser — nicht nur auf Shelly-Geräten. Ladekreis im Kamera-Modal erscheint jetzt zentriert statt am oberen Rand."
+    },
+    "1.3.35": {
+      "en": "Energy price tiles now show the current price in green, orange or red based on the cheapest and most expensive upcoming 8 hours. Fixed speaker tiles showing wrong numeric values. Fixed smart plugs showing ambient temperature. Full data refresh interval increased from 5 to 15 minutes (live values still update instantly via SSE).",
+      "de": "Energiepreis-Kacheln zeigen den aktuellen Preis grün, orange oder rot basierend auf den günstigsten und teuersten der nächsten 8 Stunden. Fehler behoben, bei dem Speaker-Kacheln falsche Zahlenwerte anzeigten. Fehler behoben, bei dem Smart Plugs die Umgebungstemperatur anzeigten. Vollständiges Daten-Refresh-Intervall von 5 auf 15 Minuten erhöht (Live-Werte aktualisieren sich weiterhin sofort via SSE)."
+    },
     "1.3.34": {
       "en": "Fixed alarm modal: the selection window now closes immediately when an action is tapped, so the PIN entry appears cleanly without the modal in the background. Fixed alarm state not updating after PIN confirmation.",
       "de": "Alarm-Modal behoben: Das Auswahlfenster schliesst sich jetzt sofort beim Antippen einer Aktion, sodass die PIN-Eingabe ohne Modal im Hintergrund erscheint. Fehler behoben, bei dem der Alarmstatus nach PIN-Bestätigung nicht aktualisiert wurde."

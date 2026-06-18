@@ -1775,6 +1775,74 @@ body.tile-colors-strong .flow-tile:not(.dashboard-shortcut-tile) {
 .device-value.price-yellow { color: #f5a623; font-weight: 600; }
 .device-value.price-red    { color: #e53935; font-weight: 600; }
 
+/* ── Price Modal ─────────────────────────────────── */
+.price-modal {
+  position: fixed; inset: 0; z-index: 1100;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(0,0,0,0.45); backdrop-filter: blur(4px);
+}
+.price-modal-inner {
+  background: var(--surface);
+  border-radius: 20px;
+  padding: 20px 20px 24px;
+  width: min(440px, 92vw);
+  box-shadow: 0 8px 40px rgba(0,0,0,0.3);
+}
+.price-modal-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 12px;
+}
+.price-modal-name {
+  font-size: 16px; font-weight: 600; color: var(--text);
+}
+.price-modal-close {
+  background: none; border: none; cursor: pointer;
+  font-size: 18px; color: var(--text-muted); padding: 4px 8px;
+  border-radius: 8px;
+}
+.price-modal-close:hover { background: var(--bg); }
+.price-modal-current {
+  text-align: center; font-size: 32px; font-weight: 700;
+  padding: 8px 0 20px; color: var(--text);
+}
+.price-modal-current.price-green  { color: #4caf50; }
+.price-modal-current.price-yellow { color: #f5a623; }
+.price-modal-current.price-red    { color: #e53935; }
+.price-chart-label {
+  font-size: 11px; color: var(--text-muted);
+  margin-bottom: 8px; text-align: center;
+}
+.price-chart {
+  display: flex; align-items: flex-end; gap: 6px;
+  height: 130px;
+}
+.price-chart-col {
+  flex: 1; display: flex; flex-direction: column; align-items: center;
+  height: 100%;
+}
+.price-bar-wrap {
+  flex: 1; display: flex; align-items: flex-end; width: 100%;
+}
+.price-bar {
+  width: 100%; border-radius: 4px 4px 0 0;
+  min-height: 4px;
+}
+.price-bar.price-green  { background: #4caf50; }
+.price-bar.price-yellow { background: #f5a623; }
+.price-bar.price-red    { background: #e53935; }
+.price-chart-col:not(.price-col-current) .price-bar { opacity: 0.55; }
+.price-col-current .price-bar {
+  outline: 2px solid var(--accent); outline-offset: 1px;
+}
+.price-time {
+  font-size: 12px; color: var(--text-muted); margin-top: 5px; white-space: nowrap;
+}
+.price-val {
+  font-size: 11px; color: var(--text-muted); margin-top: 1px; white-space: nowrap;
+}
+.price-col-current .price-time { color: var(--accent); font-weight: 700; }
+.price-col-current .price-val  { color: var(--accent); font-weight: 600; }
+
 /* ── Thermostat-Modal ─────────────────────────────── */
 .thermostat-modal {
   position: fixed;

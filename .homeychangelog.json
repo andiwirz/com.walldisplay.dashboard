@@ -1,4 +1,12 @@
 {
+  "1.3.40": {
+    "en": "Energy price modal: bar heights are now proportional to the absolute price (not relative to the min–max range). Increased font size of time labels and price values in the chart for better readability on smaller screens.",
+    "de": "Energiepreis-Modal: Balkenhöhen sind jetzt proportional zum absoluten Preis (nicht relativ zum Min-Max-Bereich). Schriftgrösse der Zeitlabels und Preiswerte im Diagramm für bessere Lesbarkeit auf kleineren Bildschirmen erhöht."
+  },
+  "1.3.39": {
+    "en": "Energy price tiles now open a modal on tap showing the current price (color-coded) and a bar chart of the next 8 hours. The current hour is highlighted. Bars are colored green, yellow or red based on the price range within those 8 hours. Live updates via SSE.",
+    "de": "Energiepreis-Kacheln öffnen beim Antippen ein Modal mit dem aktuellen Preis (farbkodiert) und einem Balkendiagramm der nächsten 8 Stunden. Die aktuelle Stunde ist hervorgehoben. Balken sind grün, gelb oder rot basierend auf dem Preisbereich dieser 8 Stunden. Live-Updates via SSE."
+  },
   "1.3.38": {
     "en": "Updated README opening to avoid duplicating the app subtitle. README now leads with Shelly Wall Display as the original use case.",
     "de": "README-Einleitung überarbeitet, um den App-Untertitel nicht zu wiederholen. README beginnt jetzt mit dem Shelly Wall Display als ursprünglichem Anwendungsfall."

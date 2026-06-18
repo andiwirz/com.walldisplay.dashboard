@@ -1945,6 +1945,7 @@
     var isSpeaker    = d.class === 'speaker' || d.class === 'mediaplayer';
     var isThermostat = capIds.indexOf(CAP.TARGET_TEMP) !== -1;
     var isLock       = d.class === 'lock';
+    var isPriceDevice = capIds.indexOf('current_quarter_price') !== -1;
     var isOn         = hasOnOff && caps[CAP.ONOFF] && caps[CAP.ONOFF].value === true;
     var alarmCap  = hasAlarm ? getAlarmCapability(d) : null;
     var isArmed   = alarmCap ? alarmIsArmed(alarmCap.value) : false;
@@ -1994,7 +1995,15 @@
       }(d.id));
     }
 
-    if (!isSpeaker && !isThermostat && !isLock && (hasAlarm || hasOnOff)) {
+    // Energy Price Device → Preis-Modal öffnen
+    if (isPriceDevice && !isSpeaker && !isThermostat && !isLock) {
+      card.classList.add('clickable');
+      (function (deviceId) {
+        card.addEventListener('click', function () { openPriceModal(deviceId); });
+      }(d.id));
+    }
+
+    if (!isSpeaker && !isThermostat && !isLock && !isPriceDevice && (hasAlarm || hasOnOff)) {
       card.classList.add('clickable');
       (function (deviceId) {
         card.addEventListener('click', function (e) {
@@ -2497,6 +2506,7 @@
     // Lock-Modal live aktualisieren wenn offen
     if (_alarmModalId === deviceId) _updateAlarmModal();
     if (_lockModalId === deviceId) _updateLockModal();
+    if (_priceModalId === deviceId) _updatePriceModal();
 
     // Alarme (dot-Index muss mit buildValueElements übereinstimmen)
     var dots = card.querySelectorAll('.alarm-dot');
@@ -3304,6 +3314,149 @@
 
   window.openAlarmModal  = openAlarmModal;
   window.closeAlarmModal = closeAlarmModal;
+
+  // ── Price-Modal ───────────────────────────────────
+  var _priceModalId = null;
+
+  function openPriceModal(deviceId) {
+    _priceModalId = deviceId;
+    var d = devices[deviceId];
+    if (!d) return;
+    document.getElementById('price-modal-name').textContent = d.name;
+    document.getElementById('price-modal').style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+    _updatePriceModal();
+  }
+
+  function closePriceModal() {
+    document.getElementById('price-modal').style.display = 'none';
+    document.body.style.overflow = '';
+    _priceModalId = null;
+  }
+
+  function _extractPriceFromEntry(e) {
+    var p = e.price !== undefined ? e.price : e.value !== undefined ? e.value :
+            e.amount !== undefined ? e.amount : e.spotPrice !== undefined ? e.spotPrice :
+            e.total !== undefined ? e.total : undefined;
+    if (p === undefined) {
+      for (var k in e) {
+        if (typeof e[k] === 'number' && e[k] >= -1 && e[k] <= 10) { p = e[k]; break; }
+      }
+    }
+    return typeof p === 'number' ? p : null;
+  }
+
+  function _buildPriceChart(d) {
+    var caps    = d.capabilitiesObj || {};
+    var jsonCap = caps['quarter_prices_json'];
+    var curCap  = caps['current_quarter_price'];
+    if (!jsonCap || typeof jsonCap.value !== 'string') return null;
+
+    try {
+      var data = JSON.parse(jsonCap.value);
+      var src  = Array.isArray(data) ? data : (data.today || []).concat(data.tomorrow || []);
+
+      var nowMs   = Date.now();
+      var nowDate = new Date(nowMs);
+      var clockHour = new Date(
+        nowDate.getFullYear(), nowDate.getMonth(), nowDate.getDate(), nowDate.getHours()
+      ).getTime();
+
+      var hours = [];
+      for (var h = 0; h < 8; h++) {
+        var hStart = clockHour + h * 3600000;
+        var hEnd   = hStart + 3600000;
+        var hDate  = new Date(hStart);
+        var label  = (hDate.getHours() < 10 ? '0' : '') + hDate.getHours() + ':00';
+        var vals   = [];
+        src.forEach(function (e) {
+          var ts = e.timestamp || 0;
+          if (ts >= hStart && ts < hEnd) {
+            var p = _extractPriceFromEntry(e);
+            if (p !== null) vals.push(p);
+          }
+        });
+        var price = vals.length > 0 ? vals.reduce(function (a, b) { return a + b; }, 0) / vals.length : null;
+        hours.push({ label: label, price: price, isCurrent: h === 0 });
+      }
+
+      var validPrices = [];
+      hours.forEach(function (h) { if (h.price !== null) validPrices.push(h.price); });
+      if (validPrices.length === 0) return null;
+
+      var sorted = validPrices.slice().sort(function (a, b) { return a - b; });
+      var min    = sorted[0];
+      var max    = sorted[sorted.length - 1];
+      var range  = max - min || 0.0001;
+      var p33    = sorted[Math.floor(sorted.length / 3)];
+      var p67    = sorted[Math.floor(sorted.length * 2 / 3)];
+
+      function colorFor(price) {
+        return price <= p33 ? 'price-green' : price <= p67 ? 'price-yellow' : 'price-red';
+      }
+
+      var chart = createElement('div', 'price-chart');
+      hours.forEach(function (h) {
+        var col = createElement('div', 'price-chart-col' + (h.isCurrent ? ' price-col-current' : ''));
+        var barWrap = createElement('div', 'price-bar-wrap');
+
+        if (h.price !== null) {
+          var bar = createElement('div', 'price-bar');
+          var heightPct = max > 0 ? Math.max((h.price / max) * 90, 5) : 50;
+          bar.style.height = Math.round(heightPct) + '%';
+          bar.classList.add(colorFor(h.price));
+          barWrap.appendChild(bar);
+        }
+        col.appendChild(barWrap);
+
+        var timeEl = createElement('div', 'price-time');
+        timeEl.textContent = h.label;
+        col.appendChild(timeEl);
+
+        if (h.price !== null) {
+          var valEl = createElement('div', 'price-val');
+          valEl.textContent = parseFloat(h.price.toFixed(3));
+          col.appendChild(valEl);
+        }
+        chart.appendChild(col);
+      });
+
+      return { chart: chart, unit: (curCap && curCap.units) || '' };
+    } catch (e) { return null; }
+  }
+
+  function _updatePriceModal() {
+    if (!_priceModalId) return;
+    var d = devices[_priceModalId];
+    if (!d) return;
+
+    var caps   = d.capabilitiesObj || {};
+    var curCap = caps['current_quarter_price'];
+    var curVal = curCap && typeof curCap.value === 'number' ? curCap.value : null;
+    var unit   = (curCap && curCap.units) || '';
+
+    var curEl = document.getElementById('price-modal-current');
+    if (curVal !== null) {
+      curEl.textContent = parseFloat(curVal.toFixed(4)) + (unit ? ' ' + unit : '');
+      curEl.className = 'price-modal-current ' + (_energyPriceColorClass(d) || '');
+    } else {
+      curEl.textContent = '—';
+      curEl.className = 'price-modal-current';
+    }
+
+    var chartWrap = document.getElementById('price-modal-chart');
+    chartWrap.innerHTML = '';
+    var result = _buildPriceChart(d);
+    if (result) {
+      var lbl = createElement('div', 'price-chart-label');
+      lbl.textContent = 'Next 8 hours' + (result.unit ? ' (' + result.unit + ')' : '');
+      chartWrap.appendChild(lbl);
+      chartWrap.appendChild(result.chart);
+    }
+  }
+
+  window.openPriceModal  = openPriceModal;
+  window.closePriceModal = closePriceModal;
 
   // ── Lock-Modal ────────────────────────────────────
   var _lockModalId = null;

@@ -172,6 +172,18 @@
     </div>
   </div>
 
+  <!-- Price Modal -->
+  <div id="price-modal" class="price-modal" style="display:none" onclick="if(event.target===this)closePriceModal()">
+    <div class="price-modal-inner">
+      <div class="price-modal-header">
+        <span id="price-modal-name" class="price-modal-name"></span>
+        <button class="price-modal-close" onclick="closePriceModal()">✕</button>
+      </div>
+      <div id="price-modal-current" class="price-modal-current"></div>
+      <div id="price-modal-chart" class="price-modal-chart-wrap"></div>
+    </div>
+  </div>
+
   <!-- Alarm-Modal -->
   <div id="alarm-modal" class="lock-modal" style="display:none" onclick="if(event.target===this)closeAlarmModal()">
     <div class="lock-modal-inner">

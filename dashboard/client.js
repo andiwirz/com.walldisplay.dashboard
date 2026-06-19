@@ -1939,7 +1939,7 @@
     var caps      = d.capabilitiesObj || {};
     var capIds    = d.capabilities || [];
     var hasOnOff  = capIds.indexOf(CAP.ONOFF) !== -1;
-    var hasAlarm  = d.class === 'homealarm' || capIds.indexOf(CAP.HOMEALARM) !== -1;
+    var hasAlarm  = d.class === 'homealarm' || capIds.indexOf(CAP.HOMEALARM) !== -1 || capIds.indexOf(CAP.HOMEALARM_STATE) !== -1;
     var hasDim    = capIds.indexOf(CAP.DIM) !== -1;
     var hasWcState = capIds.indexOf(CAP.WC_STATE) !== -1 && capIds.indexOf(CAP.WC_SET) === -1;
     var isSpeaker    = d.class === 'speaker' || d.class === 'mediaplayer';
@@ -2116,7 +2116,7 @@
     var caps       = d.capabilitiesObj || {};
     var capIds     = d.capabilities || [];
     var hasOnOff   = capIds.indexOf(CAP.ONOFF) !== -1;
-    var hasAlarm   = d.class === 'homealarm' || capIds.indexOf(CAP.HOMEALARM) !== -1;
+    var hasAlarm   = d.class === 'homealarm' || capIds.indexOf(CAP.HOMEALARM) !== -1 || capIds.indexOf(CAP.HOMEALARM_STATE) !== -1;
     var hasWcState = capIds.indexOf(CAP.WC_STATE) !== -1 && capIds.indexOf(CAP.WC_SET) === -1;
 
     if (d.class === 'lock') {
@@ -2422,7 +2422,7 @@
     var caps       = d.capabilitiesObj || {};
     var capIds     = d.capabilities || [];
     var hasOnOff   = capIds.indexOf(CAP.ONOFF) !== -1;
-    var hasAlarm   = d.class === 'homealarm' || capIds.indexOf(CAP.HOMEALARM) !== -1;
+    var hasAlarm   = d.class === 'homealarm' || capIds.indexOf(CAP.HOMEALARM) !== -1 || capIds.indexOf(CAP.HOMEALARM_STATE) !== -1;
     var hasWcState = capIds.indexOf(CAP.WC_STATE) !== -1 && capIds.indexOf(CAP.WC_SET) === -1;
     var isOn       = hasOnOff && caps[CAP.ONOFF] && caps[CAP.ONOFF].value === true;
     var alarmCapU  = hasAlarm ? getAlarmCapability(d) : null;

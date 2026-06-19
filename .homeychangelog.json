@@ -1,4 +1,8 @@
 {
+  "1.3.42": {
+    "en": "Alarm detection now also recognizes devices with homealarm_state capability (e.g. Heimdall Surveillance) even when the device class is not homealarm. These devices show the alarm modal with Armed, Partially Armed, and Disarmed options.",
+    "de": "Alarm-Erkennung erkennt jetzt auch Geräte mit homealarm_state-Capability (z.B. Heimdall Surveillance), auch wenn die Geräteklasse nicht homealarm ist. Diese Geräte zeigen das Alarm-Modal mit den Optionen Scharf, Teilweise scharf und Unscharf."
+  },
   "1.3.41": {
     "en": "Energy price modal: further increased font size of time labels and price values for better readability.",
     "de": "Energiepreis-Modal: Schriftgrösse der Zeitlabels und Preiswerte nochmals vergrössert für bessere Lesbarkeit."

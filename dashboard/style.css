@@ -1835,10 +1835,10 @@ body.tile-colors-strong .flow-tile:not(.dashboard-shortcut-tile) {
   outline: 2px solid var(--accent); outline-offset: 1px;
 }
 .price-time {
-  font-size: 12px; color: var(--text-muted); margin-top: 5px; white-space: nowrap;
+  font-size: 14px; color: var(--text-muted); margin-top: 5px; white-space: nowrap;
 }
 .price-val {
-  font-size: 11px; color: var(--text-muted); margin-top: 1px; white-space: nowrap;
+  font-size: 13px; color: var(--text-muted); margin-top: 1px; white-space: nowrap;
 }
 .price-col-current .price-time { color: var(--accent); font-weight: 700; }
 .price-col-current .price-val  { color: var(--accent); font-weight: 600; }

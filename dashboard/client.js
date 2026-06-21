@@ -43,6 +43,12 @@
   var _flowConfirm   = false; // true = Bestätigung vor Flow-Start
   var _flowPosition  = 'top'; // 'top' | 'bottom'
   var _headerHidden  = false; // true = Header ausgeblendet → Dashboard-Tiles im Grid
+  var _searchEnabled  = true;  // 🔍 Search Button aktiv
+  var _cameraFilterEnabled  = false; // 📷 Camera Filter Button
+  var _speakerFilterEnabled = false; // 🎵 Speaker Filter Button
+  var _thermostatFilterEnabled = false; // 🌡️ Thermostat Filter Button
+  var _lightFilterEnabled = false;     // 💡 Light Filter Button
+  var _blindsFilterEnabled = false;    // 🪟 Blinds Filter Button
   var _energyEnabled = true;  // ⚡ Energy Button aktiv
   var _evEnabled     = false; // 🚗 EV Button aktiv
   var _weatherEnabled   = false;
@@ -1157,7 +1163,11 @@
         _flowPosition = cfg.flowPosition === 'bottom' ? 'bottom' : 'top';
         // Dashboard-Titel
         var titleEl = document.getElementById('header-title');
-        if (titleEl) titleEl.textContent = cfg.dashboardTitle || 'My Homey';
+        if (titleEl) {
+          var titleText = cfg.dashboardTitle || '';
+          titleEl.textContent = titleText;
+          titleEl.style.display = titleText ? '' : 'none';
+        }
         // Schriftgrösse: 1–5 → scale 1.0 / 1.15 / 1.3 / 1.5 / 1.75
         var fontScales = [1, 1.15, 1.3, 1.5, 1.75];
         var fs = (cfg.fontSize >= 1 && cfg.fontSize <= 5) ? cfg.fontSize : 1;
@@ -1229,6 +1239,31 @@
         // Header Icon Style
         var headerIconStyle = cfg.headerIconStyle || 'svg';
         document.body.classList.toggle('hdr-icons-svg', headerIconStyle === 'svg');
+        // Suchbutton
+        _searchEnabled = cfg.searchEnabled !== false;
+        var searchBtn = document.getElementById('search-btn');
+        if (searchBtn) searchBtn.style.display = _searchEnabled ? '' : 'none';
+
+        _cameraFilterEnabled = cfg.cameraFilterEnabled === true;
+        var camBtn = document.getElementById('camera-filter-btn');
+        if (camBtn) camBtn.style.display = _cameraFilterEnabled ? '' : 'none';
+
+        _speakerFilterEnabled = cfg.speakerFilterEnabled === true;
+        var spkBtn = document.getElementById('speaker-filter-btn');
+        if (spkBtn) spkBtn.style.display = _speakerFilterEnabled ? '' : 'none';
+
+        _thermostatFilterEnabled = cfg.thermostatFilterEnabled === true;
+        var thBtn = document.getElementById('thermostat-filter-btn');
+        if (thBtn) thBtn.style.display = _thermostatFilterEnabled ? '' : 'none';
+
+        _lightFilterEnabled = cfg.lightFilterEnabled === true;
+        var ltBtn = document.getElementById('light-filter-btn');
+        if (ltBtn) ltBtn.style.display = _lightFilterEnabled ? '' : 'none';
+
+        _blindsFilterEnabled = cfg.blindsFilterEnabled === true;
+        var blBtn = document.getElementById('blinds-filter-btn');
+        if (blBtn) blBtn.style.display = _blindsFilterEnabled ? '' : 'none';
+
         // Header ausblenden
         _headerHidden = cfg.headerHidden === true;
         var header = document.querySelector('.header');
@@ -1907,6 +1942,8 @@
       section.classList.add('collapsed');
     }
 
+    section.setAttribute('data-zone', zoneName.toLowerCase());
+
     var title = createElement('div', 'zone-title');
     title.textContent = zoneName;
 
@@ -1934,6 +1971,8 @@
   function buildDeviceCard(d) {
     var card = createElement('div', 'device-card');
     card.id = 'card-' + d.id;
+    card.setAttribute('data-name', d.name.toLowerCase());
+    card.setAttribute('data-class', d.class || '');
     if (!d.available) card.classList.add('unavailable');
 
     var caps      = d.capabilitiesObj || {};
@@ -1946,6 +1985,7 @@
     var isThermostat = capIds.indexOf(CAP.TARGET_TEMP) !== -1;
     var isLock       = d.class === 'lock';
     var isPriceDevice = capIds.indexOf('current_quarter_price') !== -1;
+    var hasButton    = capIds.indexOf('button') !== -1 && !hasOnOff;
     var isOn         = hasOnOff && caps[CAP.ONOFF] && caps[CAP.ONOFF].value === true;
     var alarmCap  = hasAlarm ? getAlarmCapability(d) : null;
     var isArmed   = alarmCap ? alarmIsArmed(alarmCap.value) : false;
@@ -2025,6 +2065,16 @@
           } else {
             setCapability(deviceId, CAP.ONOFF, !(cv[CAP.ONOFF] && cv[CAP.ONOFF].value));
           }
+        });
+      }(d.id));
+    }
+
+    // Button-Capability (z.B. virtuelle Buttons) — Tap feuert button=true
+    if (hasButton && !isSpeaker && !isThermostat && !isLock && !isPriceDevice && !hasAlarm) {
+      card.classList.add('clickable');
+      (function (deviceId) {
+        card.addEventListener('click', function () {
+          setCapability(deviceId, 'button', true);
         });
       }(d.id));
     }
@@ -3457,6 +3507,118 @@
 
   window.openPriceModal  = openPriceModal;
   window.closePriceModal = closePriceModal;
+
+  // ── Search ────────────────────────────────────────
+  var _searchQuery = '';
+
+  function openSearch() {
+    var header = document.querySelector('.header');
+    header.classList.add('searching');
+    var bar = document.getElementById('search-bar');
+    bar.style.display = 'flex';
+    var input = document.getElementById('search-input');
+    input.value = _searchQuery;
+    input.focus();
+    input.select();
+  }
+
+  function _hideSearchBar() {
+    var header = document.querySelector('.header');
+    header.classList.remove('searching');
+    document.getElementById('search-bar').style.display = 'none';
+    var btn = document.getElementById('search-btn');
+    if (btn) btn.classList.toggle('search-active', _searchQuery !== '');
+  }
+
+  function _confirmSearch() {
+    _searchQuery = document.getElementById('search-input').value.trim();
+    _hideSearchBar();
+    _applySearchFilter(_searchQuery);
+  }
+
+  function closeSearch() {
+    _searchQuery = '';
+    _hideSearchBar();
+    _applySearchFilter('');
+  }
+
+  function _applySearchFilter(query) {
+    var q = query.toLowerCase().trim();
+    var container = document.getElementById('zones-container');
+    var cards = container.querySelectorAll('.device-card');
+    cards.forEach(function (card) {
+      var name = card.getAttribute('data-name') || '';
+      card.style.display = (q === '' || name.indexOf(q) !== -1) ? '' : 'none';
+    });
+    var sections = container.querySelectorAll('.zone-section[data-zone]');
+    sections.forEach(function (sec) {
+      var zoneName = sec.getAttribute('data-zone') || '';
+      var zoneMatch = q !== '' && zoneName.indexOf(q) !== -1;
+      var visibleCards = sec.querySelectorAll('.device-card:not([style*="display: none"])');
+      if (zoneMatch) {
+        sec.querySelectorAll('.device-card').forEach(function (c) { c.style.display = ''; });
+        sec.style.display = '';
+      } else {
+        sec.style.display = (q === '' || visibleCards.length > 0) ? '' : 'none';
+      }
+    });
+  }
+
+  document.getElementById('search-input').addEventListener('input', function () {
+    _applySearchFilter(this.value);
+  });
+  document.getElementById('search-input').addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') closeSearch();
+    if (e.key === 'Enter') { e.preventDefault(); _confirmSearch(); }
+  });
+
+  window.openSearch  = openSearch;
+  window.closeSearch = closeSearch;
+
+  // ── Class Filter (Camera / Speaker) ───────────────
+  var _activeClassFilter = null;
+
+  function toggleClassFilter(type) {
+    if (_activeClassFilter === type) {
+      _activeClassFilter = null;
+    } else {
+      _activeClassFilter = type;
+    }
+    // Clear search when activating a class filter
+    if (_activeClassFilter && _searchQuery) {
+      _searchQuery = '';
+      var btn = document.getElementById('search-btn');
+      if (btn) btn.classList.remove('search-active');
+    }
+    _applyClassFilter();
+    document.getElementById('camera-filter-btn').classList.toggle('filter-active', _activeClassFilter === 'camera');
+    document.getElementById('speaker-filter-btn').classList.toggle('filter-active', _activeClassFilter === 'speaker');
+    document.getElementById('thermostat-filter-btn').classList.toggle('filter-active', _activeClassFilter === 'thermostat');
+    document.getElementById('light-filter-btn').classList.toggle('filter-active', _activeClassFilter === 'light');
+    document.getElementById('blinds-filter-btn').classList.toggle('filter-active', _activeClassFilter === 'blinds');
+  }
+
+  function _applyClassFilter() {
+    var container = document.getElementById('zones-container');
+    var cards = container.querySelectorAll('.device-card');
+    var filter = _activeClassFilter;
+    var matchClasses = filter === 'camera' ? ['camera', 'doorbell'] :
+                       filter === 'speaker' ? ['speaker', 'mediaplayer'] :
+                       filter === 'thermostat' ? ['thermostat', 'heater'] :
+                       filter === 'light' ? ['light'] :
+                       filter === 'blinds' ? ['blinds', 'curtain', 'windowcoverings', 'shutterblinds', 'sunshade'] : null;
+    cards.forEach(function (card) {
+      var cls = card.getAttribute('data-class') || '';
+      card.style.display = (!matchClasses || matchClasses.indexOf(cls) !== -1) ? '' : 'none';
+    });
+    var sections = container.querySelectorAll('.zone-section[data-zone]');
+    sections.forEach(function (sec) {
+      var visibleCards = sec.querySelectorAll('.device-card:not([style*="display: none"])');
+      sec.style.display = (!matchClasses || visibleCards.length > 0) ? '' : 'none';
+    });
+  }
+
+  window.toggleClassFilter = toggleClassFilter;
 
   // ── Lock-Modal ────────────────────────────────────
   var _lockModalId = null;

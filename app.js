@@ -493,11 +493,17 @@ class ShellyWallDisplayApp extends Homey.App {
           flowTileWidth: this.homey.settings.get('flowTileWidth') || 'auto',
           flowConfirm: this.homey.settings.get('flowConfirm') === true,
           flowPosition: this.homey.settings.get('flowPosition') || 'top',
-          dashboardTitle: this.homey.settings.get('dashboardTitle') || 'My Homey',
+          dashboardTitle: this.homey.settings.get('dashboardTitle') || '',
           fontSize: this.homey.settings.get('fontSize') || 1,
           accentColor: this.homey.settings.get('accentColor') || '#F5A623',
           tileRadius: this.homey.settings.get('tileRadius') || 'rounded',
           headerHidden: this.homey.settings.get('headerHidden') || false,
+          searchEnabled: this.homey.settings.get('searchEnabled') !== false,
+          cameraFilterEnabled: this.homey.settings.get('cameraFilterEnabled') === true,
+          speakerFilterEnabled: this.homey.settings.get('speakerFilterEnabled') === true,
+          thermostatFilterEnabled: this.homey.settings.get('thermostatFilterEnabled') === true,
+          lightFilterEnabled: this.homey.settings.get('lightFilterEnabled') === true,
+          blindsFilterEnabled: this.homey.settings.get('blindsFilterEnabled') === true,
           viewDefault: this.homey.settings.get('viewDefault') || 'all',
           viewBtnHidden: this.homey.settings.get('viewBtnHidden') || false,
           zoneOrder: this.homey.settings.get('zoneOrder') || [],
@@ -527,7 +533,7 @@ class ShellyWallDisplayApp extends Homey.App {
       if (url.pathname === '/api/settings' && req.method === 'POST') {
         const body = await this._readBody(req);
         const { key, value } = JSON.parse(body);
-        const allowed = ['port', 'enabledDevices', 'alarmPin', 'energyEnabled', 'batteryInvertSign', 'tileSize', 'tileHeight', 'enabledFlows', 'homeyToken', 'flowTileWidth', 'dashboardTitle', 'fontSize', 'accentColor', 'tileRadius', 'headerHidden', 'viewDefault', 'viewBtnHidden', 'zoneOrder', 'coverFullscreen', 'coverFullscreenDelay', 'defaultProfileZones', 'defaultProfileDevices', 'tileColorMode', 'tileColorOn', 'tileColorOff', 'tileColorFlow', 'bgStyle', 'animMode', 'headerIconStyle', 'weatherEnabled', 'weatherHeaderBtn', 'weatherLat', 'weatherLon', 'weatherCity', 'weatherUnit'];
+        const allowed = ['port', 'enabledDevices', 'alarmPin', 'energyEnabled', 'batteryInvertSign', 'tileSize', 'tileHeight', 'enabledFlows', 'homeyToken', 'flowTileWidth', 'dashboardTitle', 'fontSize', 'accentColor', 'tileRadius', 'headerHidden', 'viewDefault', 'viewBtnHidden', 'zoneOrder', 'coverFullscreen', 'coverFullscreenDelay', 'defaultProfileZones', 'defaultProfileDevices', 'tileColorMode', 'tileColorOn', 'tileColorOff', 'tileColorFlow', 'bgStyle', 'animMode', 'headerIconStyle', 'weatherEnabled', 'weatherHeaderBtn', 'weatherLat', 'weatherLon', 'weatherCity', 'weatherUnit', 'searchEnabled', 'cameraFilterEnabled', 'speakerFilterEnabled', 'thermostatFilterEnabled', 'lightFilterEnabled', 'blindsFilterEnabled'];
         if (!allowed.includes(key)) {
           res.writeHead(400);
           res.end(JSON.stringify({ error: 'Not allowed' }));

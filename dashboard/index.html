@@ -19,9 +19,38 @@
         <rect width="32" height="32" rx="8" fill="#F5A623"/>
         <path d="M16 7 L25 14 L25 25 L19 25 L19 19 L13 19 L13 25 L7 25 L7 14 Z" fill="white"/>
       </svg>
-      <span class="header-title" id="header-title">My Homey</span>
+      <span class="header-title" id="header-title"></span>
+    </div>
+    <div id="search-bar" class="search-bar" style="display:none">
+      <svg class="search-bar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input id="search-input" class="search-input" type="text" placeholder="Search…" autocomplete="off">
+      <button class="search-close-btn" onclick="closeSearch()">✕</button>
     </div>
     <div class="header-right">
+      <button id="search-btn" class="search-hdr-btn" onclick="openSearch()" aria-label="Search" title="Search">
+        <span class="hdr-emoji">🔍</span>
+        <svg class="hdr-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </button>
+      <button id="camera-filter-btn" class="filter-hdr-btn" onclick="toggleClassFilter('camera')" aria-label="Cameras" title="Cameras" style="display:none">
+        <span class="hdr-emoji">📷</span>
+        <svg class="hdr-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+      </button>
+      <button id="speaker-filter-btn" class="filter-hdr-btn" onclick="toggleClassFilter('speaker')" aria-label="Media Players" title="Media Players" style="display:none">
+        <span class="hdr-emoji">🎵</span>
+        <svg class="hdr-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+      </button>
+      <button id="thermostat-filter-btn" class="filter-hdr-btn" onclick="toggleClassFilter('thermostat')" aria-label="Thermostats" title="Thermostats" style="display:none">
+        <span class="hdr-emoji">🌡️</span>
+        <svg class="hdr-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/></svg>
+      </button>
+      <button id="light-filter-btn" class="filter-hdr-btn" onclick="toggleClassFilter('light')" aria-label="Lights" title="Lights" style="display:none">
+        <span class="hdr-emoji">💡</span>
+        <svg class="hdr-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"/></svg>
+      </button>
+      <button id="blinds-filter-btn" class="filter-hdr-btn" onclick="toggleClassFilter('blinds')" aria-label="Blinds" title="Blinds" style="display:none">
+        <span class="hdr-emoji">🪟</span>
+        <svg class="hdr-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="1"/><line x1="3" y1="7" x2="21" y2="7"/><line x1="3" y1="11" x2="21" y2="11"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="12" y1="15" x2="12" y2="21"/></svg>
+      </button>
       <button id="view-toggle" class="view-toggle-btn" onclick="toggleView()">
         <span class="hdr-emoji">⊞ All</span>
         <svg class="hdr-svg hdr-svg-all" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>

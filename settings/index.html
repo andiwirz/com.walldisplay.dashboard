@@ -613,7 +613,7 @@
     <div class="card collapsible" data-collapse-key="designTitle">
       <div class="card-title" data-i18n="dashboardTitleTitle">Dashboard Title</div>
       <label for="dashboard-title-input" data-i18n="dashboardTitleLabel">Name shown in the header</label>
-      <input type="text" id="dashboard-title-input" maxlength="40" placeholder="My Homey"
+      <input type="text" id="dashboard-title-input" maxlength="40" placeholder=""
              style="width:100%;font-size:15px;">
       <p class="hint" data-i18n="dashboardTitleHint"></p>
       <button class="save-btn" onclick="saveDashboardTitle()" data-i18n="save">Save</button>
@@ -632,6 +632,90 @@
       </div>
       <p class="toggle-hint" data-i18n="headerHiddenHint">When disabled, the title, clock and buttons are hidden for a clean full-screen look.</p>
       <div class="status" id="header-hidden-status"></div>
+    </div>
+
+    <!-- Search Button -->
+    <div class="card collapsible" data-collapse-key="designSearch">
+      <div class="card-title" data-i18n="searchTitle">Search</div>
+      <div class="toggle-row">
+        <span class="toggle-label" data-i18n="searchLabel">Show search button</span>
+        <label class="toggle-switch">
+          <input type="checkbox" id="search-toggle" checked onchange="saveSearchEnabled()">
+          <span class="toggle-track"></span>
+        </label>
+      </div>
+      <p class="toggle-hint" data-i18n="searchHint">Adds a search icon to the header bar. Tap to filter device tiles by name or room.</p>
+      <div class="status" id="search-status"></div>
+    </div>
+
+    <!-- Camera Filter -->
+    <div class="card collapsible" data-collapse-key="designCameraFilter">
+      <div class="card-title" data-i18n="cameraFilterTitle">Camera Shortcut</div>
+      <div class="toggle-row">
+        <span class="toggle-label" data-i18n="cameraFilterLabel">Show camera button</span>
+        <label class="toggle-switch">
+          <input type="checkbox" id="camera-filter-toggle" onchange="saveCameraFilterEnabled()">
+          <span class="toggle-track"></span>
+        </label>
+      </div>
+      <p class="toggle-hint" data-i18n="cameraFilterHint">Adds a camera icon to the header. Tap to show only camera and doorbell tiles.</p>
+      <div class="status" id="camera-filter-status"></div>
+    </div>
+
+    <!-- Speaker Filter -->
+    <div class="card collapsible" data-collapse-key="designSpeakerFilter">
+      <div class="card-title" data-i18n="speakerFilterTitle">Media Player Shortcut</div>
+      <div class="toggle-row">
+        <span class="toggle-label" data-i18n="speakerFilterLabel">Show media player button</span>
+        <label class="toggle-switch">
+          <input type="checkbox" id="speaker-filter-toggle" onchange="saveSpeakerFilterEnabled()">
+          <span class="toggle-track"></span>
+        </label>
+      </div>
+      <p class="toggle-hint" data-i18n="speakerFilterHint">Adds a music icon to the header. Tap to show only speaker and media player tiles.</p>
+      <div class="status" id="speaker-filter-status"></div>
+    </div>
+
+    <!-- Thermostat Filter -->
+    <div class="card collapsible" data-collapse-key="designThermostatFilter">
+      <div class="card-title" data-i18n="thermostatFilterTitle">Thermostat Shortcut</div>
+      <div class="toggle-row">
+        <span class="toggle-label" data-i18n="thermostatFilterLabel">Show thermostat button</span>
+        <label class="toggle-switch">
+          <input type="checkbox" id="thermostat-filter-toggle" onchange="saveThermostatFilterEnabled()">
+          <span class="toggle-track"></span>
+        </label>
+      </div>
+      <p class="toggle-hint" data-i18n="thermostatFilterHint">Adds a thermometer icon to the header. Tap to show only thermostat and heater tiles.</p>
+      <div class="status" id="thermostat-filter-status"></div>
+    </div>
+
+    <!-- Light Filter -->
+    <div class="card collapsible" data-collapse-key="designLightFilter">
+      <div class="card-title" data-i18n="lightFilterTitle">Light Shortcut</div>
+      <div class="toggle-row">
+        <span class="toggle-label" data-i18n="lightFilterLabel">Show light button</span>
+        <label class="toggle-switch">
+          <input type="checkbox" id="light-filter-toggle" onchange="saveLightFilterEnabled()">
+          <span class="toggle-track"></span>
+        </label>
+      </div>
+      <p class="toggle-hint" data-i18n="lightFilterHint">Adds a light icon to the header. Tap to show only light tiles.</p>
+      <div class="status" id="light-filter-status"></div>
+    </div>
+
+    <!-- Blinds Filter -->
+    <div class="card collapsible" data-collapse-key="designBlindsFilter">
+      <div class="card-title" data-i18n="blindsFilterTitle">Blinds Shortcut</div>
+      <div class="toggle-row">
+        <span class="toggle-label" data-i18n="blindsFilterLabel">Show blinds button</span>
+        <label class="toggle-switch">
+          <input type="checkbox" id="blinds-filter-toggle" onchange="saveBlindsFilterEnabled()">
+          <span class="toggle-track"></span>
+        </label>
+      </div>
+      <p class="toggle-hint" data-i18n="blindsFilterHint">Adds a blinds icon to the header. Tap to show only blinds and curtain tiles.</p>
+      <div class="status" id="blinds-filter-status"></div>
     </div>
 
     <!-- Flow Position -->
@@ -1108,7 +1192,7 @@
         pinInvalid:       'PIN must be exactly 4 digits',
         dashboardTitleTitle: 'Dashboard Title',
         dashboardTitleLabel: 'Name shown in the header',
-        dashboardTitleHint:  '💡 Default: "My Homey". Shown in the top-left of the dashboard.',
+        dashboardTitleHint:  '💡 Shown in the top-left of the dashboard. Leave empty to hide.',
         dashboardTitleSaved: 'Title saved',
         bgStyleTitle:    'Background',
         bgStyleHint:     'Flat: solid color (default). Gradient: subtle color blend. Glass: gradient with frosted-glass tiles using blur effect.',
@@ -1173,6 +1257,30 @@
         headerHiddenLabel:  'Show header bar',
         headerHiddenHint:   'When disabled, the title, clock and buttons are hidden for a clean full-screen look.',
         headerHiddenSaved:  'Setting saved',
+        searchTitle:        'Search',
+        searchLabel:        'Show search button',
+        searchHint:         'Adds a search icon to the header bar. Tap to filter device tiles by name or room.',
+        searchSaved:        'Setting saved',
+        cameraFilterTitle:  'Camera Shortcut',
+        cameraFilterLabel:  'Show camera button',
+        cameraFilterHint:   'Adds a camera icon to the header. Tap to show only camera and doorbell tiles.',
+        cameraFilterSaved:  'Setting saved',
+        speakerFilterTitle: 'Media Player Shortcut',
+        speakerFilterLabel: 'Show media player button',
+        speakerFilterHint:  'Adds a music icon to the header. Tap to show only speaker and media player tiles.',
+        speakerFilterSaved: 'Setting saved',
+        thermostatFilterTitle:  'Thermostat Shortcut',
+        thermostatFilterLabel:  'Show thermostat button',
+        thermostatFilterHint:   'Adds a thermometer icon to the header. Tap to show only thermostat and heater tiles.',
+        thermostatFilterSaved:  'Setting saved',
+        lightFilterTitle:   'Light Shortcut',
+        lightFilterLabel:   'Show light button',
+        lightFilterHint:    'Adds a light icon to the header. Tap to show only light tiles.',
+        lightFilterSaved:   'Setting saved',
+        blindsFilterTitle:  'Blinds Shortcut',
+        blindsFilterLabel:  'Show blinds button',
+        blindsFilterHint:   'Adds a blinds icon to the header. Tap to show only blinds and curtain tiles.',
+        blindsFilterSaved:  'Setting saved',
         viewToggleTitle:    'View Toggle Button',
         viewBtnLabel:       'Show Rooms/All button',
         viewDefaultTitle:   'Default View',
@@ -1308,7 +1416,7 @@
         pinInvalid:       'PIN muss genau 4 Ziffern haben',
         dashboardTitleTitle: 'Dashboard-Titel',
         dashboardTitleLabel: 'Name in der Kopfzeile',
-        dashboardTitleHint:  '💡 Standard: "My Homey". Wird oben links im Dashboard angezeigt.',
+        dashboardTitleHint:  '💡 Wird oben links im Dashboard angezeigt. Leer lassen zum Ausblenden.',
         dashboardTitleSaved: 'Titel gespeichert',
         bgStyleTitle:    'Hintergrund',
         bgStyleHint:     'Einfarbig: einheitliche Hintergrundfarbe (Standard). Verlauf: subtiler Farbverlauf. Glas: Verlauf mit Milchglas-Kacheln (Blur-Effekt).',
@@ -1373,6 +1481,30 @@
         headerHiddenLabel:  'Kopfzeile anzeigen',
         headerHiddenHint:   'Wenn deaktiviert, werden Titel, Uhr und Buttons ausgeblendet – für einen sauberen Vollbild-Look.',
         headerHiddenSaved:  'Einstellung gespeichert',
+        searchTitle:        'Suche',
+        searchLabel:        'Suchbutton anzeigen',
+        searchHint:         'Zeigt ein Suchsymbol in der Kopfzeile. Antippen filtert Gerätekacheln nach Name oder Raum.',
+        searchSaved:        'Einstellung gespeichert',
+        cameraFilterTitle:  'Kamera-Schnellzugriff',
+        cameraFilterLabel:  'Kamera-Button anzeigen',
+        cameraFilterHint:   'Zeigt ein Kamera-Symbol in der Kopfzeile. Antippen zeigt nur Kamera- und Türklingel-Kacheln.',
+        cameraFilterSaved:  'Einstellung gespeichert',
+        speakerFilterTitle: 'Mediaplayer-Schnellzugriff',
+        speakerFilterLabel: 'Mediaplayer-Button anzeigen',
+        speakerFilterHint:  'Zeigt ein Musik-Symbol in der Kopfzeile. Antippen zeigt nur Speaker- und Mediaplayer-Kacheln.',
+        speakerFilterSaved: 'Einstellung gespeichert',
+        thermostatFilterTitle:  'Thermostat-Schnellzugriff',
+        thermostatFilterLabel:  'Thermostat-Button anzeigen',
+        thermostatFilterHint:   'Zeigt ein Thermometer-Symbol in der Kopfzeile. Antippen zeigt nur Thermostat- und Heizungs-Kacheln.',
+        thermostatFilterSaved:  'Einstellung gespeichert',
+        lightFilterTitle:   'Licht-Schnellzugriff',
+        lightFilterLabel:   'Licht-Button anzeigen',
+        lightFilterHint:    'Zeigt ein Licht-Symbol in der Kopfzeile. Antippen zeigt nur Licht-Kacheln.',
+        lightFilterSaved:   'Einstellung gespeichert',
+        blindsFilterTitle:  'Rolladen-Schnellzugriff',
+        blindsFilterLabel:  'Rolladen-Button anzeigen',
+        blindsFilterHint:   'Zeigt ein Rolladen-Symbol in der Kopfzeile. Antippen zeigt nur Rolladen- und Vorhang-Kacheln.',
+        blindsFilterSaved:  'Einstellung gespeichert',
         viewToggleTitle:    'Ansicht-Umschalter',
         viewBtnLabel:       'Räume/Alle-Button anzeigen',
         viewDefaultTitle:   'Standardansicht',
@@ -1835,6 +1967,12 @@
       var savedAnimMode         = await hGetSafe('animMode', 'default');
       var savedHeaderIconStyle  = await hGetSafe('headerIconStyle', 'svg');
       var savedHeaderHidden   = await hGetSafe('headerHidden', false);
+      var savedSearchEnabled  = await hGetSafe('searchEnabled', true);
+      var savedCameraFilter   = await hGetSafe('cameraFilterEnabled', false);
+      var savedSpeakerFilter  = await hGetSafe('speakerFilterEnabled', false);
+      var savedThermostatFilter = await hGetSafe('thermostatFilterEnabled', false);
+      var savedLightFilter    = await hGetSafe('lightFilterEnabled', false);
+      var savedBlindsFilter   = await hGetSafe('blindsFilterEnabled', false);
       var savedViewDefault    = await hGetSafe('viewDefault', 'all');
       var savedViewBtnHidden    = await hGetSafe('viewBtnHidden', false);
       var savedCoverFs          = await hGetSafe('coverFullscreen', true);
@@ -1875,6 +2013,12 @@
       setAnimMode(savedAnimMode, true);
       setHeaderIconStyle(savedHeaderIconStyle, true);
       document.getElementById('header-hidden-toggle').checked = !savedHeaderHidden;
+      document.getElementById('search-toggle').checked = savedSearchEnabled !== false;
+      document.getElementById('camera-filter-toggle').checked = savedCameraFilter === true;
+      document.getElementById('speaker-filter-toggle').checked = savedSpeakerFilter === true;
+      document.getElementById('thermostat-filter-toggle').checked = savedThermostatFilter === true;
+      document.getElementById('light-filter-toggle').checked = savedLightFilter === true;
+      document.getElementById('blinds-filter-toggle').checked = savedBlindsFilter === true;
       document.getElementById('view-btn-toggle').checked = !savedViewBtnHidden;
       setViewDefault(savedViewDefault, true);
       document.getElementById('cover-fs-toggle').checked = savedCoverFs === true;
@@ -2060,7 +2204,7 @@
     async function saveDashboardTitle() {
       var title = document.getElementById('dashboard-title-input').value.trim();
       try {
-        await hSet('dashboardTitle', title || false);
+        await hSet('dashboardTitle', title);
         showStatus('dashboard-title-status', T.dashboardTitleSaved, true);
       } catch (e) { showStatus('dashboard-title-status', T.errorPrefix + e.message, false); }
     }
@@ -2344,6 +2488,54 @@
         await hSet('headerHidden', !visible);
         showStatus('header-hidden-status', T.headerHiddenSaved, true);
       } catch (e) { showStatus('header-hidden-status', T.errorPrefix + e.message, false); }
+    }
+
+    async function saveSearchEnabled() {
+      var enabled = document.getElementById('search-toggle').checked;
+      try {
+        await hSet('searchEnabled', enabled);
+        showStatus('search-status', T.searchSaved, true);
+      } catch (e) { showStatus('search-status', T.errorPrefix + e.message, false); }
+    }
+
+    async function saveCameraFilterEnabled() {
+      var enabled = document.getElementById('camera-filter-toggle').checked;
+      try {
+        await hSet('cameraFilterEnabled', enabled);
+        showStatus('camera-filter-status', T.cameraFilterSaved, true);
+      } catch (e) { showStatus('camera-filter-status', T.errorPrefix + e.message, false); }
+    }
+
+    async function saveSpeakerFilterEnabled() {
+      var enabled = document.getElementById('speaker-filter-toggle').checked;
+      try {
+        await hSet('speakerFilterEnabled', enabled);
+        showStatus('speaker-filter-status', T.speakerFilterSaved, true);
+      } catch (e) { showStatus('speaker-filter-status', T.errorPrefix + e.message, false); }
+    }
+
+    async function saveThermostatFilterEnabled() {
+      var enabled = document.getElementById('thermostat-filter-toggle').checked;
+      try {
+        await hSet('thermostatFilterEnabled', enabled);
+        showStatus('thermostat-filter-status', T.thermostatFilterSaved, true);
+      } catch (e) { showStatus('thermostat-filter-status', T.errorPrefix + e.message, false); }
+    }
+
+    async function saveLightFilterEnabled() {
+      var enabled = document.getElementById('light-filter-toggle').checked;
+      try {
+        await hSet('lightFilterEnabled', enabled);
+        showStatus('light-filter-status', T.lightFilterSaved, true);
+      } catch (e) { showStatus('light-filter-status', T.errorPrefix + e.message, false); }
+    }
+
+    async function saveBlindsFilterEnabled() {
+      var enabled = document.getElementById('blinds-filter-toggle').checked;
+      try {
+        await hSet('blindsFilterEnabled', enabled);
+        showStatus('blinds-filter-status', T.blindsFilterSaved, true);
+      } catch (e) { showStatus('blinds-filter-status', T.errorPrefix + e.message, false); }
     }
 
     async function saveViewBtnHidden() {

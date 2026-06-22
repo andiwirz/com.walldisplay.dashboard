@@ -1,4 +1,8 @@
 {
+  "1.3.46": {
+    "en": "Button devices now also support devicecapabilities_button capabilities (Device Capabilities app). Button tile shows a ring icon that lights up on tap — visual feedback triggers from anywhere on the tile, not just the icon.",
+    "de": "Button-Geräte unterstützen jetzt auch devicecapabilities_button-Capabilities (Device Capabilities App). Button-Kachel zeigt ein Ring-Symbol das beim Antippen aufleuchtet — visuelles Feedback wird von überall auf der Kachel ausgelöst."
+  },
   "1.3.45": {
     "en": "New header shortcuts: optional filter buttons for cameras, media players, thermostats, lights, and blinds — each can be enabled in Settings → Design. Tap to show only matching tiles, tap again to show all. Added support for button-class devices (e.g. virtual buttons) — tap to trigger. Dashboard title is now hidden when empty.",
     "de": "Neue Schnellzugriffe in der Kopfzeile: optionale Filterbuttons für Kameras, Mediaplayer, Thermostate, Lichter und Rolladen — einzeln aktivierbar unter Einstellungen → Design. Antippen zeigt nur passende Kacheln, erneut antippen zeigt alle. Unterstützung für Button-Geräte (z.B. virtuelle Buttons) — Antippen löst den Button aus. Dashboard-Titel wird bei leerem Feld ausgeblendet."

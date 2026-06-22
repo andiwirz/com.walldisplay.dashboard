@@ -557,6 +557,42 @@ body.tile-colors-strong .flow-tile:not(.dashboard-shortcut-tile) {
   background: var(--danger);
 }
 
+/* ── Button trigger ───────────────────────────── */
+.device-btn-trigger {
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  border: 2px solid var(--text-muted);
+  background: none;
+  cursor: pointer;
+  position: relative;
+  display: flex; align-items: center; justify-content: center;
+  transition: border-color 0.2s, background 0.2s;
+  -webkit-appearance: none;
+  appearance: none;
+  margin-top: 1px;
+}
+.device-btn-trigger::after {
+  content: '';
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  background: none;
+  border: 2px solid var(--text-muted);
+  transition: border-color 0.2s;
+}
+.device-btn-trigger:hover {
+  border-color: var(--accent);
+}
+.device-btn-trigger:hover::after {
+  border-color: var(--accent);
+}
+.device-btn-trigger.triggered {
+  border-color: var(--accent);
+  background: var(--accent);
+}
+.device-btn-trigger.triggered::after {
+  border-color: #fff;
+}
+
 /* ── Device name & status ─────────────────────── */
 .device-name {
   font-size: calc(13px * var(--font-scale));

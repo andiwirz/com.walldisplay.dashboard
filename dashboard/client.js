@@ -1985,7 +1985,13 @@
     var isThermostat = capIds.indexOf(CAP.TARGET_TEMP) !== -1;
     var isLock       = d.class === 'lock';
     var isPriceDevice = capIds.indexOf('current_quarter_price') !== -1;
-    var hasButton    = capIds.indexOf('button') !== -1 && !hasOnOff;
+    var _buttonCapId = null;
+    for (var _bi = 0; _bi < capIds.length; _bi++) {
+      if (capIds[_bi] === 'button' || capIds[_bi].indexOf('devicecapabilities_button.button') === 0) {
+        _buttonCapId = capIds[_bi]; break;
+      }
+    }
+    var hasButton = _buttonCapId !== null && !hasOnOff && !hasAlarm;
     var isOn         = hasOnOff && caps[CAP.ONOFF] && caps[CAP.ONOFF].value === true;
     var alarmCap  = hasAlarm ? getAlarmCapability(d) : null;
     var isArmed   = alarmCap ? alarmIsArmed(alarmCap.value) : false;
@@ -2070,13 +2076,18 @@
     }
 
     // Button-Capability (z.B. virtuelle Buttons) — Tap feuert button=true
-    if (hasButton && !isSpeaker && !isThermostat && !isLock && !isPriceDevice && !hasAlarm) {
+    if (hasButton && !isSpeaker && !isThermostat && !isLock && !isPriceDevice) {
       card.classList.add('clickable');
-      (function (deviceId) {
-        card.addEventListener('click', function () {
-          setCapability(deviceId, 'button', true);
+      (function (deviceId, capId, cardEl) {
+        cardEl.addEventListener('click', function () {
+          setCapability(deviceId, capId, true);
+          var icon = cardEl.querySelector('.device-btn-trigger');
+          if (icon) {
+            icon.classList.add('triggered');
+            setTimeout(function () { icon.classList.remove('triggered'); }, 600);
+          }
         });
-      }(d.id));
+      }(d.id, _buttonCapId, card));
     }
 
     // windowcoverings_state (z.B. Somfy RTS — kein onoff, kein WC_SET)
@@ -2106,6 +2117,20 @@
         setCapability(d.id, CAP.ONOFF, newVal);
       });
       header.appendChild(toggle);
+    }
+
+    if (hasButton) {
+      var btnTrigger = createElement('button', 'device-btn-trigger');
+      btnTrigger.setAttribute('aria-label', 'Trigger');
+      (function (deviceId, capId, el) {
+        btnTrigger.addEventListener('click', function (e) {
+          e.stopPropagation();
+          setCapability(deviceId, capId, true);
+          el.classList.add('triggered');
+          setTimeout(function () { el.classList.remove('triggered'); }, 600);
+        });
+      }(d.id, _buttonCapId, btnTrigger));
+      header.appendChild(btnTrigger);
     }
 
     if (hasWcState) {

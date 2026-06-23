@@ -1984,6 +1984,7 @@
     var isSpeaker    = d.class === 'speaker' || d.class === 'mediaplayer';
     var isThermostat = capIds.indexOf(CAP.TARGET_TEMP) !== -1;
     var isLock       = d.class === 'lock';
+    var isCamera     = d.class === 'camera' || d.class === 'doorbell';
     var isPriceDevice = capIds.indexOf('current_quarter_price') !== -1;
     var _buttonCapId = null;
     for (var _bi = 0; _bi < capIds.length; _bi++) {
@@ -2049,7 +2050,7 @@
       }(d.id));
     }
 
-    if (!isSpeaker && !isThermostat && !isLock && !isPriceDevice && (hasAlarm || hasOnOff)) {
+    if (!isSpeaker && !isThermostat && !isLock && !isPriceDevice && !isCamera && (hasAlarm || hasOnOff)) {
       card.classList.add('clickable');
       (function (deviceId) {
         card.addEventListener('click', function (e) {
@@ -2108,7 +2109,7 @@
     var header = createElement('div', 'device-header');
     header.appendChild(buildIconElement(d));
 
-    if (!isSpeaker && hasOnOff) {
+    if (!isSpeaker && !isCamera && hasOnOff) {
       var toggle = createElement('button', 'device-toggle');
       if (isOn) toggle.classList.add('on');
       toggle.setAttribute('aria-label', isOn ? 'Turn off' : 'Turn on');

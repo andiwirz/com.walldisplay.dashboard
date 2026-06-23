@@ -229,14 +229,14 @@ html, body {
   color: var(--text-muted); padding: 4px;
 }
 .search-hdr-btn .hdr-svg { width: 22px; height: 22px; }
-.search-hdr-btn:hover { color: var(--accent); }
+@media (hover: hover) { .search-hdr-btn:hover { color: var(--accent); } }
 .search-hdr-btn.search-active { color: var(--accent); }
 .filter-hdr-btn {
   background: none; border: none; cursor: pointer;
   color: var(--text-muted); padding: 4px;
 }
 .filter-hdr-btn .hdr-svg { width: 22px; height: 22px; }
-.filter-hdr-btn:hover { color: var(--accent); }
+@media (hover: hover) { .filter-hdr-btn:hover { color: var(--accent); } }
 .filter-hdr-btn.filter-active { color: var(--accent); }
 .search-bar {
   position: absolute; inset: 0;
@@ -284,11 +284,11 @@ html, body {
   white-space: nowrap;
   transition: background 0.15s, color 0.15s;
 }
-.view-toggle-btn:hover {
+@media (hover: hover) { .view-toggle-btn:hover {
   background: var(--accent);
   color: #fff;
   border-color: var(--accent);
-}
+} }
 
 /* #7 Mindest-Touch-Target 44 × 44 px (Apple HIG) */
 .theme-toggle-btn {
@@ -307,7 +307,7 @@ html, body {
   align-items: center;
   justify-content: center;
 }
-.theme-toggle-btn:hover { color: var(--accent); }
+@media (hover: hover) { .theme-toggle-btn:hover { color: var(--accent); } }
 
 /* ── Main ─────────────────────────────────────── */
 .main {
@@ -813,7 +813,7 @@ body.tile-colors-strong .flow-tile:not(.dashboard-shortcut-tile) {
   align-items: center;
   justify-content: center;
 }
-.energy-btn:hover { color: var(--accent); }
+@media (hover: hover) { .energy-btn:hover { color: var(--accent); } }
 
 /* ── Energy Modal ─────────────────────────────── */
 .energy-modal {
@@ -911,7 +911,8 @@ body.tile-colors-strong .flow-tile:not(.dashboard-shortcut-tile) {
   flex: 1;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
   padding: 14px;
 }
 
@@ -2157,7 +2158,7 @@ body.tile-colors-strong .flow-tile:not(.dashboard-shortcut-tile) {
   align-items: center;
   justify-content: center;
 }
-.ev-btn:hover { color: var(--accent); }
+@media (hover: hover) { .ev-btn:hover { color: var(--accent); } }
 
 .weather-hdr-btn {
   background: none;
@@ -2175,7 +2176,7 @@ body.tile-colors-strong .flow-tile:not(.dashboard-shortcut-tile) {
   align-items: center;
   justify-content: center;
 }
-.weather-hdr-btn:hover { color: var(--accent); }
+@media (hover: hover) { .weather-hdr-btn:hover { color: var(--accent); } }
 
 /* ── Header Icon Style (Emoji / SVG) ─────────── */
 /* SVG icons are hidden by default; emoji spans always visible */

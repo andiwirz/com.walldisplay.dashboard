@@ -634,6 +634,19 @@
       <div class="status" id="header-hidden-status"></div>
     </div>
 
+    <!-- Theme Mode -->
+    <div class="card collapsible" data-collapse-key="designThemeMode">
+      <div class="card-title" data-i18n="themeModeTitle">Theme Mode</div>
+      <div class="hint" data-i18n="themeModeHint">Toggle: show the light/dark button in the header (default). Light/Dark: lock to one mode and hide the button. Auto: switch automatically based on time of day.</div>
+      <div class="seg-btn-group" id="theme-mode-group">
+        <button class="seg-btn active" data-value="toggle" onclick="setThemeMode('toggle')" data-i18n="themeModeToggle">Toggle</button>
+        <button class="seg-btn"        data-value="light"  onclick="setThemeMode('light')"  data-i18n="themeModeLight">Light</button>
+        <button class="seg-btn"        data-value="dark"   onclick="setThemeMode('dark')"   data-i18n="themeModeDark">Dark</button>
+        <button class="seg-btn"        data-value="auto"   onclick="setThemeMode('auto')"   data-i18n="themeModeAuto">Auto</button>
+      </div>
+      <div class="status" id="theme-mode-status"></div>
+    </div>
+
     <!-- Search Button -->
     <div class="card collapsible" data-collapse-key="designSearch">
       <div class="card-title" data-i18n="searchTitle">Search</div>
@@ -716,6 +729,20 @@
       </div>
       <p class="toggle-hint" data-i18n="blindsFilterHint">Adds a blinds icon to the header. Tap to show only blinds and curtain tiles.</p>
       <div class="status" id="blinds-filter-status"></div>
+    </div>
+
+    <!-- Room Filter -->
+    <div class="card collapsible" data-collapse-key="designRoomFilter">
+      <div class="card-title" data-i18n="roomFilterTitle">Room Shortcut</div>
+      <div class="toggle-row">
+        <span class="toggle-label" data-i18n="roomFilterLabel">Show room button</span>
+        <label class="toggle-switch">
+          <input type="checkbox" id="room-filter-toggle" onchange="saveRoomFilterEnabled()">
+          <span class="toggle-track"></span>
+        </label>
+      </div>
+      <p class="toggle-hint" data-i18n="roomFilterHint">Adds a room icon to the header. Tap to open a list of all rooms and filter by one.</p>
+      <div class="status" id="room-filter-status"></div>
     </div>
 
     <!-- Flow Position -->
@@ -1257,6 +1284,13 @@
         headerHiddenLabel:  'Show header bar',
         headerHiddenHint:   'When disabled, the title, clock and buttons are hidden for a clean full-screen look.',
         headerHiddenSaved:  'Setting saved',
+        themeModeTitle:     'Theme Mode',
+        themeModeHint:      'Toggle: show the light/dark button in the header (default). Light/Dark: lock to one mode and hide the button. Auto: switch automatically based on time of day.',
+        themeModeToggle:    'Toggle',
+        themeModeLight:     'Light',
+        themeModeDark:      'Dark',
+        themeModeAuto:      'Auto',
+        themeModeSaved:     'Setting saved',
         searchTitle:        'Search',
         searchLabel:        'Show search button',
         searchHint:         'Adds a search icon to the header bar. Tap to filter device tiles by name or room.',
@@ -1281,6 +1315,10 @@
         blindsFilterLabel:  'Show blinds button',
         blindsFilterHint:   'Adds a blinds icon to the header. Tap to show only blinds and curtain tiles.',
         blindsFilterSaved:  'Setting saved',
+        roomFilterTitle:    'Room Shortcut',
+        roomFilterLabel:    'Show room button',
+        roomFilterHint:     'Adds a room icon to the header. Tap to open a list of all rooms and filter by one.',
+        roomFilterSaved:    'Setting saved',
         viewToggleTitle:    'View Toggle Button',
         viewBtnLabel:       'Show Rooms/All button',
         viewDefaultTitle:   'Default View',
@@ -1481,6 +1519,13 @@
         headerHiddenLabel:  'Kopfzeile anzeigen',
         headerHiddenHint:   'Wenn deaktiviert, werden Titel, Uhr und Buttons ausgeblendet – für einen sauberen Vollbild-Look.',
         headerHiddenSaved:  'Einstellung gespeichert',
+        themeModeTitle:     'Darstellungsmodus',
+        themeModeHint:      'Umschalter: Zeigt den Hell/Dunkel-Button in der Kopfzeile (Standard). Hell/Dunkel: Fixiert den Modus und blendet den Button aus. Auto: Wechselt automatisch nach Tageszeit.',
+        themeModeToggle:    'Umschalter',
+        themeModeLight:     'Hell',
+        themeModeDark:      'Dunkel',
+        themeModeAuto:      'Auto',
+        themeModeSaved:     'Einstellung gespeichert',
         searchTitle:        'Suche',
         searchLabel:        'Suchbutton anzeigen',
         searchHint:         'Zeigt ein Suchsymbol in der Kopfzeile. Antippen filtert Gerätekacheln nach Name oder Raum.',
@@ -1505,6 +1550,10 @@
         blindsFilterLabel:  'Rolladen-Button anzeigen',
         blindsFilterHint:   'Zeigt ein Rolladen-Symbol in der Kopfzeile. Antippen zeigt nur Rolladen- und Vorhang-Kacheln.',
         blindsFilterSaved:  'Einstellung gespeichert',
+        roomFilterTitle:    'Raum-Schnellzugriff',
+        roomFilterLabel:    'Raum-Button anzeigen',
+        roomFilterHint:     'Zeigt ein Raum-Symbol in der Kopfzeile. Antippen öffnet eine Liste aller Räume zum Filtern.',
+        roomFilterSaved:    'Einstellung gespeichert',
         viewToggleTitle:    'Ansicht-Umschalter',
         viewBtnLabel:       'Räume/Alle-Button anzeigen',
         viewDefaultTitle:   'Standardansicht',
@@ -1967,12 +2016,14 @@
       var savedAnimMode         = await hGetSafe('animMode', 'default');
       var savedHeaderIconStyle  = await hGetSafe('headerIconStyle', 'svg');
       var savedHeaderHidden   = await hGetSafe('headerHidden', false);
+      var savedThemeMode      = await hGetSafe('themeMode', 'toggle');
       var savedSearchEnabled  = await hGetSafe('searchEnabled', true);
       var savedCameraFilter   = await hGetSafe('cameraFilterEnabled', false);
       var savedSpeakerFilter  = await hGetSafe('speakerFilterEnabled', false);
       var savedThermostatFilter = await hGetSafe('thermostatFilterEnabled', false);
       var savedLightFilter    = await hGetSafe('lightFilterEnabled', false);
       var savedBlindsFilter   = await hGetSafe('blindsFilterEnabled', false);
+      var savedRoomFilter     = await hGetSafe('roomFilterEnabled', false);
       var savedViewDefault    = await hGetSafe('viewDefault', 'all');
       var savedViewBtnHidden    = await hGetSafe('viewBtnHidden', false);
       var savedCoverFs          = await hGetSafe('coverFullscreen', true);
@@ -2013,12 +2064,14 @@
       setAnimMode(savedAnimMode, true);
       setHeaderIconStyle(savedHeaderIconStyle, true);
       document.getElementById('header-hidden-toggle').checked = !savedHeaderHidden;
+      setThemeMode(savedThemeMode || 'toggle', true);
       document.getElementById('search-toggle').checked = savedSearchEnabled !== false;
       document.getElementById('camera-filter-toggle').checked = savedCameraFilter === true;
       document.getElementById('speaker-filter-toggle').checked = savedSpeakerFilter === true;
       document.getElementById('thermostat-filter-toggle').checked = savedThermostatFilter === true;
       document.getElementById('light-filter-toggle').checked = savedLightFilter === true;
       document.getElementById('blinds-filter-toggle').checked = savedBlindsFilter === true;
+      document.getElementById('room-filter-toggle').checked = savedRoomFilter === true;
       document.getElementById('view-btn-toggle').checked = !savedViewBtnHidden;
       setViewDefault(savedViewDefault, true);
       document.getElementById('cover-fs-toggle').checked = savedCoverFs === true;
@@ -2482,6 +2535,17 @@
       } catch (e) { showStatus('header-icons-status', T.errorPrefix + e.message, false); }
     }
 
+    async function setThemeMode(value, silent) {
+      document.querySelectorAll('#theme-mode-group .seg-btn').forEach(function(btn) {
+        btn.classList.toggle('active', btn.getAttribute('data-value') === value);
+      });
+      if (silent) return;
+      try {
+        await hSet('themeMode', value);
+        showStatus('theme-mode-status', T.themeModeSaved, true);
+      } catch (e) { showStatus('theme-mode-status', T.errorPrefix + e.message, false); }
+    }
+
     async function saveHeaderHidden() {
       var visible = document.getElementById('header-hidden-toggle').checked;
       try {
@@ -2536,6 +2600,14 @@
         await hSet('blindsFilterEnabled', enabled);
         showStatus('blinds-filter-status', T.blindsFilterSaved, true);
       } catch (e) { showStatus('blinds-filter-status', T.errorPrefix + e.message, false); }
+    }
+
+    async function saveRoomFilterEnabled() {
+      var enabled = document.getElementById('room-filter-toggle').checked;
+      try {
+        await hSet('roomFilterEnabled', enabled);
+        showStatus('room-filter-status', T.roomFilterSaved, true);
+      } catch (e) { showStatus('room-filter-status', T.errorPrefix + e.message, false); }
     }
 
     async function saveViewBtnHidden() {

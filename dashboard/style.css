@@ -238,6 +238,43 @@ html, body {
 .filter-hdr-btn .hdr-svg { width: 22px; height: 22px; }
 @media (hover: hover) { .filter-hdr-btn:hover { color: var(--accent); } }
 .filter-hdr-btn.filter-active { color: var(--accent); }
+
+/* ── Room chips ──────────────────────────────────── */
+.room-chips {
+  position: fixed;
+  top: var(--header-h);
+  left: 0; right: 0;
+  z-index: 99;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 8px 16px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border, rgba(0,0,0,0.08));
+}
+.room-chip {
+  flex-shrink: 0;
+  padding: 6px 14px;
+  border-radius: 20px;
+  border: 1.5px solid var(--text-muted);
+  background: none;
+  color: var(--text);
+  font-size: calc(13px * var(--font-scale));
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+.room-chip:active { opacity: 0.7; }
+@media (hover: hover) { .room-chip:hover { border-color: var(--accent); color: var(--accent); } }
+.room-chip.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+body.room-chips-visible .main {
+  margin-top: calc(var(--header-h) + var(--room-chips-h, 44px));
+}
 .search-bar {
   position: absolute; inset: 0;
   display: flex; align-items: center; gap: 10px;
@@ -273,8 +310,8 @@ html, body {
 }
 
 .view-toggle-btn {
-  background: var(--surface);
-  border: 1px solid var(--border);
+  background: none;
+  border: none;
   border-radius: 8px;
   padding: 5px 11px;
   font-size: 13px;
@@ -285,9 +322,12 @@ html, body {
   transition: background 0.15s, color 0.15s;
 }
 @media (hover: hover) { .view-toggle-btn:hover {
-  background: var(--accent);
-  color: #fff;
-  border-color: var(--accent);
+  color: var(--accent);
+} }
+.view-toggle-btn:focus { outline: none; }
+@media (hover: none) { .view-toggle-btn:focus {
+  background: none;
+  color: var(--text-muted);
 } }
 
 /* #7 Mindest-Touch-Target 44 × 44 px (Apple HIG) */

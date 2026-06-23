@@ -1,6 +1,6 @@
 {
   "id": "com.walldisplay.dashboard",
-  "version": "1.3.47",
+  "version": "1.3.48",
   "compatibility": ">=5.0.0",
   "sdk": 3,
   "brandColor": "#E8001D",
@@ -57,6 +57,10 @@
   "support": "https://github.com/andiwirz/com.walldisplay.dashboard/issues",
   "source": "https://github.com/andiwirz/com.walldisplay.dashboard",
   "changelog": {
+    "1.3.48": {
+      "en": "New Theme Mode setting: lock to Light or Dark, or switch automatically by time of day (7–21 h light). The header toggle button is hidden in fixed/auto modes. New Room Filter: a burger menu icon opens a chip bar with all rooms — tap a room to filter, tap again to clear. Chips wrap to multiple lines on small screens (no horizontal scrolling). Room order follows the configured zone order. Search button is now disabled by default. View toggle button restyled to match other header icons. Fixed spacing below room chip bar.",
+      "de": "Neuer Darstellungsmodus: Hell oder Dunkel fixieren, oder automatisch nach Tageszeit wechseln (7–21 Uhr hell). Der Umschalt-Button wird bei fixiertem/Auto-Modus ausgeblendet. Neuer Raum-Filter: ein Burger-Menu-Symbol öffnet eine Chip-Leiste mit allen Räumen — antippen filtert, erneut antippen entfernt den Filter. Chips umbrechen auf mehrere Zeilen bei kleinen Bildschirmen. Reihenfolge folgt der konfigurierten Raum-Sortierung. Suchbutton ist jetzt standardmässig deaktiviert. View-Toggle-Button an die anderen Header-Icons angepasst. Abstand unter der Raum-Chip-Leiste korrigiert."
+    },
     "1.3.47": {
       "en": "Camera and doorbell tiles no longer show the on/off toggle and no longer toggle the device state when tapped — tap only opens the camera snapshot. Fixed sticky hover highlight on touch screens (Shelly Wall Display, tablets) for all header buttons. Energy modal Devices tab is now scrollable when many devices are listed.",
       "de": "Kamera- und Türklingel-Kacheln zeigen keinen Ein/Aus-Schalter mehr und schalten das Gerät nicht mehr beim Antippen — Tap öffnet nur den Kamera-Snapshot. Klebriger Hover-Effekt auf Touchscreens (Shelly Wall Display, Tablets) für alle Header-Buttons behoben. Energiemodul Geräte-Tab ist jetzt scrollbar bei vielen Geräten."

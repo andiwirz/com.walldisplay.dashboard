@@ -43,12 +43,13 @@
   var _flowConfirm   = false; // true = Bestätigung vor Flow-Start
   var _flowPosition  = 'top'; // 'top' | 'bottom'
   var _headerHidden  = false; // true = Header ausgeblendet → Dashboard-Tiles im Grid
-  var _searchEnabled  = true;  // 🔍 Search Button aktiv
+  var _searchEnabled  = false; // 🔍 Search Button aktiv
   var _cameraFilterEnabled  = false; // 📷 Camera Filter Button
   var _speakerFilterEnabled = false; // 🎵 Speaker Filter Button
   var _thermostatFilterEnabled = false; // 🌡️ Thermostat Filter Button
   var _lightFilterEnabled = false;     // 💡 Light Filter Button
   var _blindsFilterEnabled = false;    // 🪟 Blinds Filter Button
+  var _roomFilterEnabled = false;     // 🏠 Room Filter Button
   var _energyEnabled = true;  // ⚡ Energy Button aktiv
   var _evEnabled     = false; // 🚗 EV Button aktiv
   var _weatherEnabled   = false;
@@ -950,9 +951,12 @@
 
   // ── Theme ('light' | 'dark') ───────────────────────
   var theme = 'light';
+  var _themeMode = 'toggle'; // 'toggle' | 'light' | 'dark' | 'auto'
+  var _themeAutoTimer = null;
   try { theme = localStorage.getItem('theme') || 'light'; } catch (_) {}
 
   function applyTheme(t) {
+    theme = t;
     document.documentElement.setAttribute('data-theme', t === 'dark' ? 'dark' : '');
     var btn = document.getElementById('theme-toggle');
     if (btn) {
@@ -962,7 +966,33 @@
     }
   }
 
+  function _autoTheme() {
+    var h = new Date().getHours();
+    applyTheme(h >= 7 && h < 21 ? 'light' : 'dark');
+  }
+
+  function _applyThemeMode(mode) {
+    _themeMode = mode || 'toggle';
+    var btn = document.getElementById('theme-toggle');
+    if (_themeAutoTimer) { clearInterval(_themeAutoTimer); _themeAutoTimer = null; }
+    if (_themeMode === 'light') {
+      applyTheme('light');
+      if (btn) btn.style.display = 'none';
+    } else if (_themeMode === 'dark') {
+      applyTheme('dark');
+      if (btn) btn.style.display = 'none';
+    } else if (_themeMode === 'auto') {
+      _autoTheme();
+      _themeAutoTimer = setInterval(_autoTheme, 60000);
+      if (btn) btn.style.display = 'none';
+    } else {
+      if (btn) btn.style.display = '';
+      try { var saved = localStorage.getItem('theme'); if (saved) applyTheme(saved); } catch (_) {}
+    }
+  }
+
   function toggleTheme() {
+    if (_themeMode !== 'toggle') return;
     theme = theme === 'dark' ? 'light' : 'dark';
     try { localStorage.setItem('theme', theme); } catch (_) {}
     applyTheme(theme);
@@ -1239,8 +1269,11 @@
         // Header Icon Style
         var headerIconStyle = cfg.headerIconStyle || 'svg';
         document.body.classList.toggle('hdr-icons-svg', headerIconStyle === 'svg');
+        // Theme Mode
+        _applyThemeMode(cfg.themeMode);
+
         // Suchbutton
-        _searchEnabled = cfg.searchEnabled !== false;
+        _searchEnabled = cfg.searchEnabled === true;
         var searchBtn = document.getElementById('search-btn');
         if (searchBtn) searchBtn.style.display = _searchEnabled ? '' : 'none';
 
@@ -1263,6 +1296,10 @@
         _blindsFilterEnabled = cfg.blindsFilterEnabled === true;
         var blBtn = document.getElementById('blinds-filter-btn');
         if (blBtn) blBtn.style.display = _blindsFilterEnabled ? '' : 'none';
+
+        _roomFilterEnabled = cfg.roomFilterEnabled === true;
+        var rmBtn = document.getElementById('room-filter-btn');
+        if (rmBtn) rmBtn.style.display = _roomFilterEnabled ? '' : 'none';
 
         // Header ausblenden
         _headerHidden = cfg.headerHidden === true;
@@ -1973,6 +2010,7 @@
     card.id = 'card-' + d.id;
     card.setAttribute('data-name', d.name.toLowerCase());
     card.setAttribute('data-class', d.class || '');
+    card.setAttribute('data-zone-id', d.zone || '');
     if (!d.available) card.classList.add('unavailable');
 
     var caps      = d.capabilitiesObj || {};
@@ -3645,6 +3683,96 @@
   }
 
   window.toggleClassFilter = toggleClassFilter;
+
+  // ── Room Filter (Chip-Leiste) ──────────────────────
+  var _activeRoomFilter = null;
+  var _roomChipsVisible = false;
+
+  function toggleRoomChips() {
+    if (_roomChipsVisible) {
+      _hideRoomChips();
+      _activeRoomFilter = null;
+      _applyRoomFilter();
+      document.getElementById('room-filter-btn').classList.remove('filter-active');
+    } else {
+      _showRoomChips();
+    }
+  }
+
+  function _showRoomChips() {
+    var bar = document.getElementById('room-chips');
+    bar.innerHTML = '';
+    var usedZones = {};
+    Object.values(devices).forEach(function (d) {
+      if (d.zone && zones[d.zone]) usedZones[d.zone] = zones[d.zone].name;
+    });
+    var sorted = Object.keys(usedZones).sort(function (a, b) {
+      var ia = _zoneOrder.indexOf(a);
+      var ib = _zoneOrder.indexOf(b);
+      if (ia === -1 && ib === -1) return usedZones[a].localeCompare(usedZones[b]);
+      if (ia === -1) return 1;
+      if (ib === -1) return -1;
+      return ia - ib;
+    });
+    sorted.forEach(function (zoneId) {
+      var chip = createElement('button', 'room-chip');
+      chip.textContent = usedZones[zoneId];
+      chip.setAttribute('data-zone-id', zoneId);
+      if (_activeRoomFilter === zoneId) chip.classList.add('active');
+      chip.addEventListener('click', function () {
+        if (_activeRoomFilter === zoneId) {
+          _activeRoomFilter = null;
+          document.getElementById('room-filter-btn').classList.remove('filter-active');
+        } else {
+          _activeRoomFilter = zoneId;
+          document.getElementById('room-filter-btn').classList.add('filter-active');
+          if (_activeClassFilter) {
+            _activeClassFilter = null;
+            document.querySelectorAll('.filter-hdr-btn').forEach(function (b) { b.classList.remove('filter-active'); });
+            document.getElementById('room-filter-btn').classList.add('filter-active');
+          }
+          if (_searchQuery) {
+            _searchQuery = '';
+            var sb = document.getElementById('search-btn');
+            if (sb) sb.classList.remove('search-active');
+          }
+        }
+        bar.querySelectorAll('.room-chip').forEach(function (c) {
+          c.classList.toggle('active', c.getAttribute('data-zone-id') === _activeRoomFilter);
+        });
+        _applyRoomFilter();
+      });
+      bar.appendChild(chip);
+    });
+    bar.style.display = 'flex';
+    _roomChipsVisible = true;
+    document.body.classList.add('room-chips-visible');
+    requestAnimationFrame(function () {
+      document.documentElement.style.setProperty('--room-chips-h', bar.offsetHeight + 'px');
+    });
+  }
+
+  function _hideRoomChips() {
+    document.getElementById('room-chips').style.display = 'none';
+    _roomChipsVisible = false;
+    document.body.classList.remove('room-chips-visible');
+  }
+
+  function _applyRoomFilter() {
+    var container = document.getElementById('zones-container');
+    var cards = container.querySelectorAll('.device-card');
+    cards.forEach(function (card) {
+      var zid = card.getAttribute('data-zone-id') || '';
+      card.style.display = (!_activeRoomFilter || zid === _activeRoomFilter) ? '' : 'none';
+    });
+    var sections = container.querySelectorAll('.zone-section[data-zone]');
+    sections.forEach(function (sec) {
+      var visibleCards = sec.querySelectorAll('.device-card:not([style*="display: none"])');
+      sec.style.display = (!_activeRoomFilter || visibleCards.length > 0) ? '' : 'none';
+    });
+  }
+
+  window.toggleRoomChips = toggleRoomChips;
 
   // ── Lock-Modal ────────────────────────────────────
   var _lockModalId = null;

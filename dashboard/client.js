@@ -38,6 +38,7 @@
 
   var zones = {};
   var devices = {};
+  var _myIp = null;
   var _enabledFlows  = null;  // Array von Flow-IDs oder null
   var _flowTileMatch = false; // true = Breite wie Gerätekacheln
   var _flowConfirm   = false; // true = Bestätigung vor Flow-Start
@@ -1147,6 +1148,12 @@
   function loadData() {
     if (_loadRetryTimer) { clearTimeout(_loadRetryTimer); _loadRetryTimer = null; }
     showLoading();
+
+    if (!_myIp) {
+      xhr('GET', '/api/client-ip', null, function (err, data) {
+        if (!err && data && data.ip) _myIp = data.ip;
+      });
+    }
 
     xhr('GET', '/api/settings', null, function (err, cfg) {
       if (!err && cfg) {
@@ -2686,6 +2693,13 @@
             _scheduleCardUpdate(data.deviceId);
           }
         }
+        // Flow action: show camera on dashboard
+        if (data.type === 'show_camera' && data.deviceId) {
+          if (!data.targetIp || data.targetIp === _myIp) {
+            openCameraModal(data.deviceId, data.deviceName || '');
+          }
+        }
+
         // Full update: availability change or metadata update
         if (data.type === 'device.update' && data.device) {
           var id = data.device.id;

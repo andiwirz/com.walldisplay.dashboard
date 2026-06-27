@@ -1,4 +1,8 @@
 {
+  "1.3.50": {
+    "en": "New Flow action card: \"Show camera on dashboard\" — select a camera or doorbell device and the dashboard will automatically open its snapshot modal on all connected displays. Perfect for doorbell automations. The action card supports autocomplete and filters to camera/doorbell devices only.",
+    "de": "Neue Flow-Aktionskarte: \"Kamera auf dem Dashboard anzeigen\" — eine Kamera oder Türklingel auswählen und das Dashboard öffnet automatisch das Snapshot-Modal auf allen verbundenen Displays. Ideal für Türklingel-Automatisierungen. Die Aktionskarte unterstützt Autovervollständigung und filtert nur Kamera-/Türklingel-Geräte."
+  },
   "1.3.49": {
     "en": "Fixed critical bug: several settings (flow confirmation, flow position, debug logging, display profiles, EV configuration) could not be saved due to missing entries in the server-side allowed-list. All settings are now properly writable.",
     "de": "Kritischen Fehler behoben: Mehrere Einstellungen (Flow-Bestätigung, Flow-Position, Debug-Logging, Display-Profile, EV-Konfiguration) konnten nicht gespeichert werden, da Einträge in der serverseitigen Erlaubt-Liste fehlten. Alle Einstellungen sind jetzt korrekt speicherbar."

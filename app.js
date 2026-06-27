@@ -104,6 +104,35 @@ class ShellyWallDisplayApp extends Homey.App {
       return;
     }
 
+    // ── Flow Action: Show Camera on Dashboard ──────────────────────
+    const showCameraAction = this.homey.flow.getActionCard('show_camera');
+    showCameraAction.registerRunListener(async (args) => {
+      const { device, display } = args;
+      const targetIp = display && display.id !== '__all__' ? display.id : null;
+      this._broadcastSSE({ type: 'show_camera', deviceId: device.id, deviceName: device.name, targetIp });
+      return true;
+    });
+    showCameraAction.registerArgumentAutocompleteListener('device', async (query) => {
+      const devices = await this._getDevicesCache();
+      return Object.values(devices)
+        .filter((d) => {
+          const cls = d.virtualClass || d.class;
+          return cls === 'camera' || cls === 'doorbell';
+        })
+        .filter((d) => !query || d.name.toLowerCase().includes(query.toLowerCase()))
+        .map((d) => ({ name: d.name, id: d.id }));
+    });
+    showCameraAction.registerArgumentAutocompleteListener('display', async (query) => {
+      const profiles = this.homey.settings.get('displayProfiles') || [];
+      const results = [{ name: 'All displays', id: '__all__' }];
+      profiles.forEach((p) => {
+        if (p.ip) results.push({ name: p.name || p.ip, id: p.ip });
+      });
+      if (!query) return results;
+      const q = query.toLowerCase();
+      return results.filter((r) => r.name.toLowerCase().includes(q));
+    });
+
     // Load debug-logging flag (default: off)
     this._debugLogging = this.homey.settings.get('debugLogging') === true;
 

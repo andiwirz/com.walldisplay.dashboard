@@ -18,20 +18,24 @@ The app runs a local HTTP/WebSocket server on your Homey that emulates the Home 
 - **External sensors** — reed contacts and similar sensors (e.g. garage door) shown as Open / Closed; tile turns red when open
 - **Sensor readings** — temperature, humidity, CO₂, and power consumption shown inline on each tile
 
-### Flow Buttons
+### Flow Buttons & Flow Action Cards
 - **One-tap flow triggers** — select any manually-triggerable Homey flow in the settings to show it as a button on the dashboard
 - **Visual feedback** — spinner while triggering, green ✓ on success, red ✕ on error
 - **Basic and Advanced Flows** — supports both classic flows and Advanced Flows (Homey ≥ 10)
 - **Adjustable tile width** — flow tiles can use their natural width (dynamic) or match the width of device tiles exactly
+- **Show camera on dashboard** — Flow action card that automatically opens a camera or doorbell snapshot on the dashboard when a Flow runs; select a specific display or broadcast to all; ideal for doorbell automations
 
 ### Navigation & Layout
 - **Room grouping** — devices organised by Homey zones, with a toggle to view all devices in a flat list; tap a room title to collapse or expand its tiles
+- **Room filter** — ☰ burger menu icon in the header opens a chip bar listing all active rooms; tap a chip to filter to that room, tap again to clear; chips wrap to multiple lines on small screens (no horizontal scrolling); room order follows the configured zone order
+- **Device class filters** — optional shortcut buttons in the header to filter by Cameras, Media Players, Thermostats, Lights, or Blinds; each can be enabled independently in Settings → Design
+- **Search** — 🔍 icon in the header opens a search field; press Enter to confirm the filter (keyboard closes, filter stays active); tap the icon again to edit, ✕ to clear; disabled by default, enable in Settings → Design
 - **Room order** — drag and drop rooms into any order via the Design settings
 - **Drag & drop reordering** — long-press a tile to drag it to a new position; order is saved across reloads
 - **Adjustable tile width** — choose from XS / S / M (default) / L / XL via the settings page
 - **Adjustable tile height** — Auto (content-driven) or Same as width (square tiles)
 - **Tile layout** — values, status and device name always aligned to the bottom of each tile for a clean, consistent look
-- **Dark / light mode** — toggle between themes via the header button; preference is saved per browser
+- **Theme mode** — Light, Dark, Toggle (manual header button), or Auto (light 07:00–21:00, dark otherwise); configurable in Settings → Design; the header button is hidden in Light / Dark / Auto modes
 - **Clock** — live clock in the header, drift-corrected
 - **Tile Colors** — optional state-based tile coloring: choose Subtle or Strong intensity, set a custom active color (default green), an optional inactive color for switchable devices, and a flow button color; sensors and cameras are never tinted
 - **Header-hidden shortcuts** — when the header is hidden for a clean full-screen look, ⚡ Energy and 🚗 EV shortcut tiles appear automatically in the flow area so both dashboards remain accessible
@@ -127,7 +131,7 @@ Homey App (com.walldisplay.dashboard)
 | Camera | 📷 | — | Snapshot image |
 | Doorbell | 🔔 | — | Snapshot image |
 | Speaker / Media Player | 🔊 🎵 | Play/Pause, Skip, Volume (via modal); album art fullscreen with Ken Burns zoom | Track info |
-| Button / Remote | 🔘 🕹️ | — | — |
+| Button / Remote | 🔘 | Tap to trigger | — |
 | Car / EV | 🚗 | — | Battery (SoC %), Charging State, Range, and more via EV Dashboard |
 
 ---
@@ -160,7 +164,8 @@ The settings page is organised into four tabs:
 
 | Setting | Description | Default |
 |---|---|---|
-| **Dashboard Title** | Name shown in the top-left of the dashboard header | `My Homey` |
+| **Dashboard Title** | Name shown in the top-left of the dashboard header | — |
+| **Theme Mode** | **Toggle** — manual ☀️/🌙 button. **Light** / **Dark** — fixed. **Auto** — light 07:00–21:00, dark outside those hours | Toggle |
 | **Accent Color** | Highlight color used for active tiles, toggles, and interactive elements | `#F5A623` |
 | **Tile Colors** | State-based tile coloring: Off / Subtle / Strong intensity; configurable active color, optional inactive color (switchable devices only), and flow button color | Off |
 | **Tile Shape** | Corner radius of tiles: Sharp / Rounded / Pill | Rounded |
@@ -170,6 +175,9 @@ The settings page is organised into four tabs:
 | **Weather Dashboard** | Show weather as a tile and/or 🌤️ header button; configure city (auto-detected from Homey geolocation), temperature unit (°C/°F) | Disabled |
 | **EV Dashboard** | Show or hide the 🚗 EV button; select the EV device, pick capabilities, and optionally upload a car image | Disabled |
 | **View Toggle Button** | Show or hide the Rooms / All button; set the default view | Enabled / All |
+| **Room Filter** | Show or hide the ☰ burger menu that opens the room chip bar | Enabled |
+| **Search** | Show or hide the 🔍 search button in the header | Disabled |
+| **Class Filters** | Individually enable/disable filter buttons for Cameras, Media Players, Thermostats, Lights, and Blinds | All disabled |
 | **Font Size** | Text size on device and flow tiles (1–5) | 1 |
 | **Tile Width** | Width of device tiles: XS / S / M / L / XL | M |
 | **Tile Height** | **Auto** — height follows content. **Same as width** — tiles are at least as tall as wide. | Auto |
@@ -218,7 +226,11 @@ Tools for diagnosing camera, speaker, and logging issues. All output is shown in
 | Tap album art in media player | Open album art fullscreen immediately |
 | Tap flow button | Trigger the flow immediately |
 | ⊞ All / ⊟ Rooms button | Switch between flat list and room-grouped view |
-| ☀️ / 🌙 button | Toggle dark / light mode |
+| ☰ button | Open / close room filter chip bar |
+| Room chip | Filter tiles to that room; tap again to clear |
+| 🔍 button | Open / close search field |
+| 📷 / 🔊 / 🌡 / 💡 / 🪟 button | Filter tiles by device class; tap again to clear |
+| ☀️ / 🌙 button | Toggle dark / light mode (Toggle mode only) |
 | ⚡ button | Open Energy Dashboard |
 | 🚗 button | Open EV Dashboard |
 | 🌤️ button | Open Weather Dashboard |

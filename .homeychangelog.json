@@ -1,4 +1,8 @@
 {
+  "1.3.52": {
+    "en": "New Flow action card: \"Show message on dashboard\" — send any text to the display, with an optional auto-close timer (in minutes) and display targeting. The message appears full-screen with a close button; the countdown is shown below the text.",
+    "de": "Neue Flow-Aktionskarte: \"Nachricht auf dem Dashboard anzeigen\" — beliebigen Text ans Display senden, mit optionalem Countdown (in Minuten) und Display-Auswahl. Die Nachricht erscheint vollflächig mit Schliessen-Button; der Countdown wird unter dem Text angezeigt."
+  },
   "1.3.51": {
     "en": "Added App Store search tags: tablet, camera — improves discoverability for tablet dashboard and camera monitoring use cases.",
     "de": "App-Store-Suchbegriffe ergänzt: tablet, kamera — verbessert die Auffindbarkeit für Tablet-Dashboard- und Kamera-Überwachungs-Anwendungsfälle."

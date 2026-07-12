@@ -323,6 +323,15 @@
     <div class="cover-fullscreen-hint">tap to return</div>
   </div>
 
+  <!-- Nachricht-Modal -->
+  <div id="message-modal" class="message-modal" style="display:none">
+    <div class="message-modal-inner">
+      <button class="message-modal-close" onclick="closeMessageModal()">✕</button>
+      <div class="message-modal-text" id="message-modal-text"></div>
+      <div class="message-modal-countdown" id="message-modal-countdown" style="display:none"></div>
+    </div>
+  </div>
+
   <script src="client.js"></script>
 </body>
 </html>

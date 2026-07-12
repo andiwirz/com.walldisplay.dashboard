@@ -2699,6 +2699,12 @@
             openCameraModal(data.deviceId, data.deviceName || '');
           }
         }
+        // Flow action: show message on dashboard
+        if (data.type === 'show_message' && data.message) {
+          if (!data.targetIp || data.targetIp === _myIp) {
+            openMessageModal(data.message, data.duration || 0);
+          }
+        }
 
         // Full update: availability change or metadata update
         if (data.type === 'device.update' && data.device) {
@@ -3011,6 +3017,49 @@
 
   window.openCameraModal  = openCameraModal;
   window.closeCameraModal = closeCameraModal;
+
+  // ── Nachricht-Modal ────────────────────────────────
+  var _msgAutoCloseTimer     = null;
+  var _msgCountdownInterval  = null;
+
+  function openMessageModal(text, durationMin) {
+    var modal       = document.getElementById('message-modal');
+    var textEl      = document.getElementById('message-modal-text');
+    var countdownEl = document.getElementById('message-modal-countdown');
+
+    if (_msgAutoCloseTimer)    { clearTimeout(_msgAutoCloseTimer);       _msgAutoCloseTimer    = null; }
+    if (_msgCountdownInterval) { clearInterval(_msgCountdownInterval);   _msgCountdownInterval = null; }
+
+    textEl.textContent = text;
+    modal.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+
+    if (durationMin > 0) {
+      var endMs = Date.now() + durationMin * 60 * 1000;
+      countdownEl.style.display = 'block';
+      function tick() {
+        var rem = Math.max(0, Math.round((endMs - Date.now()) / 1000));
+        var m = Math.floor(rem / 60);
+        var s = rem % 60;
+        countdownEl.textContent = m + ':' + (s < 10 ? '0' : '') + s;
+        if (rem <= 0) closeMessageModal();
+      }
+      tick();
+      _msgCountdownInterval = setInterval(tick, 1000);
+      _msgAutoCloseTimer = setTimeout(closeMessageModal, durationMin * 60 * 1000);
+    } else {
+      countdownEl.style.display = 'none';
+    }
+  }
+
+  function closeMessageModal() {
+    if (_msgAutoCloseTimer)    { clearTimeout(_msgAutoCloseTimer);     _msgAutoCloseTimer    = null; }
+    if (_msgCountdownInterval) { clearInterval(_msgCountdownInterval); _msgCountdownInterval = null; }
+    document.getElementById('message-modal').style.display = 'none';
+    document.body.style.overflow = '';
+  }
+
+  window.closeMessageModal = closeMessageModal;
 
   // ── Speaker-Modal ─────────────────────────────────
   var _speakerModalId   = null;

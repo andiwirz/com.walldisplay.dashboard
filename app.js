@@ -133,6 +133,25 @@ class ShellyWallDisplayApp extends Homey.App {
       return results.filter((r) => r.name.toLowerCase().includes(q));
     });
 
+    // ── Flow Action: Show Message on Dashboard ──────────────────────
+    const showMessageAction = this.homey.flow.getActionCard('show_message');
+    showMessageAction.registerRunListener(async (args) => {
+      const { message, duration, display } = args;
+      const targetIp = display && display.id !== '__all__' ? display.id : null;
+      this._broadcastSSE({ type: 'show_message', message, duration: duration || 0, targetIp });
+      return true;
+    });
+    showMessageAction.registerArgumentAutocompleteListener('display', async (query) => {
+      const profiles = this.homey.settings.get('displayProfiles') || [];
+      const results = [{ name: 'All displays', id: '__all__' }];
+      profiles.forEach((p) => {
+        if (p.ip) results.push({ name: p.name || p.ip, id: p.ip });
+      });
+      if (!query) return results;
+      const q = query.toLowerCase();
+      return results.filter((r) => r.name.toLowerCase().includes(q));
+    });
+
     // Load debug-logging flag (default: off)
     this._debugLogging = this.homey.settings.get('debugLogging') === true;
 

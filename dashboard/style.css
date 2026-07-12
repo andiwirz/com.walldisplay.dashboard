@@ -1895,6 +1895,70 @@ body.tile-colors-strong .flow-tile:not(.dashboard-shortcut-tile) {
 .device-value.price-yellow { color: #f5a623; font-weight: 600; }
 .device-value.price-red    { color: #e53935; font-weight: 600; }
 
+/* ── Nachricht-Modal ─────────────────────────────── */
+.message-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.88);
+  backdrop-filter: blur(8px);
+}
+
+.message-modal-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 64px 40px 48px;
+  box-sizing: border-box;
+}
+
+.message-modal-close {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: rgba(255, 255, 255, 0.15);
+  border: none;
+  border-radius: 50%;
+  width: 52px;
+  height: 52px;
+  color: #fff;
+  font-size: 22px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s;
+  touch-action: manipulation;
+}
+@media (hover: hover) {
+  .message-modal-close:hover { background: rgba(255, 255, 255, 0.28); }
+}
+
+.message-modal-text {
+  color: #fff;
+  font-size: clamp(24px, 5vw, 48px);
+  font-weight: 700;
+  text-align: center;
+  line-height: 1.35;
+  max-width: 820px;
+  word-break: break-word;
+}
+
+.message-modal-countdown {
+  margin-top: 28px;
+  color: rgba(255, 255, 255, 0.45);
+  font-size: clamp(16px, 3vw, 24px);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+}
+
 /* ── Price Modal ─────────────────────────────────── */
 .price-modal {
   position: fixed; inset: 0; z-index: 1100;

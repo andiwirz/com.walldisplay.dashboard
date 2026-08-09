@@ -1,4 +1,8 @@
 {
+  "1.3.53": {
+    "en": "Settings page now shows a splash screen with the app icon while loading — content is visible only after all settings have been fully loaded.",
+    "de": "Einstellungsseite zeigt beim Öffnen einen Ladebildschirm mit App-Icon — Inhalte werden erst angezeigt, wenn alle Einstellungen vollständig geladen sind."
+  },
   "1.3.52": {
     "en": "New Flow action card: \"Show message on dashboard\" — send any text to the display, with an optional auto-close timer (in minutes) and display targeting. The message appears full-screen with a close button; the countdown is shown below the text.",
     "de": "Neue Flow-Aktionskarte: \"Nachricht auf dem Dashboard anzeigen\" — beliebigen Text ans Display senden, mit optionalem Countdown (in Minuten) und Display-Auswahl. Die Nachricht erscheint vollflächig mit Schliessen-Button; der Countdown wird unter dem Text angezeigt."

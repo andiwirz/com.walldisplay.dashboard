@@ -508,9 +508,85 @@
     .profile-section-toggle.open .toggle-arrow { transform: rotate(180deg); }
     .profile-section-body { display: none; margin-top: 8px; }
     .profile-section-body.open { display: block; }
+
+    /* ── Splash / Loading Screen ──────────────────────── */
+    #splash-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      background: #f5f5f5;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      transition: opacity 0.4s ease;
+    }
+    #splash-overlay.fade-out {
+      opacity: 0;
+      pointer-events: none;
+    }
+    .splash-icon {
+      width: 84px;
+      height: 84px;
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+      margin-bottom: 4px;
+      background: #F5A623;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 14px;
+    }
+    .splash-icon svg {
+      width: 100%;
+      height: 100%;
+      fill: #fff;
+    }
+    .splash-title {
+      font-size: 17px;
+      font-weight: 700;
+      color: #222;
+    }
+    .splash-subtitle {
+      font-size: 13px;
+      color: #888;
+      margin-bottom: 4px;
+    }
+    .splash-progress {
+      width: 160px;
+      height: 4px;
+      background: #e0e0e0;
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    .splash-progress-bar {
+      height: 100%;
+      background: #F5A623;
+      border-radius: 2px;
+      width: 0%;
+      animation: splash-fill 1.8s ease-in-out forwards;
+    }
+    @keyframes splash-fill {
+      0%   { width: 0%; }
+      60%  { width: 75%; }
+      90%  { width: 92%; }
+      100% { width: 100%; }
+    }
   </style>
 </head>
 <body>
+
+  <!-- Splash / Loading Screen -->
+  <div id="splash-overlay">
+    <div class="splash-icon">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 417 374"><path fill-rule="evenodd" d="M44.5 7.905c-8.626 2.535-12.333 4.316-18.128 8.708-9.169 6.95-14.619 14.72-17.762 25.319-1.447 4.88-1.609 19.544-1.599 144.5C7.02 302.783 7.25 326.235 8.421 330c5.301 17.042 16.14 28.516 32.139 34.021 5.652 1.944 8.826 1.982 166.351 1.971 131.043-.009 161.509-.257 165.589-1.351 16.449-4.408 31.019-18.868 35.41-35.141.747-2.772 1.081-46.729 1.084-143.145.006-136.574-.031-139.265-2.005-145.654-3.498-11.326-14.264-23.573-25.603-29.125-11.837-5.797-4.048-5.551-174.386-5.49-146.451.053-156.885.17-162.5 1.819m1.591 20.919c-5.549 2.109-13.514 9.187-16.391 14.563L27.5 47.5v277l2.256 4.222c3.522 6.591 7.909 10.974 13.75 13.738l5.37 2.54h317.805l6.154-3.076c3.669-1.833 7.532-4.761 9.565-7.25 7.092-8.681 6.681 1.036 6.375-150.674L388.5 47.5l-2.734-4.651c-3.618-6.154-10.336-11.941-16.375-14.106-4.587-1.644-14.663-1.748-161.891-1.674-144.36.072-157.355.213-161.409 1.755m9.361 20.582c-1.676.73-3.926 2.625-5 4.211-1.908 2.818-1.958 5.826-2.22 133.281-.297 144.194-.794 132.959 6.072 137.146 3.13 1.908 6.274 1.949 152.478 1.952 164.271.004 153.948.413 158.066-6.249l2.152-3.483V56.27l-2.088-2.655c-4.714-5.992 5.812-5.619-157.112-5.576-121.824.032-149.861.284-152.348 1.367M240 125.623c-28.989 3.57-53.708 12.942-64.467 24.445-5.868 6.274-8.412 14.043-6.595 20.142 3.219 10.807 10.505 16.569 37.916 29.984C231.069 212.045 236 215.971 236 223.397c0 3.335-.652 5.225-2.605 7.546-13.466 16.003-66.709 20.363-85.476 7-3.341-2.38-6.93-8.703-6.897-12.153.079-8.278 9.062-17.686 24.5-25.66 7.343-3.793 5.225-4.079-8.662-1.169-12.505 2.621-14.231 3.18-24.085 7.797C118.809 213.303 112 221.088 112 230.51c0 10.029 7.078 16.327 24.541 21.836 11.82 3.729 20.966 4.883 38.859 4.904 21.051.024 37.059-2.297 55.1-7.989 17.806-5.618 33.021-15.481 37.538-24.335 2.351-4.608 2.592-12.808.495-16.862-2.568-4.966-13.106-13.491-24.747-20.021-6.207-3.481-15.322-8.605-20.255-11.387-14.768-8.327-19.472-13.827-18.096-21.161 1.888-10.063 16.802-18.204 35.172-19.198 11.845-.64 16.144.431 19.967 4.974 2.303 2.736 2.584 3.815 2.2 8.443-.495 5.972-3.51 10.52-10.561 15.933l-4.099 3.147 4.193-.5c5.878-.702 16.001-3.841 21.833-6.771 12.817-6.437 19.315-13.434 19.315-20.8 0-3.43-.591-4.516-4.199-7.718-6.15-5.457-13.495-7.232-31.256-7.552-7.975-.143-16.075-.067-18 .17"/></svg>
+    </div>
+    <div class="splash-title">Shelly Wall Display</div>
+    <div class="splash-subtitle" id="splash-subtitle">Almost ready…</div>
+    <div class="splash-progress"><div class="splash-progress-bar"></div></div>
+  </div>
 
   <div class="page-header">
     <div class="page-header-top">
@@ -1399,6 +1475,7 @@
         debugCoverTitle:     'Speaker Cover URL',
         debugCoverHint:      'Resolves the album art URL for a specific speaker without fetching it. Find the speaker&nbsp;ID in the Image Registry above.',
         debugCoverLinkLabel: 'Resolved URL — open in browser to test:',
+        splashLoading:       'Almost ready…',
       },
       de: {
         title:            'Shelly Wall Display',
@@ -1634,11 +1711,18 @@
         debugCoverTitle:     'Speaker-Cover-URL',
         debugCoverHint:      'Löst die Albumcover-URL eines Speakers auf ohne das Bild zu laden. Die Speaker-ID findest du oben in der Image-Registrierung.',
         debugCoverLinkLabel: 'Resolved URL — im Browser öffnen zum Testen:',
+        splashLoading:       'Fast fertig…',
       }
     };
 
     var lang = (navigator.language || 'en').toLowerCase().startsWith('de') ? 'de' : 'en';
     var T = STRINGS[lang];
+
+    // Set splash subtitle text based on detected language
+    (function() {
+      var el = document.getElementById('splash-subtitle');
+      if (el && T.splashLoading) el.textContent = T.splashLoading;
+    })();
 
     function applyI18n() {
       document.documentElement.lang = lang;
@@ -1930,13 +2014,28 @@
     }
 
     // ── Init ───────────────────────────────────────────────────────────
+    function _hideSplash() {
+      var splash = document.getElementById('splash-overlay');
+      if (!splash || splash.style.display === 'none') return;
+      splash.classList.add('fade-out');
+      setTimeout(function() { splash.style.display = 'none'; }, 400);
+    }
+
     function onHomeyReady(Homey) {
       _Homey = Homey;
       Homey.ready();
       applyI18n();
       initCollapsibleCards();
       switchTab(_activeTab); // Restore last tab
-      loadAll();
+      // Safety fallback: hide splash after 5 s even if loadAll hangs
+      var _splashFallback = setTimeout(_hideSplash, 5000);
+      loadAll().then(function() {
+        clearTimeout(_splashFallback);
+        _hideSplash();
+      }).catch(function() {
+        clearTimeout(_splashFallback);
+        _hideSplash();
+      });
     }
 
     // Safe storage wrapper — localStorage is blocked in sandboxed iframes (my.homey.app)

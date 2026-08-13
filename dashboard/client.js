@@ -36,6 +36,114 @@
     LOCK_MODE:       'lock_mode',
   };
 
+  // ── i18n ───────────────────────────────────────────
+  // Sprache aus dem Browser/WebView. Das Shelly Wall Display meldet die
+  // im Gerät eingestellte Sprache, sonst greift Englisch als Fallback.
+  var lang = (navigator.language || 'en').toLowerCase().indexOf('de') === 0 ? 'de' : 'en';
+
+  var STRINGS = {
+    en: {
+      // Energie
+      solarTotal: 'Solar total', solarSelfUse: 'Solar self-use',
+      gridImport: 'Grid import', gridExport: 'Grid export',
+      solar: 'Solar', grid: 'Grid', battery: 'Battery', house: 'House',
+      home: 'Home', exportL: 'Export', importL: 'Import',
+      generating: 'Generating', consuming: 'Consuming',
+      charging: 'Charging', discharging: 'Discharging',
+      importing: 'Importing', exporting: 'Exporting', idle: 'Idle',
+      energy: 'Energy', evTitle: 'EV', other: 'Other', live: 'Live', devicesTab: 'Devices',
+      sevenDays: '7 Days', noEnergyData: 'No energy data available',
+      // Geräte-Status
+      on: 'On', off: 'Off', turnOn: 'Turn on', turnOff: 'Turn off',
+      trigger: 'Trigger', locked: 'Locked', unlocked: 'Unlocked',
+      playing: 'Playing', stopped: 'Stopped', closed: 'Closed', open: 'Open',
+      armed: 'Armed', disarmed: 'Disarmed', partlyArmed: 'Partly armed',
+      unavailable: 'Unavailable', unlock: 'Unlock', openDoor: 'Open door',
+      // UI
+      tryAgain: 'Try again', enterPin: 'Enter PIN', wrongPin: 'Wrong PIN',
+      startFlow: 'Start Flow?', cancel: 'Cancel', start: 'Start', startBtn: '▶ Start',
+      noImage: 'No image available', current: 'Current',
+      tapToReturn: 'tap to return', devices: 'Devices',
+      showAllDevices: 'Show all devices', groupByRooms: 'Group by rooms',
+      allRooms: 'All', rooms: 'Rooms', search: 'Search…', searchLabel: 'Search',
+      cameras: 'Cameras', mediaPlayers: 'Media Players', thermostats: 'Thermostats',
+      lights: 'Lights', blinds: 'Blinds', themeToggle: 'Toggle dark mode', noResults: 'No devices found',
+      noDevicesTitle: 'No devices to show',
+      networkError: 'Network error', timeout: 'Timeout',
+      requestTimeout: 'Request timed out',
+      // Wetter
+      weather: 'Weather', today: 'Today', noForecast: 'No forecast data',
+      feelsLike: 'Feels like', wind: 'Wind', humidity: 'Humidity',
+      pressure: 'Pressure', hourly: 'Hourly',
+      // EV
+      range: 'Range', temperature: 'Temperature', odometer: 'Odometer',
+      voltage: 'Voltage', notCharging: 'Not charging',
+      noEvDevice: 'No EV device configured.',
+      configureInSettings: 'Configure it in the app settings.',
+    },
+    de: {
+      // Energie
+      solarTotal: 'Solar gesamt', solarSelfUse: 'Eigenverbrauch',
+      gridImport: 'Netzbezug', gridExport: 'Einspeisung',
+      solar: 'Solar', grid: 'Netz', battery: 'Batterie', house: 'Haus',
+      home: 'Haus', exportL: 'Einspeisung', importL: 'Bezug',
+      generating: 'Erzeugt', consuming: 'Verbraucht',
+      charging: 'Lädt', discharging: 'Entlädt',
+      importing: 'Bezug', exporting: 'Einspeisung', idle: 'Inaktiv',
+      energy: 'Energie', evTitle: 'E-Auto', other: 'Sonstige', live: 'Live', devicesTab: 'Geräte',
+      sevenDays: '7 Tage', noEnergyData: 'Keine Energiedaten verfügbar',
+      // Geräte-Status
+      on: 'Ein', off: 'Aus', turnOn: 'Einschalten', turnOff: 'Ausschalten',
+      trigger: 'Auslösen', locked: 'Verriegelt', unlocked: 'Entriegelt',
+      playing: 'Spielt', stopped: 'Gestoppt', closed: 'Geschlossen', open: 'Offen',
+      armed: 'Scharf', disarmed: 'Unscharf', partlyArmed: 'Teilscharf',
+      unavailable: 'Nicht verfügbar', unlock: 'Entriegeln', openDoor: 'Tür öffnen',
+      // UI
+      tryAgain: 'Erneut versuchen', enterPin: 'PIN eingeben', wrongPin: 'Falsche PIN',
+      startFlow: 'Flow starten?', cancel: 'Abbrechen', start: 'Starten', startBtn: '▶ Starten',
+      noImage: 'Kein Bild verfügbar', current: 'Aktuell',
+      tapToReturn: 'tippen zum Zurückkehren', devices: 'Geräte',
+      showAllDevices: 'Alle Geräte anzeigen', groupByRooms: 'Nach Räumen gruppieren',
+      allRooms: 'Alle', rooms: 'Räume', search: 'Suchen…', searchLabel: 'Suchen',
+      cameras: 'Kameras', mediaPlayers: 'Mediaplayer', thermostats: 'Thermostate',
+      lights: 'Lichter', blinds: 'Rolladen', themeToggle: 'Hell/Dunkel umschalten', noResults: 'Keine Geräte gefunden',
+      noDevicesTitle: 'Keine Geräte vorhanden',
+      networkError: 'Netzwerkfehler', timeout: 'Zeitüberschreitung',
+      requestTimeout: 'Zeitüberschreitung der Anfrage',
+      // Wetter
+      weather: 'Wetter', today: 'Heute', noForecast: 'Keine Vorhersagedaten',
+      feelsLike: 'Gefühlt', wind: 'Wind', humidity: 'Luftfeuchtigkeit',
+      pressure: 'Luftdruck', hourly: 'Stündlich',
+      // EV
+      range: 'Reichweite', temperature: 'Temperatur', odometer: 'Kilometerstand',
+      voltage: 'Spannung', notCharging: 'Lädt nicht',
+      noEvDevice: 'Kein E-Auto konfiguriert.',
+      configureInSettings: 'In den App-Einstellungen konfigurieren.',
+    },
+  };
+
+  var T = STRINGS[lang];
+
+  // Setzt die Sprache neu und baut alle abgeleiteten Tabellen neu auf.
+  // Wird nach dem Laden der Einstellungen aufgerufen — das Shelly Wall Display
+  // meldet über navigator.language immer 'en', darum ist die explizite
+  // Einstellung (dashboardLang) die einzige verlässliche Quelle.
+  function _setLang(l) {
+    var next = (l === 'de' || l === 'en')
+      ? l
+      : ((navigator.language || 'en').toLowerCase().indexOf('de') === 0 ? 'de' : 'en');
+    if (next === lang && T) return false;   // nichts geändert
+    lang       = next;
+    T          = STRINGS[lang];
+    WMO_DESC   = WMO_DESC_ALL[lang];
+    _efT       = { grid: T.grid, batt: T.battery, house: T.house, export: T.exportL, import: T.importL };
+    _evCapMeta = _buildEvCapMeta();
+    // Energie-Flow-DOM wird gecacht — invalidieren, damit die Knotenlabels
+    // beim nächsten Rendern in der neuen Sprache neu aufgebaut werden.
+    _efHasBattery = null;
+    return true;
+  }
+
   var zones = {};
   var devices = {};
   var _myIp = null;
@@ -231,7 +339,7 @@
       }
     };
     req.onerror   = function () { _showEnergyError('Network error'); };
-    req.ontimeout = function () { _showEnergyError('Request timed out'); };
+    req.ontimeout = function () { _showEnergyError(T.requestTimeout); };
     req.send();
   }
 
@@ -457,10 +565,10 @@
     var hasGrid  = grid.some(function(v)    { return v > 0; });
     var hasExp   = exp.some(function(v)     { return v > 0; });
     var legItems = [];
-    if (hasSolarData) legItems.push({ color: '#FFD60A', label: 'Solar total' });
-    if (hasSelf) legItems.push({ color: '#34C759', label: 'Solar self-use' });
-    if (hasGrid) legItems.push({ color: '#FF9500', label: 'Grid import' });
-    if (hasExp)  legItems.push({ color: '#5AC8FA', label: 'Grid export' });
+    if (hasSolarData) legItems.push({ color: '#FFD60A', label: T.solarTotal });
+    if (hasSelf) legItems.push({ color: '#34C759', label: T.solarSelfUse });
+    if (hasGrid) legItems.push({ color: '#FF9500', label: T.gridImport });
+    if (hasExp)  legItems.push({ color: '#5AC8FA', label: T.gridExport });
     var totalLegW = legItems.reduce(function(s, it) { return s + 11 + 5 + it.label.length * 6.6 + 10; }, 0);
     var legX = Math.max(padL, Math.round((W - totalLegW) / 2));
     for (var li = 0; li < legItems.length; li++) {
@@ -494,11 +602,11 @@
   }
 
   function _energyStatus(type, power, soc) {
-    if (type === 'solar')    return power > 0  ? ['Generating',   'solar']       : ['Idle', 'idle'];
-    if (type === 'battery')  return power < 0  ? ['Discharging',  'discharging'] : (power > 0 ? ['Charging', 'charging'] : ['Idle', 'idle']);
-    if (type === 'grid')     return power < 0  ? ['Exporting',    'exporting']   : (power > 0 ? ['Importing', 'importing'] : ['Idle', 'idle']);
-    if (type === 'ev')       return power > 0  ? ['Charging',     'charging']    : ['Idle', 'idle'];
-    return ['Consuming', 'consuming'];
+    if (type === 'solar')    return power > 0  ? [T.generating,   'solar']       : [T.idle, 'idle'];
+    if (type === 'battery')  return power < 0  ? [T.discharging,  'discharging'] : (power > 0 ? [T.charging, 'charging'] : [T.idle, 'idle']);
+    if (type === 'grid')     return power < 0  ? [T.exporting,    'exporting']   : (power > 0 ? [T.importing, 'importing'] : [T.idle, 'idle']);
+    if (type === 'ev')       return power > 0  ? [T.charging,     'charging']    : [T.idle, 'idle'];
+    return [T.consuming, 'consuming'];
   }
 
   var _ENERGY_FALLBACK_ICONS = { solar: '☀️', battery: '🔋', grid: '⚡', ev: '🚗', consumer: '🔌' };
@@ -530,7 +638,7 @@
   // ── Energy Flow Widget (hub + node + dashed line style) ─────────────────
   var _efHasBattery = false;
 
-  var _efT = { grid: 'Grid', batt: 'Battery', house: 'House', export: 'Export', import: 'Import' };
+  var _efT = { grid: T.grid, batt: T.battery, house: T.house, export: T.exportL, import: T.importL };
 
   var _EF_C = {
     pv:        '#F59E0B',
@@ -568,7 +676,7 @@
           '<line x1="4.22" y1="19.78" x2="6.34" y2="17.66"/><line x1="17.66" y1="6.34" x2="19.78" y2="4.22"/>' +
         '</svg>' +
         '<div class="ef-node-value" id="ef-pv-val">—</div>' +
-        '<div class="ef-node-label">Solar</div>' +
+        '<div class="ef-node-label">' + T.solar + '</div>' +
       '</div>' +
       // Grid — middle left
       '<div class="ef-node" id="ef-node-grid" style="left:12%;top:50%">' +
@@ -877,11 +985,11 @@
 
     // 5. Nodes (on top — solid fill occludes the animated dots on arrival)
     //    Solar: label ABOVE;  Grid / Home / Battery: label BELOW
-    svg += node(sx, sy, solarC, iSolar, 'Solar',  _fmtW(s.solarW),   null, true,  solarOn);
-    svg += node(gx, gy, gridC,  iGrid,  s.gridW < 0 ? 'Export' : 'Grid', _fmtW(s.gridW), null, false, gridOn);
-    svg += node(hx, hy, homeC,  iHome,  'Home',   _fmtW(s.homeW),    null, false, homeOn);
+    svg += node(sx, sy, solarC, iSolar, T.solar,  _fmtW(s.solarW),   null, true,  solarOn);
+    svg += node(gx, gy, gridC,  iGrid,  s.gridW < 0 ? T.exportL : T.grid, _fmtW(s.gridW), null, false, gridOn);
+    svg += node(hx, hy, homeC,  iHome,  T.home,   _fmtW(s.homeW),    null, false, homeOn);
     if (hasBattery) {
-      svg += node(bx, by, batC, iBat, 'Battery',
+      svg += node(bx, by, batC, iBat, T.battery,
         _fmtW(s.batteryW),
         s.batterySoc !== null ? s.batterySoc+'%' : null,
         false, batOn);
@@ -1028,12 +1136,12 @@
     var btn = document.getElementById('view-toggle');
     if (!btn) return;
     btn.style.display = _viewBtnHidden ? 'none' : '';
-    var label = viewMode === 'zones' ? '⊞ All' : '⊟ Rooms';
+    var label = viewMode === 'zones' ? '⊞ ' + T.allRooms : '⊟ ' + T.rooms;
     var emoji = btn.querySelector('.hdr-emoji');
     if (emoji) emoji.textContent = label;
     else btn.textContent = label;
     document.body.classList.toggle('view-zones', viewMode === 'zones');
-    btn.setAttribute('aria-label', viewMode === 'zones' ? 'Show all devices' : 'Group by rooms');
+    btn.setAttribute('aria-label', viewMode === 'zones' ? T.showAllDevices : T.groupByRooms);
   }
 
   window.toggleView = toggleView;
@@ -1157,6 +1265,8 @@
 
     xhr('GET', '/api/settings', null, function (err, cfg) {
       if (!err && cfg) {
+        // Sprache zuerst — alle folgenden Renderings nutzen bereits die neue.
+        if (_setLang(cfg.dashboardLang)) applyI18n();
         _alarmPin      = cfg.alarmPin || '';
         _energyEnabled = cfg.energyEnabled !== false;
         _evEnabled     = cfg.evEnabled === true;
@@ -1510,18 +1620,33 @@
     95:'⛈️', 96:'⛈️', 99:'⛈️'
   };
 
-  var WMO_DESC = {
-    0:'Clear sky', 1:'Mainly clear', 2:'Partly cloudy', 3:'Overcast',
-    45:'Fog', 48:'Freezing fog',
-    51:'Light drizzle', 53:'Drizzle', 55:'Dense drizzle',
-    56:'Light freezing drizzle', 57:'Freezing drizzle',
-    61:'Light rain', 63:'Rain', 65:'Heavy rain',
-    66:'Light freezing rain', 67:'Freezing rain',
-    71:'Light snow', 73:'Snow', 75:'Heavy snow', 77:'Snow grains',
-    80:'Rain showers', 81:'Moderate showers', 82:'Heavy showers',
-    85:'Snow showers', 86:'Heavy snow showers',
-    95:'Thunderstorm', 96:'Thunderstorm', 99:'Thunderstorm'
+  var WMO_DESC_ALL = {
+    en: {
+      0:'Clear sky', 1:'Mainly clear', 2:'Partly cloudy', 3:'Overcast',
+      45:'Fog', 48:'Freezing fog',
+      51:'Light drizzle', 53:'Drizzle', 55:'Dense drizzle',
+      56:'Light freezing drizzle', 57:'Freezing drizzle',
+      61:'Light rain', 63:'Rain', 65:'Heavy rain',
+      66:'Light freezing rain', 67:'Freezing rain',
+      71:'Light snow', 73:'Snow', 75:'Heavy snow', 77:'Snow grains',
+      80:'Rain showers', 81:'Moderate showers', 82:'Heavy showers',
+      85:'Snow showers', 86:'Heavy snow showers',
+      95:'Thunderstorm', 96:'Thunderstorm', 99:'Thunderstorm'
+    },
+    de: {
+      0:'Klarer Himmel', 1:'Überwiegend klar', 2:'Teilweise bewölkt', 3:'Bedeckt',
+      45:'Nebel', 48:'Reifnebel',
+      51:'Leichter Nieselregen', 53:'Nieselregen', 55:'Starker Nieselregen',
+      56:'Leichter gefrierender Nieselregen', 57:'Gefrierender Nieselregen',
+      61:'Leichter Regen', 63:'Regen', 65:'Starker Regen',
+      66:'Leichter gefrierender Regen', 67:'Gefrierender Regen',
+      71:'Leichter Schneefall', 73:'Schneefall', 75:'Starker Schneefall', 77:'Schneegriesel',
+      80:'Regenschauer', 81:'Mässige Schauer', 82:'Starke Schauer',
+      85:'Schneeschauer', 86:'Starke Schneeschauer',
+      95:'Gewitter', 96:'Gewitter', 99:'Gewitter'
+    },
   };
+  var WMO_DESC = WMO_DESC_ALL[lang];
 
   var _weatherModalTab = 'today';
 
@@ -1615,10 +1740,10 @@
           '</div>' +
         '</div>' +
         '<div class="wm-details">' +
-          '<div class="wm-detail-item"><div class="wm-detail-label">Feels like</div><div class="wm-detail-value">' + Math.round(cur.apparent_temperature) + u + '</div></div>' +
-          '<div class="wm-detail-item"><div class="wm-detail-label">Humidity</div><div class="wm-detail-value">' + cur.relative_humidity_2m + '%</div></div>' +
-          '<div class="wm-detail-item"><div class="wm-detail-label">Wind</div><div class="wm-detail-value">' + Math.round(cur.wind_speed_10m) + ' km/h</div></div>' +
-          '<div class="wm-detail-item"><div class="wm-detail-label">Pressure</div><div class="wm-detail-value">' + Math.round(cur.surface_pressure) + ' hPa</div></div>' +
+          '<div class="wm-detail-item"><div class="wm-detail-label">' + T.feelsLike + '</div><div class="wm-detail-value">' + Math.round(cur.apparent_temperature) + u + '</div></div>' +
+          '<div class="wm-detail-item"><div class="wm-detail-label">' + T.humidity + '</div><div class="wm-detail-value">' + cur.relative_humidity_2m + '%</div></div>' +
+          '<div class="wm-detail-item"><div class="wm-detail-label">' + T.wind + '</div><div class="wm-detail-value">' + Math.round(cur.wind_speed_10m) + ' km/h</div></div>' +
+          '<div class="wm-detail-item"><div class="wm-detail-label">' + T.pressure + '</div><div class="wm-detail-value">' + Math.round(cur.surface_pressure) + ' hPa</div></div>' +
         '</div>' +
       '</div>';
 
@@ -1635,7 +1760,7 @@
         if (d.hourly.time[si] >= nowHourStr) { startIdx = si; break; }
       }
 
-      html += '<div class="wm-section-title">Hourly</div><div class="wm-hourly-wrap"><div class="wm-hourly">';
+      html += '<div class="wm-section-title">' + T.hourly + '</div><div class="wm-hourly-wrap"><div class="wm-hourly">';
       var count = 0;
       for (var i = startIdx; i < d.hourly.time.length && count < 8; i += 3) {
         var hTime  = d.hourly.time[i];
@@ -1661,20 +1786,18 @@
     var d = _weatherData;
     var u = _weatherUnit === 'fahrenheit' ? '°F' : '°C';
     if (!d.daily || !d.daily.time || !d.daily.time.length) {
-      body.innerHTML = '<div class="wm-empty">No forecast data</div>';
+      body.innerHTML = '<div class="wm-empty">' + T.noForecast + '</div>';
       return;
     }
-    var dayNamesEn = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-    var dayNamesDe = ['So','Mo','Di','Mi','Do','Fr','Sa'];
-    var dayNames = (typeof lang !== 'undefined' && lang === 'de') ? dayNamesDe : dayNamesEn;
+    var dayNames = lang === 'de'
+      ? ['So','Mo','Di','Mi','Do','Fr','Sa']
+      : ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 
     var html = '<div class="wm-days">';
     for (var i = 0; i < d.daily.time.length; i++) {
       var date    = new Date(d.daily.time[i] + 'T12:00:00');
       var isToday = (i === 0);
-      var dayName = isToday
-        ? ((typeof lang !== 'undefined' && lang === 'de') ? 'Heute' : 'Today')
-        : dayNames[date.getDay()];
+      var dayName = isToday ? T.today : dayNames[date.getDay()];
       var dCode  = d.daily.weather_code[i];
       var dEmoji = WMO_EMOJI[dCode] !== undefined ? WMO_EMOJI[dCode] : '🌡️';
       var dDesc  = WMO_DESC[dCode] || '';
@@ -1710,7 +1833,7 @@
     if (!_weatherData || !_weatherData.current) {
       tile.innerHTML =
         '<div class="weather-left"><div class="weather-emoji">🌡️</div></div>' +
-        '<div class="weather-right"><div class="weather-city">' + (_weatherCity || 'Weather') + '</div>' +
+        '<div class="weather-right"><div class="weather-city">' + (_weatherCity || T.weather) + '</div>' +
         '<div class="weather-desc">Loading…</div></div>';
       return tile;
     }
@@ -1769,7 +1892,7 @@
     // Dashboard-Shortcut-Tiles: nur wenn Header ausgeblendet
     if (_headerHidden) {
       if (_energyEnabled) {
-        grid.appendChild(buildDashboardShortcutTile('⚡', 'Energy', function () { openEnergyModal(); }));
+        grid.appendChild(buildDashboardShortcutTile('⚡', T.energy, function () { openEnergyModal(); }));
       }
       if (_evEnabled) {
         grid.appendChild(buildDashboardShortcutTile('🚗', 'EV', function () { openEvModal(); }));
@@ -1964,7 +2087,7 @@
     });
 
     if (noZone.length > 0) {
-      container.appendChild(buildZoneSection('Other', noZone));
+      container.appendChild(buildZoneSection(T.other, noZone));
     }
   }
 
@@ -2157,7 +2280,7 @@
     if (!isSpeaker && !isCamera && hasOnOff) {
       var toggle = createElement('button', 'device-toggle');
       if (isOn) toggle.classList.add('on');
-      toggle.setAttribute('aria-label', isOn ? 'Turn off' : 'Turn on');
+      toggle.setAttribute('aria-label', isOn ? T.turnOff : T.turnOn);
       toggle.addEventListener('click', function () {
         var newVal = !toggle.classList.contains('on');
         setCapability(d.id, CAP.ONOFF, newVal);
@@ -2167,7 +2290,7 @@
 
     if (hasButton) {
       var btnTrigger = createElement('button', 'device-btn-trigger');
-      btnTrigger.setAttribute('aria-label', 'Trigger');
+      btnTrigger.setAttribute('aria-label', T.trigger);
       (function (deviceId, capId, el) {
         btnTrigger.addEventListener('click', function (e) {
           e.stopPropagation();
@@ -2242,7 +2365,7 @@
 
     if (d.class === 'lock') {
       var lkLocked = caps[CAP.LOCKED] && caps[CAP.LOCKED].value === true;
-      return lkLocked ? 'Locked' : 'Unlocked';
+      return lkLocked ? T.locked : T.unlocked;
     }
 
     if (d.class === 'speaker' || d.class === 'mediaplayer') {
@@ -2250,21 +2373,21 @@
       var artist  = caps[CAP.SPEAKER_ARTIST] && caps[CAP.SPEAKER_ARTIST].value;
       var playing = caps[CAP.SPEAKER_PLAYING] && caps[CAP.SPEAKER_PLAYING].value === true;
       if (track) return (playing ? '▶ ' : '⏸ ') + track + (artist ? ' · ' + artist : '');
-      return playing ? 'Playing' : 'Stopped';
+      return playing ? T.playing : T.stopped;
     }
 
     if (hasAlarm) {
       var ac = getAlarmCapability(d);
       if (ac) {
-        if (ac.isBoolean) return alarmIsArmed(ac.value) ? 'Armed' : 'Disarmed';
-        return ac.value === 'armed' ? 'Armed' : ac.value === 'partially_armed' ? 'Partly armed' : 'Disarmed';
+        if (ac.isBoolean) return alarmIsArmed(ac.value) ? T.armed : T.disarmed;
+        return ac.value === 'armed' ? T.armed : ac.value === 'partially_armed' ? T.partlyArmed : T.disarmed;
       }
     }
     if (hasWcState) {
       var wcVal = caps[CAP.WC_STATE] ? caps[CAP.WC_STATE].value : null;
-      if (wcVal === 'up')   return 'Open';
-      if (wcVal === 'down') return 'Closed';
-      if (wcVal === 'idle') return 'Stopped';
+      if (wcVal === 'up')   return T.open;
+      if (wcVal === 'down') return T.closed;
+      if (wcVal === 'idle') return T.stopped;
       return '';
     }
     // Thermostat / Heizung
@@ -2284,7 +2407,7 @@
       }
       return isOn ? 'On' : 'Off';
     }
-    if (!d.available) return 'Unavailable';
+    if (!d.available) return T.unavailable;
     return '';
   }
 
@@ -2705,6 +2828,10 @@
             openMessageModal(data.message, data.duration || 0);
           }
         }
+        // Einstellung geändert die ein vollständiges Neuladen erfordert (z.B. Sprache)
+        if (data.type === 'settings.reload') {
+          loadData();
+        }
 
         // Full update: availability change or metadata update
         if (data.type === 'device.update' && data.device) {
@@ -2794,8 +2921,8 @@
         callback(new Error('HTTP ' + req.status), data);
       }
     };
-    req.onerror   = function () { callback(new Error('Netzwerkfehler')); };
-    req.ontimeout = function () { callback(new Error('Timeout')); };
+    req.onerror   = function () { callback(new Error(T.networkError)); };
+    req.ontimeout = function () { callback(new Error(T.timeout)); };
     req.send(body || null);
   }
 
@@ -2824,11 +2951,35 @@
     }, 400);
   }
 
+  // Übersetzt alle statischen Texte in index.html (data-i18n="key").
+  function applyI18n() {
+    document.documentElement.lang = lang;
+    var els = document.querySelectorAll('[data-i18n]');
+    for (var i = 0; i < els.length; i++) {
+      var key = els[i].getAttribute('data-i18n');
+      if (T[key] !== undefined) els[i].textContent = T[key];
+    }
+    // Attribut-Übersetzungen: data-i18n-attr="title,aria-label" nutzt denselben
+    // Key aus data-i18n-attr-key. Tooltips und Screenreader-Labels sonst englisch.
+    var attrEls = document.querySelectorAll('[data-i18n-attr]');
+    for (var j = 0; j < attrEls.length; j++) {
+      var el    = attrEls[j];
+      var aKey  = el.getAttribute('data-i18n-attr-key');
+      var attrs = (el.getAttribute('data-i18n-attr') || '').split(',');
+      if (T[aKey] === undefined) continue;
+      for (var k = 0; k < attrs.length; k++) {
+        var a = attrs[k].replace(/^\s+|\s+$/g, '');
+        if (a) el.setAttribute(a, T[aKey]);
+      }
+    }
+  }
+
   // ── Start ───────────────────────────────────────────
+  function _boot() { applyI18n(); loadData(); }
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', loadData);
+    document.addEventListener('DOMContentLoaded', _boot);
   } else {
-    loadData();
+    _boot();
   }
 
   window.loadData = loadData;
@@ -3910,18 +4061,23 @@
       button_lock:           '🔒',
       button_unlock:         '🔓',
     };
+    var _lockT = lang === 'de'
+      ? { lock: 'Verriegeln', unlock: T.unlock, openDoor: T.openDoor, open: T.open,
+          lng: "Lock 'n' Go", lngOpen: "Lock 'n' Go + Öffnen" }
+      : { lock: 'Lock', unlock: T.unlock, openDoor: T.openDoor, open: T.open,
+          lng: "Lock 'n' Go", lngOpen: "Lock 'n' Go + Open" };
     var lockLabels = {
-      locked:                'Lock',
-      unlocked:              'Unlock',
-      unlatched:             'Open door',
-      lock_n_go:             "Lock 'n' Go",
-      lock_n_go_with_unlatch:"Lock 'n' Go + Open",
-      button_unlatch:        'Open door',
-      button_lock_n_go:      "Lock 'n' Go",
-      button_lock_n_go_unlatch: "Lock 'n' Go + Open",
-      button_open:           'Open',
-      button_lock:           'Lock',
-      button_unlock:         'Unlock',
+      locked:                _lockT.lock,
+      unlocked:              _lockT.unlock,
+      unlatched:             _lockT.openDoor,
+      lock_n_go:             _lockT.lng,
+      lock_n_go_with_unlatch:_lockT.lngOpen,
+      button_unlatch:        _lockT.openDoor,
+      button_lock_n_go:      _lockT.lng,
+      button_lock_n_go_unlatch: _lockT.lngOpen,
+      button_open:           _lockT.open,
+      button_lock:           _lockT.lock,
+      button_unlock:         _lockT.unlock,
     };
 
     var skipCaps = [CAP.LOCKED, CAP.MEASURE_BATTERY, 'alarm_battery', CAP.THERMOSTAT_MODE,
@@ -4132,22 +4288,35 @@
   var _evTimer = null;
 
   // Known capability metadata for EV / car devices
-  var _evCapMeta = {
-    measure_battery:     { label: 'Battery',         unit: '%',    icon: '🔋' },
-    ev_charging_state:   { label: 'Charging State',  unit: '',     icon: '⚡' },
-    measure_range:       { label: 'Range',            unit: ' km',  icon: '📍' },
-    alarm_battery:       { label: 'Battery Low',      unit: '',     icon: '⚠️' },
-    locked:              { label: 'Locked',           unit: '',     icon: '🔒' },
-    measure_temperature: { label: 'Temperature',      unit: '°C',   icon: '🌡️' },
-    'measure_temperature.inside':  { label: 'Inside Temp',    unit: '°C',  icon: '🌡️' },
-    'measure_temperature.outside': { label: 'Outside Temp',   unit: '°C',  icon: '🌡️' },
-    measure_power:       { label: 'Charging Power',   unit: ' W',   icon: '⚡' },
-    meter_power:         { label: 'Energy Used',      unit: ' kWh', icon: '⚡' },
-    odometer:            { label: 'Odometer',         unit: ' km',  icon: '🛣️' },
-    onoff:               { label: 'On / Off',         unit: '',     icon: '⏻' },
-    measure_current:     { label: 'Charging Current', unit: ' A',   icon: '⚡' },
-    measure_voltage:     { label: 'Voltage',          unit: ' V',   icon: '⚡' },
-  };
+  function _buildEvCapMeta() {
+    var L = lang === 'de'
+      ? { batt: 'Batterie', chgState: 'Ladezustand', range: 'Reichweite', battLow: 'Batterie schwach',
+          locked: 'Verriegelt', temp: 'Temperatur', tempIn: 'Innentemperatur', tempOut: 'Aussentemperatur',
+          chgPower: 'Ladeleistung', energyUsed: 'Verbrauchte Energie', odo: 'Kilometerstand',
+          onoff: 'Ein / Aus', chgCurrent: 'Ladestrom', voltage: 'Spannung' }
+      : { batt: 'Battery', chgState: 'Charging State', range: 'Range', battLow: 'Battery Low',
+          locked: 'Locked', temp: 'Temperature', tempIn: 'Inside Temp', tempOut: 'Outside Temp',
+          chgPower: 'Charging Power', energyUsed: 'Energy Used', odo: 'Odometer',
+          onoff: 'On / Off', chgCurrent: 'Charging Current', voltage: 'Voltage' };
+    return {
+      measure_battery:     { label: L.batt,       unit: '%',    icon: '🔋' },
+      ev_charging_state:   { label: L.chgState,   unit: '',     icon: '⚡' },
+      measure_range:       { label: L.range,      unit: ' km',  icon: '📍' },
+      alarm_battery:       { label: L.battLow,    unit: '',     icon: '⚠️' },
+      locked:              { label: L.locked,     unit: '',     icon: '🔒' },
+      measure_temperature: { label: L.temp,       unit: '°C',   icon: '🌡️' },
+      'measure_temperature.inside':  { label: L.tempIn,  unit: '°C',  icon: '🌡️' },
+      'measure_temperature.outside': { label: L.tempOut, unit: '°C',  icon: '🌡️' },
+      measure_power:       { label: L.chgPower,   unit: ' W',   icon: '⚡' },
+      meter_power:         { label: L.energyUsed, unit: ' kWh', icon: '⚡' },
+      odometer:            { label: L.odo,        unit: ' km',  icon: '🛣️' },
+      onoff:               { label: L.onoff,      unit: '',     icon: '⏻' },
+      measure_current:     { label: L.chgCurrent, unit: ' A',   icon: '⚡' },
+      measure_voltage:     { label: L.voltage,    unit: ' V',   icon: '⚡' },
+    };
+  }
+
+  var _evCapMeta = _buildEvCapMeta();
 
   // Maps Homey's ev_charging_state enum values to display text, badge class and pulse flag.
   // Standard Homey values (SDK): charging, plugged_in, discharging, not_connected
@@ -4186,7 +4355,7 @@
       if (key === 'locked')         return val ? '🔒 Locked' : '🔓 Unlocked';
       if (key === 'onoff')          return val ? 'On' : 'Off';
       if (key === 'alarm_battery')  return val ? '⚠️ Low' : 'OK';
-      if (key === 'charging_state') return val ? 'Charging' : 'Not charging';
+      if (key === 'charging_state') return val ? T.charging : T.notCharging;
       return val ? 'Yes' : 'No';
     }
     if (typeof val === 'number') {
@@ -4201,7 +4370,7 @@
 
   function _renderEvBody(body, data) {
     if (!data || data.error) {
-      body.innerHTML = '<div class="ev-error">No EV device configured.<br>Configure it in the app settings.</div>';
+      body.innerHTML = '<div class="ev-error">' + T.noEvDevice + '<br>' + T.configureInSettings + '</div>';
       return;
     }
 

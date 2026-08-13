@@ -588,6 +588,23 @@
     <div class="splash-progress"><div class="splash-progress-bar"></div></div>
   </div>
 
+  <!-- Splash watchdog — deliberately its own early script block. If the main
+       script below fails to parse or /homey.js never loads, onHomeyReady is
+       never called and this is the only thing that unblocks the page. -->
+  <script>
+    var _splashHidden = false;
+    function _hideSplash() {
+      if (_splashHidden) return;
+      _splashHidden = true;
+      clearTimeout(_splashFallback);
+      var splash = document.getElementById('splash-overlay');
+      if (!splash) return;
+      splash.classList.add('fade-out');
+      setTimeout(function() { splash.style.display = 'none'; }, 400);
+    }
+    var _splashFallback = setTimeout(_hideSplash, 8000);
+  </script>
+
   <div class="page-header">
     <div class="page-header-top">
       <p class="subtitle" data-i18n="subtitle">Configure Homey as a dashboard server</p>
@@ -721,6 +738,18 @@
         <button class="seg-btn"        data-value="auto"   onclick="setThemeMode('auto')"   data-i18n="themeModeAuto">Auto</button>
       </div>
       <div class="status" id="theme-mode-status"></div>
+    </div>
+
+    <!-- Dashboard Language -->
+    <div class="card collapsible" data-collapse-key="designLang">
+      <div class="card-title" data-i18n="langTitle">Dashboard Language</div>
+      <div class="hint" data-i18n="langHint">Language of the dashboard texts. Auto uses the display's browser language — note that the Shelly Wall Display always reports English, so choose German explicitly there.</div>
+      <div class="seg-btn-group" id="dashboard-lang-group">
+        <button class="seg-btn active" data-value="auto" onclick="setDashboardLang('auto')" data-i18n="langAuto">Auto</button>
+        <button class="seg-btn"        data-value="en"   onclick="setDashboardLang('en')"   data-i18n="langEn">English</button>
+        <button class="seg-btn"        data-value="de"   onclick="setDashboardLang('de')"   data-i18n="langDe">Deutsch</button>
+      </div>
+      <div class="status" id="dashboard-lang-status"></div>
     </div>
 
     <!-- Search Button -->
@@ -1360,6 +1389,12 @@
         headerHiddenLabel:  'Show header bar',
         headerHiddenHint:   'When disabled, the title, clock and buttons are hidden for a clean full-screen look.',
         headerHiddenSaved:  'Setting saved',
+        langTitle:          'Dashboard Language',
+        langHint:           "Language of the dashboard texts. Auto uses the display's browser language — note that the Shelly Wall Display always reports English, so choose German explicitly there.",
+        langAuto:           'Auto',
+        langEn:             'English',
+        langDe:             'Deutsch',
+        langSaved:          'Language saved',
         themeModeTitle:     'Theme Mode',
         themeModeHint:      'Toggle: show the light/dark button in the header (default). Light/Dark: lock to one mode and hide the button. Auto: switch automatically based on time of day.',
         themeModeToggle:    'Toggle',
@@ -1596,6 +1631,12 @@
         headerHiddenLabel:  'Kopfzeile anzeigen',
         headerHiddenHint:   'Wenn deaktiviert, werden Titel, Uhr und Buttons ausgeblendet – für einen sauberen Vollbild-Look.',
         headerHiddenSaved:  'Einstellung gespeichert',
+        langTitle:          'Dashboard-Sprache',
+        langHint:           'Sprache der Dashboard-Texte. Auto nutzt die Browsersprache des Displays — das Shelly Wall Display meldet allerdings immer Englisch, dort also Deutsch explizit wählen.',
+        langAuto:           'Auto',
+        langEn:             'English',
+        langDe:             'Deutsch',
+        langSaved:          'Sprache gespeichert',
         themeModeTitle:     'Darstellungsmodus',
         themeModeHint:      'Umschalter: Zeigt den Hell/Dunkel-Button in der Kopfzeile (Standard). Hell/Dunkel: Fixiert den Modus und blendet den Button aus. Auto: Wechselt automatisch nach Tageszeit.',
         themeModeToggle:    'Umschalter',
@@ -1675,7 +1716,7 @@
         selectionSaved:   'Gespeichert ($1 von $2 Geräten)',
         noDevices:        'Keine Geräte gefunden – App neu starten.',
         devicesError:     'Geräte konnten nicht geladen werden ($1).',
-        tabDisplays:      'Profiles',
+        tabDisplays:      'Profile',
         displaysTitle:    'Display-Profile',
         displaysHint:     'Das Standard-Profil gilt für alle Displays. Füge IP-spezifische Profile hinzu, um einzelne Shelly Wall Displays auf bestimmte Räume und Flows zu beschränken.',
         displaysYourIp:   'Deine aktuelle IP:',
@@ -2014,28 +2055,15 @@
     }
 
     // ── Init ───────────────────────────────────────────────────────────
-    function _hideSplash() {
-      var splash = document.getElementById('splash-overlay');
-      if (!splash || splash.style.display === 'none') return;
-      splash.classList.add('fade-out');
-      setTimeout(function() { splash.style.display = 'none'; }, 400);
-    }
-
+    // _hideSplash + its watchdog live in the early script block near the top
+    // of <body> so they survive a parse error in this block.
     function onHomeyReady(Homey) {
       _Homey = Homey;
       Homey.ready();
       applyI18n();
       initCollapsibleCards();
       switchTab(_activeTab); // Restore last tab
-      // Safety fallback: hide splash after 5 s even if loadAll hangs
-      var _splashFallback = setTimeout(_hideSplash, 5000);
-      loadAll().then(function() {
-        clearTimeout(_splashFallback);
-        _hideSplash();
-      }).catch(function() {
-        clearTimeout(_splashFallback);
-        _hideSplash();
-      });
+      loadAll().then(_hideSplash).catch(_hideSplash);
     }
 
     // Safe storage wrapper — localStorage is blocked in sandboxed iframes (my.homey.app)
@@ -2116,6 +2144,7 @@
       var savedHeaderIconStyle  = await hGetSafe('headerIconStyle', 'svg');
       var savedHeaderHidden   = await hGetSafe('headerHidden', false);
       var savedThemeMode      = await hGetSafe('themeMode', 'toggle');
+      var savedDashboardLang  = await hGetSafe('dashboardLang', 'auto');
       var savedSearchEnabled  = await hGetSafe('searchEnabled', true);
       var savedCameraFilter   = await hGetSafe('cameraFilterEnabled', false);
       var savedSpeakerFilter  = await hGetSafe('speakerFilterEnabled', false);
@@ -2164,6 +2193,7 @@
       setHeaderIconStyle(savedHeaderIconStyle, true);
       document.getElementById('header-hidden-toggle').checked = !savedHeaderHidden;
       setThemeMode(savedThemeMode || 'toggle', true);
+      setDashboardLang(savedDashboardLang || 'auto', true);
       document.getElementById('search-toggle').checked = savedSearchEnabled !== false;
       document.getElementById('camera-filter-toggle').checked = savedCameraFilter === true;
       document.getElementById('speaker-filter-toggle').checked = savedSpeakerFilter === true;
@@ -2643,6 +2673,17 @@
         await hSet('themeMode', value);
         showStatus('theme-mode-status', T.themeModeSaved, true);
       } catch (e) { showStatus('theme-mode-status', T.errorPrefix + e.message, false); }
+    }
+
+    async function setDashboardLang(value, silent) {
+      document.querySelectorAll('#dashboard-lang-group .seg-btn').forEach(function(btn) {
+        btn.classList.toggle('active', btn.getAttribute('data-value') === value);
+      });
+      if (silent) return;
+      try {
+        await hSet('dashboardLang', value);
+        showStatus('dashboard-lang-status', T.langSaved, true);
+      } catch (e) { showStatus('dashboard-lang-status', T.errorPrefix + e.message, false); }
     }
 
     async function saveHeaderHidden() {

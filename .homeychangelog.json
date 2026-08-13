@@ -1,4 +1,12 @@
 {
+  "1.3.55": {
+    "en": "Completed the German translation of the weather modal (Feels like, Humidity, Wind, Pressure, Hourly), the Energy/EV/Weather modal titles, the header button tooltips and the view toggle. New setting: Dashboard Language (Settings → Design). The Shelly Wall Display always reports English to the browser, so the language could not be detected automatically — you can now pick German or English explicitly. Connected displays switch over immediately.",
+    "de": "Deutsche Übersetzung vervollständigt: Wetter-Fenster (Gefühlt, Luftfeuchtigkeit, Wind, Luftdruck, Stündlich), Titel der Energie-/E-Auto-/Wetter-Fenster, Tooltips der Kopfzeilen-Buttons und der Ansichts-Umschalter. Neue Einstellung: Dashboard-Sprache (Einstellungen → Design). Das Shelly Wall Display meldet dem Browser immer Englisch, darum liess sich die Sprache nicht automatisch erkennen — Deutsch oder Englisch ist jetzt explizit wählbar. Verbundene Displays stellen sofort um."
+  },
+  "1.3.54": {
+    "en": "The dashboard is now fully bilingual — all texts (energy, device states, weather conditions, EV data, dialogs) follow the display language, German or English. Previously the dashboard was English-only. Security fix: the icon proxy no longer forwards the Homey API token to external addresses. Settings page no longer stays blocked if loading fails.",
+    "de": "Das Dashboard ist jetzt vollständig zweisprachig — alle Texte (Energie, Gerätestatus, Wetterlagen, E-Auto-Daten, Dialoge) richten sich nach der Anzeigesprache, Deutsch oder Englisch. Bisher war das Dashboard nur auf Englisch. Sicherheitskorrektur: Der Icon-Proxy sendet den Homey-API-Token nicht mehr an externe Adressen. Die Einstellungsseite bleibt bei einem Ladefehler nicht mehr blockiert."
+  },
   "1.3.53": {
     "en": "Settings page now shows a splash screen with the app icon while loading — content is visible only after all settings have been fully loaded.",
     "de": "Einstellungsseite zeigt beim Öffnen einen Ladebildschirm mit App-Icon — Inhalte werden erst angezeigt, wenn alle Einstellungen vollständig geladen sind."

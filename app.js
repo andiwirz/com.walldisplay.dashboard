@@ -1704,7 +1704,11 @@ class ShellyWallDisplayApp extends Homey.App {
 
           result.push({
             id: d.id, name: d.name, type, power, soc,
-            cumulative: en.cumulative === true,
+            // Ganzhaus-Messgerät laut Homey-Spec: measure_power ist der
+            // Hausverbrauch, nicht der Netzfluss. cumulativeImported/Exported
+            // markieren dasselbe bei Geräten ohne explizites cumulative-Flag.
+            cumulative: en.cumulative === true
+              || !!(en.cumulativeImportedCapability || en.cumulativeExportedCapability),
             meterImported, meterExported, available: d.available,
             icon: this._buildIconUrl(d.iconOverride || (d.iconObj ? d.iconObj.url : null)),
           });

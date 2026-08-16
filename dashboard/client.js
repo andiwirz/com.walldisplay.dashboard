@@ -47,28 +47,32 @@
       solarTotal: 'Solar total', solarSelfUse: 'Solar self-use',
       gridImport: 'Grid import', gridExport: 'Grid export',
       solar: 'Solar', grid: 'Grid', battery: 'Battery', house: 'House',
-      home: 'Home', exportL: 'Export', importL: 'Import',
+      exportL: 'Export', importL: 'Import',
       generating: 'Generating', consuming: 'Consuming',
       charging: 'Charging', discharging: 'Discharging',
       importing: 'Importing', exporting: 'Exporting', idle: 'Idle',
       energy: 'Energy', evTitle: 'EV', other: 'Other', live: 'Live', devicesTab: 'Devices',
-      sevenDays: '7 Days', noEnergyData: 'No energy data available',
+      sevenDays: '7 Days', 
       // Geräte-Status
-      on: 'On', off: 'Off', turnOn: 'Turn on', turnOff: 'Turn off',
+      turnOn: 'Turn on', turnOff: 'Turn off',
       trigger: 'Trigger', locked: 'Locked', unlocked: 'Unlocked',
       playing: 'Playing', stopped: 'Stopped', closed: 'Closed', open: 'Open',
       armed: 'Armed', disarmed: 'Disarmed', partlyArmed: 'Partly armed',
       unavailable: 'Unavailable', unlock: 'Unlock', openDoor: 'Open door',
       // UI
       tryAgain: 'Try again', enterPin: 'Enter PIN', wrongPin: 'Wrong PIN',
-      startFlow: 'Start Flow?', cancel: 'Cancel', start: 'Start', startBtn: '▶ Start',
+      stop: 'Stop', next8h: 'Next 8 hours',
+      on: 'On', off: 'Off', yes: 'Yes', no: 'No', ok: 'OK', low: 'Low',
+      modeHeat: 'Heat', modeCool: 'Cool', modeAuto: 'Auto',
+      startFlow: 'Start Flow?', startBtn: '▶ Start',
       noImage: 'No image available', current: 'Current',
-      tapToReturn: 'tap to return', devices: 'Devices',
+      tapToReturn: 'tap to return', 
       showAllDevices: 'Show all devices', groupByRooms: 'Group by rooms',
       allRooms: 'All', rooms: 'Rooms', search: 'Search…', searchLabel: 'Search',
       cameras: 'Cameras', mediaPlayers: 'Media Players', thermostats: 'Thermostats',
-      lights: 'Lights', blinds: 'Blinds', themeToggle: 'Toggle dark mode', noResults: 'No devices found',
+      lights: 'Lights', blinds: 'Blinds', themeToggle: 'Toggle dark mode', 
       noDevicesTitle: 'No devices to show',
+      noDevicesBody: 'Open the <strong>Homey app</strong>, go to <strong>Apps → Shelly Wall Display Dashboard → Settings</strong> and enable the devices you want to display.<br><br>If you are accessing the dashboard from a specific device, also check that its <strong>IP address</strong> is configured under the Profiles tab.',
       networkError: 'Network error', timeout: 'Timeout',
       requestTimeout: 'Request timed out',
       // Wetter
@@ -76,8 +80,8 @@
       feelsLike: 'Feels like', wind: 'Wind', humidity: 'Humidity',
       pressure: 'Pressure', hourly: 'Hourly',
       // EV
-      range: 'Range', temperature: 'Temperature', odometer: 'Odometer',
-      voltage: 'Voltage', notCharging: 'Not charging',
+      
+      notCharging: 'Not charging',
       noEvDevice: 'No EV device configured.',
       configureInSettings: 'Configure it in the app settings.',
     },
@@ -86,28 +90,32 @@
       solarTotal: 'Solar gesamt', solarSelfUse: 'Eigenverbrauch',
       gridImport: 'Netzbezug', gridExport: 'Einspeisung',
       solar: 'Solar', grid: 'Netz', battery: 'Batterie', house: 'Haus',
-      home: 'Haus', exportL: 'Einspeisung', importL: 'Bezug',
+      exportL: 'Einspeisung', importL: 'Bezug',
       generating: 'Erzeugt', consuming: 'Verbraucht',
       charging: 'Lädt', discharging: 'Entlädt',
       importing: 'Bezug', exporting: 'Einspeisung', idle: 'Inaktiv',
       energy: 'Energie', evTitle: 'E-Auto', other: 'Sonstige', live: 'Live', devicesTab: 'Geräte',
-      sevenDays: '7 Tage', noEnergyData: 'Keine Energiedaten verfügbar',
+      sevenDays: '7 Tage', 
       // Geräte-Status
-      on: 'Ein', off: 'Aus', turnOn: 'Einschalten', turnOff: 'Ausschalten',
+      turnOn: 'Einschalten', turnOff: 'Ausschalten',
       trigger: 'Auslösen', locked: 'Verriegelt', unlocked: 'Entriegelt',
       playing: 'Spielt', stopped: 'Gestoppt', closed: 'Geschlossen', open: 'Offen',
       armed: 'Scharf', disarmed: 'Unscharf', partlyArmed: 'Teilscharf',
       unavailable: 'Nicht verfügbar', unlock: 'Entriegeln', openDoor: 'Tür öffnen',
       // UI
       tryAgain: 'Erneut versuchen', enterPin: 'PIN eingeben', wrongPin: 'Falsche PIN',
-      startFlow: 'Flow starten?', cancel: 'Abbrechen', start: 'Starten', startBtn: '▶ Starten',
+      stop: 'Stopp', next8h: 'Nächste 8 Stunden',
+      on: 'Ein', off: 'Aus', yes: 'Ja', no: 'Nein', ok: 'OK', low: 'Niedrig',
+      modeHeat: 'Heizen', modeCool: 'Kühlen', modeAuto: 'Automatik',
+      startFlow: 'Flow starten?', startBtn: '▶ Starten',
       noImage: 'Kein Bild verfügbar', current: 'Aktuell',
-      tapToReturn: 'tippen zum Zurückkehren', devices: 'Geräte',
+      tapToReturn: 'tippen zum Zurückkehren', 
       showAllDevices: 'Alle Geräte anzeigen', groupByRooms: 'Nach Räumen gruppieren',
       allRooms: 'Alle', rooms: 'Räume', search: 'Suchen…', searchLabel: 'Suchen',
       cameras: 'Kameras', mediaPlayers: 'Mediaplayer', thermostats: 'Thermostate',
-      lights: 'Lichter', blinds: 'Rolladen', themeToggle: 'Hell/Dunkel umschalten', noResults: 'Keine Geräte gefunden',
+      lights: 'Lichter', blinds: 'Rolladen', themeToggle: 'Hell/Dunkel umschalten', 
       noDevicesTitle: 'Keine Geräte vorhanden',
+      noDevicesBody: 'Öffne die <strong>Homey-App</strong>, gehe zu <strong>Apps → Shelly Wall Display Dashboard → Einstellungen</strong> und aktiviere die Geräte, die angezeigt werden sollen.<br><br>Wenn du das Dashboard von einem bestimmten Gerät aus aufrufst, prüfe zusätzlich, ob dessen <strong>IP-Adresse</strong> im Reiter Profile hinterlegt ist.',
       networkError: 'Netzwerkfehler', timeout: 'Zeitüberschreitung',
       requestTimeout: 'Zeitüberschreitung der Anfrage',
       // Wetter
@@ -115,8 +123,8 @@
       feelsLike: 'Gefühlt', wind: 'Wind', humidity: 'Luftfeuchtigkeit',
       pressure: 'Luftdruck', hourly: 'Stündlich',
       // EV
-      range: 'Reichweite', temperature: 'Temperatur', odometer: 'Kilometerstand',
-      voltage: 'Spannung', notCharging: 'Lädt nicht',
+      
+      notCharging: 'Lädt nicht',
       noEvDevice: 'Kein E-Auto konfiguriert.',
       configureInSettings: 'In den App-Einstellungen konfigurieren.',
     },
@@ -148,6 +156,14 @@
   var devices = {};
   var _myIp = null;
   var _enabledFlows  = null;  // Array von Flow-IDs oder null
+  var _enabledMoods  = null;  // Array von Mood-IDs oder null
+  var _moodsData     = {};    // id -> Mood-Objekt
+  var _hasRendered   = false; // true sobald einmal Inhalt gezeichnet wurde
+  // Flow-/Mood-Listen aendern sich nur beim Anlegen/Loeschen in Homey.
+  // render() laeuft aber auch beim View-Wechsel — ohne Cache waeren das
+  // zwei HTTP-Anfragen pro Tastendruck. Invalidierung via SSE.
+  var _flowListCache = null;
+  var _moodListCache = null;
   var _flowTileMatch = false; // true = Breite wie Gerätekacheln
   var _flowConfirm   = false; // true = Bestätigung vor Flow-Start
   var _flowPosition  = 'top'; // 'top' | 'bottom'
@@ -240,6 +256,38 @@
     _iconMemCache[key] = val;
   }
 
+  // Schreibt ein Icon in den localStorage. Ohne Aufräumen bleibt der Speicher
+  // irgendwann voll — ab dann schlägt JEDES setItem fehl und sämtliche Icons
+  // werden bei jedem Laden neu über den Proxy geholt. Bei Quota-Fehler wird
+  // deshalb ein Teil der Icon-Einträge verworfen und einmal neu versucht.
+  function _iconLsSet(key, val) {
+    try {
+      localStorage.setItem(key, val);
+      return true;
+    } catch (_) {
+      var iconKeys = [];
+      try {
+        for (var i = 0; i < localStorage.length; i++) {
+          var k = localStorage.key(i);
+          if (k && k.indexOf(_ICON_LS_PREFIX) === 0 && k !== 'hd_ic_ver') iconKeys.push(k);
+        }
+      } catch (_e) { return false; }
+      if (!iconKeys.length) return false;
+      // 40 % verwerfen — genug Luft, damit nicht bei jedem Icon neu aufgeräumt wird
+      var drop = Math.max(1, Math.ceil(iconKeys.length * 0.4));
+      for (var j = 0; j < drop; j++) {
+        try { localStorage.removeItem(iconKeys[j]); } catch (_e2) {}
+        delete _iconMemCache[iconKeys[j]];
+      }
+      try {
+        localStorage.setItem(key, val);
+        return true;
+      } catch (_e3) {
+        return false;
+      }
+    }
+  }
+
   // #3 Einzel-XHR: Icon wird einmal als Blob geholt, als Data-URL gezeigt UND gecacht.
   // Kein Doppel-Request mehr (früher: Browser-Fetch + separater XHR für Cache).
   function _fetchAndCacheIcon(proxyUrl, cacheKey, onReady) {
@@ -255,7 +303,7 @@
           if (!dataUrl) { onReady(null); return; }
           if (dataUrl.length <= 200000) { // #2 >150 KB überspringen
             _iconMemCacheSet(cacheKey, dataUrl);
-            try { localStorage.setItem(cacheKey, dataUrl); } catch (_) {}
+            _iconLsSet(cacheKey, dataUrl);
           }
           onReady(dataUrl);
         };
@@ -338,7 +386,7 @@
         _showEnergyError('HTTP ' + req.status);
       }
     };
-    req.onerror   = function () { _showEnergyError('Network error'); };
+    req.onerror   = function () { _showEnergyError(T.networkError); };
     req.ontimeout = function () { _showEnergyError(T.requestTimeout); };
     req.send();
   }
@@ -594,13 +642,6 @@
     return v.toFixed(1) + ' kWh';
   }
 
-  function _energyColor(type, power) {
-    if (type === 'solar')   return power > 0  ? '#34C759' : '#8E8E93';
-    if (type === 'battery') return power < 0  ? '#34C759' : (power > 0 ? '#007AFF' : '#8E8E93');
-    if (type === 'grid')    return power < 0  ? '#34C759' : (power > 0 ? '#FF9500' : '#8E8E93');
-    return '#8E8E93';
-  }
-
   function _energyStatus(type, power, soc) {
     if (type === 'solar')    return power > 0  ? [T.generating,   'solar']       : [T.idle, 'idle'];
     if (type === 'battery')  return power < 0  ? [T.discharging,  'discharging'] : (power > 0 ? [T.charging, 'charging'] : [T.idle, 'idle']);
@@ -842,163 +883,6 @@
   }
 
   // kept for reference — no longer called from live tab
-  function _renderEnergyFlowSVG(s, hasBattery) {
-    var W  = 320;
-    var R  = 36;
-    // T-junction layout: Solar top-center, Grid bottom-left, Home bottom-right
-    // Solar label sits ABOVE its circle → extra top margin (sy=72)
-    var jx = 160, jy = 147;   // T-junction (same y as Grid & Home → straight horizontal line)
-    var sx = 160, sy = 60;    // Solar (top center)
-    var gx = 52,  gy = 147;   // Grid  (bottom left)
-    var hx = 268, hy = 147;   // Home  (bottom right)
-    var bx = 160, by = 228;   // Battery (bottom center, 10 px up)
-    var svgH = hasBattery ? 312 : 212;
-
-    var solarC = _energyColor('solar',   s.solarW);
-    var gridC  = _energyColor('grid',    s.gridW);
-    var batC   = _energyColor('battery', s.batteryW);
-    var homeC  = '#F5A623';
-    // Use CSS custom properties so dark/light mode is respected automatically
-    var bg0      = 'var(--surface)';     // circle interior = modal card surface
-    var bgBack   = 'var(--bg)';          // SVG backdrop = page background
-    var inactive = 'var(--text-muted)';  // ring/icon colour when no flow
-
-    var solarOn = Math.abs(s.solarW  || 0) > 5;
-    var gridOn  = Math.abs(s.gridW   || 0) > 5;
-    var homeOn  = Math.abs(s.homeW   || 0) > 5;
-    var batOn   = Math.abs(s.batteryW|| 0) > 5;
-
-    function lineW(w) { return Math.max(1.5, Math.min(3.5, 1.5 + Math.abs(w||0) / 500)); }
-
-    // Static connector line segment
-    function segLine(x1, y1, x2, y2, color, on) {
-      if (!on) {
-        return '<line x1="'+x1+'" y1="'+y1+'" x2="'+x2+'" y2="'+y2+
-               '" stroke="var(--border)" stroke-width="1.5" stroke-dasharray="5 4"/>';
-      }
-      return '<line x1="'+x1+'" y1="'+y1+'" x2="'+x2+'" y2="'+y2+
-             '" stroke="'+color+'" stroke-width="1.5" opacity="0.55"/>';
-    }
-
-    // Animated dot (drawn before node circles so the dot is occluded on arrival)
-    function segDot(x1, y1, x2, y2, color, on, reverse) {
-      if (!on) return '';
-      var len = Math.sqrt(Math.pow(x2-x1,2)+Math.pow(y2-y1,2));
-      var dur = Math.max(0.8, len/75).toFixed(1)+'s';
-      var pd  = reverse ? 'M '+x2+','+y2+' L '+x1+','+y1 : 'M '+x1+','+y1+' L '+x2+','+y2;
-      return '<circle r="5" fill="'+color+'"><animateMotion dur="'+dur+'" repeatCount="indefinite" path="'+pd+'"/></circle>';
-    }
-
-    // Node: themed circle fill + colored (or muted) ring.
-    // labelAbove=true  → label rendered above the circle (Solar)
-    // labelAbove=false → label rendered below the circle (Grid/Home/Battery)
-    // When inactive: ring & icon use --text-muted, value/sub text hidden.
-    function node(cx, cy, color, iconSvg, label, value, sub, labelAbove, on) {
-      var rc = on ? color : inactive;
-      var ic = on ? color : inactive;
-      var ly = labelAbove ? (cy - R - 10) : (cy + R + 17);
-      return (
-        '<circle cx="'+cx+'" cy="'+cy+'" r="'+R+'" fill="'+bg0+'" stroke="'+rc+'" stroke-width="1.8"/>'+
-        '<g transform="translate('+cx+','+(on ? (cy-10) : (cy-2))+')" fill="'+ic+'" stroke="'+ic+'">'+iconSvg+'</g>'+
-        (on ? '<text x="'+cx+'" y="'+(cy+18)+'" text-anchor="middle" font-size="13" font-weight="700" fill="'+color+'">'+value+'</text>' : '')+
-        (on && sub ? '<text x="'+cx+'" y="'+(cy+30)+'" text-anchor="middle" font-size="8.5" fill="'+color+'" opacity="0.7">'+sub+'</text>' : '')+
-        '<text x="'+cx+'" y="'+ly+'" text-anchor="middle" font-size="11" fill="var(--text-muted)" font-weight="500" letter-spacing="0.2">'+label+'</text>'
-      );
-    }
-
-    // ── Icons (solid / filled style, inspired by Tesla Powerwall app) ──
-
-    // Solar: filled PV panel with cell grid cut by --surface lines + mount
-    var iSolar =
-      // Panel body (filled)
-      '<rect x="-10" y="-10" width="20" height="15" rx="2" stroke="none"/>'+
-      // Cell dividers — use the circle's background colour to "cut" the grid
-      '<line x1="-3.5" y1="-10" x2="-3.5" y2="5"  stroke="var(--surface)" stroke-width="1.3"/>'+
-      '<line x1="3.5"  y1="-10" x2="3.5"  y2="5"  stroke="var(--surface)" stroke-width="1.3"/>'+
-      '<line x1="-10"  y1="-2"  x2="10"   y2="-2" stroke="var(--surface)" stroke-width="1.3"/>'+
-      // Mounting post
-      '<rect x="-1.5" y="5"  width="3" height="5" rx="1" stroke="none"/>'+
-      '<rect x="-5"   y="10" width="10" height="2" rx="1" stroke="none"/>';
-
-    // Grid: filled transmission pylon silhouette
-    //   top spike → wide crossarm → tapered body → narrow crossarm → A-frame legs
-    var iGrid =
-      // Top mast spike
-      '<rect x="-1" y="-13" width="2" height="5" rx="1" stroke="none"/>'+
-      // Wide top crossarm
-      '<rect x="-10" y="-9" width="20" height="2" rx="1" stroke="none"/>'+
-      // Tapered tower body
-      '<polygon points="-1.5,-7 1.5,-7 2.5,3 -2.5,3" stroke="none"/>'+
-      // Lower narrower crossarm
-      '<rect x="-7" y="1.5" width="14" height="2" rx="1" stroke="none"/>'+
-      // Left A-frame leg
-      '<polygon points="-2.5,3 0,3 -2.5,12 -4.5,12" stroke="none"/>'+
-      // Right A-frame leg
-      '<polygon points="2.5,3 0,3 2.5,12 4.5,12" stroke="none"/>'+
-      // Insulator dots — top crossarm
-      '<circle cx="-10" cy="-8" r="1.6" stroke="none"/>'+
-      '<circle cx="10"  cy="-8" r="1.6" stroke="none"/>'+
-      // Insulator dots — lower crossarm
-      '<circle cx="-7"  cy="2.5" r="1.3" stroke="none"/>'+
-      '<circle cx="7"   cy="2.5" r="1.3" stroke="none"/>';
-
-    // Home: filled roof + walls, door cut by --surface
-    var iHome =
-      // Roof (filled triangle)
-      '<polygon points="0,-13 -12,-1 12,-1" stroke="none"/>'+
-      // Walls (filled rect)
-      '<rect x="-9" y="-1.5" width="18" height="13" rx="1" stroke="none"/>'+
-      // Door (surface colour = looks punched out)
-      '<rect x="-3.5" y="5" width="7" height="6.5" rx="1" fill="var(--surface)" stroke="none"/>';
-
-    var bLvl   = s.batterySoc !== null ? Math.max(0, Math.min(1, s.batterySoc/100)) : 0.45;
-    var bBodyH = 18, bFillH = Math.max(1, Math.round(bLvl*bBodyH)), bFillY = -9+bBodyH-bFillH;
-    var iBat =
-      '<rect x="-7" y="-9" width="14" height="18" rx="2" fill="none" stroke-width="1.8"/>'+
-      '<rect x="-4" y="-12" width="8" height="4" rx="1.5" stroke="none" opacity="0.85"/>'+
-      '<rect x="-5.5" y="'+bFillY+'" width="11" height="'+bFillH+'" rx="1.5" stroke="none" opacity="0.45"/>';
-
-    // ── SVG assembly ───────────────────────────────────
-    var svg = '<svg class="energy-flow-svg" viewBox="0 0 '+W+' '+svgH+'" xmlns="http://www.w3.org/2000/svg"'+
-              ' style="font-family:system-ui,-apple-system,sans-serif">';
-
-    // No backdrop — SVG is transparent, modal background shows through
-
-    // 2. Connector lines (static, drawn behind everything)
-    svg += segLine(sx,    sy+R, jx,    jy,    solarC, solarOn); // Solar ↓ junction
-    svg += segLine(gx+R,  gy,   jx,    jy,    gridC,  gridOn);  // Grid  → junction
-    svg += segLine(jx,    jy,   hx-R,  hy,    homeC,  homeOn);  // junction → Home
-    if (hasBattery) {
-      svg += segLine(jx, jy, bx, by-R, batC, batOn);            // junction ↓ Battery
-    }
-
-    // 3. Animated dots (behind node circles; visually "absorbed" on arrival)
-    svg += segDot(sx,   sy+R, jx,   jy,   solarC, solarOn, false);
-    svg += segDot(gx+R, gy,   jx,   jy,   gridC,  gridOn,  s.gridW < 0);
-    svg += segDot(jx,   jy,   hx-R, hy,   homeC,  homeOn,  false);
-    if (hasBattery) {
-      svg += segDot(jx, jy, bx, by-R, batC, batOn, s.batteryW < 0);
-    }
-
-    // 4. Junction dot
-    svg += '<circle cx="'+jx+'" cy="'+jy+'" r="3.5" fill="var(--bg)" stroke="var(--border)" stroke-width="1.5"/>';
-
-    // 5. Nodes (on top — solid fill occludes the animated dots on arrival)
-    //    Solar: label ABOVE;  Grid / Home / Battery: label BELOW
-    svg += node(sx, sy, solarC, iSolar, T.solar,  _fmtW(s.solarW),   null, true,  solarOn);
-    svg += node(gx, gy, gridC,  iGrid,  s.gridW < 0 ? T.exportL : T.grid, _fmtW(s.gridW), null, false, gridOn);
-    svg += node(hx, hy, homeC,  iHome,  T.home,   _fmtW(s.homeW),    null, false, homeOn);
-    if (hasBattery) {
-      svg += node(bx, by, batC, iBat, T.battery,
-        _fmtW(s.batteryW),
-        s.batterySoc !== null ? s.batterySoc+'%' : null,
-        false, batOn);
-    }
-
-    svg += '</svg>';
-    return svg;
-  }
-
   // #4 Device-Card-HTML in eigene Funktion ausgelagert (für SVG-Caching)
   function _buildEnergyDeviceCardsHtml(devList) {
     var shown = devList.filter(function (d) {
@@ -1303,6 +1187,7 @@
         //   []    = keine Flows zeigen  (__none__ wird serverseitig zu [] konvertiert)
         //   [ids] = nur diese Flows zeigen
         _enabledFlows = Array.isArray(cfg.enabledFlows) ? cfg.enabledFlows : null;
+        _enabledMoods = Array.isArray(cfg.enabledMoods) ? cfg.enabledMoods : null;
         // Flow-Tile-Breite: 'match' = wie Gerätekacheln, sonst dynamisch
         _flowTileMatch = cfg.flowTileWidth === 'match';
         // Flow-Bestätigung und Position
@@ -1386,6 +1271,9 @@
         // Header Icon Style
         var headerIconStyle = cfg.headerIconStyle || 'svg';
         document.body.classList.toggle('hdr-icons-svg', headerIconStyle === 'svg');
+        // Emoji- und SVG-Symbole sind unterschiedlich hoch — die Kopfzeile
+        // aendert dadurch ihre Hoehe, nachdem _boot() sie schon gemessen hat.
+        _syncHeaderHeight();
         // Theme Mode
         _applyThemeMode(cfg.themeMode);
 
@@ -1457,10 +1345,15 @@
   var _flowOrder = [];
   try { _flowOrder = JSON.parse(localStorage.getItem('flowOrder') || '[]'); } catch (_) {}
 
-  function getOrderedDevices(list) {
+  var _moodOrder = [];
+  try { _moodOrder = JSON.parse(localStorage.getItem('moodOrder') || '[]'); } catch (_) {}
+
+  // Geraete, Flows und Moods teilen dieselbe Sortier- und Drag-Logik.
+  // Sortiert nach gespeicherter Reihenfolge; Unbekanntes alphabetisch ans Ende.
+  function _sortByOrder(list, order) {
     return list.slice().sort(function (a, b) {
-      var ia = _order.indexOf(a.id);
-      var ib = _order.indexOf(b.id);
+      var ia = order.indexOf(a.id);
+      var ib = order.indexOf(b.id);
       if (ia === -1 && ib === -1) return a.name.localeCompare(b.name);
       if (ia === -1) return 1;
       if (ib === -1) return -1;
@@ -1468,56 +1361,46 @@
     });
   }
 
-  function getOrderedFlows(list) {
-    return list.slice().sort(function (a, b) {
-      var ia = _flowOrder.indexOf(a.id);
-      var ib = _flowOrder.indexOf(b.id);
-      if (ia === -1 && ib === -1) return a.name.localeCompare(b.name);
-      if (ia === -1) return 1;
-      if (ib === -1) return -1;
-      return ia - ib;
+  function getOrderedDevices(list) { return _sortByOrder(list, _order); }
+  function getOrderedFlows(list)   { return _sortByOrder(list, _flowOrder); }
+  function getOrderedMoods(list)   { return _sortByOrder(list, _moodOrder); }
+
+  // Liest die aktuelle DOM-Reihenfolge zurueck in das Order-Array (in-place,
+  // damit die Referenz erhalten bleibt) und legt sie im localStorage ab.
+  function _persistOrder(grid, selector, idPrefix, order, storeKey) {
+    var ids = Array.from(grid.querySelectorAll(selector))
+      .map(function (el) { return el.id.replace(idPrefix, ''); });
+    var first = ids.find(function (id) { return order.indexOf(id) !== -1; });
+    var insertAt = first ? order.indexOf(first) : order.length;
+    ids.forEach(function (id) {
+      var i = order.indexOf(id);
+      if (i !== -1) { if (i < insertAt) insertAt--; order.splice(i, 1); }
     });
+    ids.forEach(function (id, i) { order.splice(insertAt + i, 0, id); });
+    try { localStorage.setItem(storeKey, JSON.stringify(order)); } catch (_) {}
   }
 
   function saveOrderFromGrid(grid) {
-    var ids = Array.from(grid.querySelectorAll('.device-card'))
-      .map(function (c) { return c.id.replace('card-', ''); });
-    var first = ids.find(function (id) { return _order.indexOf(id) !== -1; });
-    var insertAt = first ? _order.indexOf(first) : _order.length;
-    ids.forEach(function (id) {
-      var i = _order.indexOf(id);
-      if (i !== -1) { if (i < insertAt) insertAt--; _order.splice(i, 1); }
-    });
-    ids.forEach(function (id, i) { _order.splice(insertAt + i, 0, id); });
-    try { localStorage.setItem('deviceOrder', JSON.stringify(_order)); } catch (_) {}
+    _persistOrder(grid, '.device-card', 'card-', _order, 'deviceOrder');
   }
-
   function saveFlowOrderFromGrid(grid) {
-    var ids = Array.from(grid.querySelectorAll('.flow-tile'))
-      .map(function (t) { return t.id.replace('flow-tile-', ''); });
-    var first = ids.find(function (id) { return _flowOrder.indexOf(id) !== -1; });
-    var insertAt = first ? _flowOrder.indexOf(first) : _flowOrder.length;
-    ids.forEach(function (id) {
-      var i = _flowOrder.indexOf(id);
-      if (i !== -1) { if (i < insertAt) insertAt--; _flowOrder.splice(i, 1); }
-    });
-    ids.forEach(function (id, i) { _flowOrder.splice(insertAt + i, 0, id); });
-    try { localStorage.setItem('flowOrder', JSON.stringify(_flowOrder)); } catch (_) {}
+    _persistOrder(grid, '.flow-tile', 'flow-tile-', _flowOrder, 'flowOrder');
+  }
+  function saveMoodOrderFromGrid(grid) {
+    _persistOrder(grid, '.mood-tile', 'mood-tile-', _moodOrder, 'moodOrder');
   }
 
   var _drag = null;
 
-  function initDragOnGrid(grid) {
-    Array.from(grid.querySelectorAll('.device-card')).forEach(function (card) {
-      makeDraggable(card, grid, '.device-card', saveOrderFromGrid);
+  function _initDrag(grid, selector, onSave) {
+    Array.from(grid.querySelectorAll(selector)).forEach(function (el) {
+      makeDraggable(el, grid, selector, onSave);
     });
   }
 
-  function initDragOnFlowGrid(grid) {
-    Array.from(grid.querySelectorAll('.flow-tile')).forEach(function (tile) {
-      makeDraggable(tile, grid, '.flow-tile', saveFlowOrderFromGrid);
-    });
-  }
+  function initDragOnGrid(grid)     { _initDrag(grid, '.device-card', saveOrderFromGrid); }
+  function initDragOnFlowGrid(grid) { _initDrag(grid, '.flow-tile',   saveFlowOrderFromGrid); }
+  function initDragOnMoodGrid(grid) { _initDrag(grid, '.mood-tile',   saveMoodOrderFromGrid); }
 
   // cardSelector: CSS-Selektor für die draggbaren Elemente im Grid
   // onReorder:    Callback(grid) nach erfolgreichem Drop
@@ -1877,6 +1760,30 @@
     return tile;
   }
 
+  // Holt die Flow-Liste einmal und liefert sie danach aus dem Speicher.
+  function _withFlowList(cb) {
+    if (_flowListCache) { cb(null, _flowListCache); return; }
+    xhr('GET', '/api/flows', null, function (err, flows) {
+      if (!err && flows) _flowListCache = flows;
+      cb(err, flows);
+    });
+  }
+
+  function _withMoodList(cb) {
+    if (_moodListCache) { cb(null, _moodListCache); return; }
+    xhr('GET', '/api/moods', null, function (err, moods) {
+      if (!err && moods) _moodListCache = moods;
+      cb(err, moods);
+    });
+  }
+
+  // Vom SSE-Handler aufgerufen, wenn in Homey ein Flow/Mood angelegt,
+  // umbenannt oder geloescht wurde.
+  function _invalidateFlowMoodLists() {
+    _flowListCache = null;
+    _moodListCache = null;
+  }
+
   function renderFlowSection(container) {
     var section = createElement('div', 'flow-section');
 
@@ -1899,8 +1806,8 @@
       }
     }
 
-    // Flows vom Server laden (Namen + Typen)
-    xhr('GET', '/api/flows', null, function (err, flows) {
+    // Flows aus dem Cache oder einmalig vom Server (Namen + Typen)
+    _withFlowList(function (err, flows) {
       if (err || !flows) return;
       // null = alle zeigen, [] = keine, [ids] = Filter
       var visible;
@@ -1924,45 +1831,64 @@
     });
   }
 
-  function buildFlowTile(f) {
-    var tile = createElement('button', 'flow-tile');
-    tile.id = 'flow-tile-' + f.id;
-    tile.setAttribute('aria-label', f.name);
+  // Flow- und Mood-Kacheln verhalten sich identisch — gleiche Optik, gleicher
+  // Bestaetigungsdialog, gleiche Lauf-/Erfolg-/Fehler-Zustaende. Sie unterscheiden
+  // sich nur in Icon, Ziel-URL und Datenquelle; das steht hier gebuendelt.
+  var _TILE_KINDS = {
+    flow: {
+      cls:      'flow-tile',
+      idPrefix: 'flow-tile-',
+      icon:     '▶',
+      data:     function () { return _flowsData; },
+      url:      function (id) { return '/api/flow/' + id + '/trigger'; },
+      subtitle: function () { return ''; },
+    },
+    mood: {
+      cls:      'flow-tile mood-tile',
+      idPrefix: 'mood-tile-',
+      icon:     '☾',
+      data:     function () { return _moodsData; },
+      url:      function (id) { return '/api/mood/' + id + '/set'; },
+      subtitle: function (m) { return (m && m.zone) || ''; },
+    },
+  };
+
+  function _buildTile(kind, item) {
+    var k = _TILE_KINDS[kind];
+    var tile = createElement('button', k.cls);
+    tile.id = k.idPrefix + item.id;
+    tile.setAttribute('aria-label', item.name);
+    var sub = k.subtitle(item);
+    if (sub) tile.title = sub;
 
     var icon = createElement('span', 'flow-tile-icon');
-    icon.textContent = '▶';
+    icon.textContent = k.icon;
     tile.appendChild(icon);
 
     var name = createElement('span', 'flow-tile-name');
-    name.textContent = f.name;
+    name.textContent = item.name;
     tile.appendChild(name);
 
-    tile.addEventListener('click', function () {
-      triggerFlow(f.id, tile);
-    });
-
+    tile.addEventListener('click', function () { _activateTile(kind, item.id, tile); });
     return tile;
   }
 
-  function triggerFlow(flowId, tileEl) {
+  function _activateTile(kind, id, tileEl) {
     if (!tileEl || tileEl.classList.contains('flow-running')) return;
-    if (_flowConfirm) {
-      _showFlowConfirm(flowId, tileEl);
-      return;
-    }
-    _doTriggerFlow(flowId, tileEl);
+    if (_flowConfirm) { _confirmTile(kind, id, tileEl); return; }
+    _runTile(kind, id, tileEl);
   }
 
-  function _showFlowConfirm(flowId, tileEl) {
-    var f = _flowsData[flowId];
-    // #4 Guard: Flow-Daten noch nicht geladen → direkt auslösen
-    if (!f) { _doTriggerFlow(flowId, tileEl); return; }
-    var nameEl  = document.getElementById('flow-confirm-name');
-    var modal   = document.getElementById('flow-confirm-modal');
-    var okBtn   = document.getElementById('flow-confirm-ok');
+  function _confirmTile(kind, id, tileEl) {
+    var item = _TILE_KINDS[kind].data()[id];
+    // Guard: Daten noch nicht geladen oder Modal fehlt -> direkt ausloesen
+    if (!item) { _runTile(kind, id, tileEl); return; }
+    var nameEl    = document.getElementById('flow-confirm-name');
+    var modal     = document.getElementById('flow-confirm-modal');
+    var okBtn     = document.getElementById('flow-confirm-ok');
     var cancelBtn = document.getElementById('flow-confirm-cancel');
-    if (!modal) { _doTriggerFlow(flowId, tileEl); return; }
-    if (nameEl) nameEl.textContent = f.name;
+    if (!modal) { _runTile(kind, id, tileEl); return; }
+    if (nameEl) nameEl.textContent = item.name;
     modal.style.display = 'flex';
 
     // Handler einmalig setzen (vorherige entfernen)
@@ -1973,43 +1899,73 @@
 
     newOk.addEventListener('click', function () {
       modal.style.display = 'none';
-      _doTriggerFlow(flowId, tileEl);
+      _runTile(kind, id, tileEl);
     });
     newCancel.addEventListener('click', function () {
       modal.style.display = 'none';
     });
-
     // Hintergrund-Klick schliesst Modal
     modal.onclick = function (e) {
       if (e.target === modal) modal.style.display = 'none';
     };
   }
 
-  function _doTriggerFlow(flowId, tileEl) {
+  function _runTile(kind, id, tileEl) {
+    var k = _TILE_KINDS[kind];
     tileEl.classList.add('flow-running');
     var iconEl = tileEl.querySelector('.flow-tile-icon');
     if (iconEl) iconEl.textContent = '⟳';
 
-    xhr('POST', '/api/flow/' + flowId + '/trigger', '{}', function (err, data) {
+    xhr('POST', k.url(id), '{}', function (err, data) {
       tileEl.classList.remove('flow-running');
       if (err) {
         tileEl.classList.add('flow-error');
         if (iconEl) iconEl.textContent = '✕';
-        var msg = (data && data.error) ? data.error : err.message;
-        tileEl.title = msg;
+        tileEl.title = (data && data.error) ? data.error : err.message;
         setTimeout(function () {
           tileEl.classList.remove('flow-error');
-          tileEl.title = '';
-          if (iconEl) iconEl.textContent = '▶';
+          tileEl.title = k.subtitle(k.data()[id]);
+          if (iconEl) iconEl.textContent = k.icon;
         }, 3000);
       } else {
         tileEl.classList.add('flow-success');
         if (iconEl) iconEl.textContent = '✓';
         setTimeout(function () {
           tileEl.classList.remove('flow-success');
-          if (iconEl) iconEl.textContent = '▶';
+          if (iconEl) iconEl.textContent = k.icon;
         }, 1800);
       }
+    });
+  }
+
+  function buildFlowTile(f) { return _buildTile('flow', f); }
+  function buildMoodTile(m) { return _buildTile('mood', m); }
+
+  // ── Moods ───────────────────────────────────────────
+  // Eigenes Grid neben den Flows — Moods behalten so ihre eigene
+  // Reihenfolge und ihr eigenes Drag & Drop.
+  function renderMoodSection(container) {
+    var section = createElement('div', 'mood-section');
+    var grid = createElement('div', 'mood-grid flow-grid' + (_flowTileMatch ? ' flow-grid-fixed' : ''));
+    section.appendChild(grid);
+    container.appendChild(section);
+
+    _withMoodList(function (err, moods) {
+      if (err || !moods) { section.style.display = 'none'; return; }
+      // null = alle zeigen, [] = keine, [ids] = Filter
+      var visible;
+      if (_enabledMoods === null) {
+        visible = moods;
+      } else {
+        var enabledSet = new Set(_enabledMoods);
+        visible = moods.filter(function (m) { return enabledSet.has(m.id); });
+      }
+      if (!visible.length) { section.style.display = 'none'; return; }
+      getOrderedMoods(visible).forEach(function (m) {
+        _moodsData[m.id] = m;
+        grid.appendChild(buildMoodTile(m));
+      });
+      initDragOnMoodGrid(grid);
     });
   }
 
@@ -2021,10 +1977,15 @@
 
     // null = alle anzeigen, [] = keine, [ids] = spezifische
     var showFlows = _enabledFlows === null || (_enabledFlows && _enabledFlows.length > 0);
+    var showMoods = _enabledMoods === null || (_enabledMoods && _enabledMoods.length > 0);
 
     // Flows-Sektion oben (Standard)
     if (showFlows && _flowPosition !== 'bottom') {
       renderFlowSection(container);
+    }
+    // Moods folgen der gleichen Positionseinstellung wie die Flows
+    if (showMoods && _flowPosition !== 'bottom') {
+      renderMoodSection(container);
     }
 
     if (viewMode === 'all') {
@@ -2037,26 +1998,39 @@
     if (showFlows && _flowPosition === 'bottom') {
       renderFlowSection(container);
     }
+    if (showMoods && _flowPosition === 'bottom') {
+      renderMoodSection(container);
+    }
 
     // Empty State — keine Geräte konfiguriert / sichtbar
     if (Object.keys(devices).length === 0) {
       var es = createElement('div', 'empty-state');
       es.innerHTML =
         '<div class="empty-state-icon">🏠</div>' +
-        '<div class="empty-state-title">No devices to show</div>' +
-        '<div class="empty-state-body">' +
-          'Open the <strong>Homey app</strong>, go to ' +
-          '<strong>Apps → Shelly Wall Display Dashboard → Settings</strong> ' +
-          'and enable the devices you want to display.<br><br>' +
-          'If you are accessing the dashboard from a specific device, also check that its ' +
-          '<strong>IP address</strong> is configured under the Profiles tab.' +
-        '</div>';
+        '<div class="empty-state-title">' + T.noDevicesTitle + '</div>' +
+        '<div class="empty-state-body">' + T.noDevicesBody + '</div>';
       container.appendChild(es);
     }
+
+    // render() baut den Container komplett neu auf — dabei gehen die per
+    // style.display gesetzten Filter verloren, waehrend die Kopfzeilen-Buttons
+    // weiter aktiv aussehen. Deshalb den aktiven Filter erneut anwenden.
+    _reapplyFilters();
+    // Buttons koennen sich ein-/ausblenden — Hoehe erneut abgleichen
+    _syncHeaderHeight();
 
     document.getElementById('loading').style.display = 'none';
     document.getElementById('error-msg').style.display = 'none';
     container.style.display = 'block';
+    _hasRendered = true;
+  }
+
+  // Such-, Klassen- und Raumfilter schliessen sich gegenseitig aus —
+  // es kann also hoechstens einer aktiv sein.
+  function _reapplyFilters() {
+    if (_searchQuery) { _applySearchFilter(_searchQuery); return; }
+    if (_activeClassFilter) { _applyClassFilter(); return; }
+    if (_activeRoomFilter) { _applyRoomFilter(); }
   }
 
   function renderByZones(container) {
@@ -2306,8 +2280,8 @@
       // Stopp-Button (◼) — sendet 'idle'
       var stopBtn = createElement('button', 'wc-state-btn');
       stopBtn.textContent = '◼';
-      stopBtn.title = 'Stop';
-      stopBtn.setAttribute('aria-label', 'Stop');
+      stopBtn.title = T.stop;
+      stopBtn.setAttribute('aria-label', T.stop);
       (function (deviceId) {
         stopBtn.addEventListener('click', function (e) {
           e.stopPropagation();
@@ -2395,7 +2369,7 @@
       var target = caps[CAP.TARGET_TEMP] && caps[CAP.TARGET_TEMP].value;
       var hasOO  = capIds.indexOf(CAP.ONOFF) !== -1;
       var isOff  = hasOO && !(caps[CAP.ONOFF] && caps[CAP.ONOFF].value);
-      if (isOff) return 'Off';
+      if (isOff) return T.off;
       var mode = caps[CAP.THERMOSTAT_MODE] && caps[CAP.THERMOSTAT_MODE].value;
       var modeStr = (mode && mode !== 'heat') ? ' · ' + mode : '';
       return '→ ' + (target !== null && target !== undefined ? target.toFixed(1) + ' °C' : '—') + modeStr;
@@ -2403,9 +2377,9 @@
     if (hasOnOff) {
       var isOn = caps[CAP.ONOFF] && caps[CAP.ONOFF].value === true;
       if (caps[CAP.DIM] && isOn) {
-        return 'On · ' + Math.round((caps[CAP.DIM].value || 0) * 100) + ' %';
+        return T.on + ' · ' + Math.round((caps[CAP.DIM].value || 0) * 100) + ' %';
       }
-      return isOn ? 'On' : 'Off';
+      return isOn ? T.on : T.off;
     }
     if (!d.available) return T.unavailable;
     return '';
@@ -2560,7 +2534,7 @@
       var dot = createElement('span', 'alarm-dot');
       if (caps[CAP.ALARM_CONTACT].value) dot.classList.add('active');
       el.appendChild(dot);
-      el.appendChild(document.createTextNode(caps[CAP.ALARM_CONTACT].value ? ' Open' : ' Closed'));
+      el.appendChild(document.createTextNode(caps[CAP.ALARM_CONTACT].value ? ' ' + T.open : ' ' + T.closed));
       container.appendChild(el);
       added++;
     }
@@ -2571,7 +2545,7 @@
       var dot = createElement('span', 'alarm-dot');
       if (caps[CAP.INPUT_EXT_1].value) dot.classList.add('active');
       el.appendChild(dot);
-      el.appendChild(document.createTextNode(caps[CAP.INPUT_EXT_1].value ? ' Open' : ' Closed'));
+      el.appendChild(document.createTextNode(caps[CAP.INPUT_EXT_1].value ? ' ' + T.open : ' ' + T.closed));
       container.appendChild(el);
       added++;
     }
@@ -2767,7 +2741,7 @@
         if (caps[CAP.ALARM_CONTACT].value) dots[i].classList.add('active');
         else dots[i].classList.remove('active');
         var sib2 = dots[i] ? dots[i].nextSibling : null;
-        if (sib2) sib2.textContent = caps[CAP.ALARM_CONTACT].value ? ' Open' : ' Closed';
+        if (sib2) sib2.textContent = caps[CAP.ALARM_CONTACT].value ? ' ' + T.open : ' ' + T.closed;
       }
       i++;
     }
@@ -2776,7 +2750,7 @@
         if (caps[CAP.INPUT_EXT_1].value) dots[i].classList.add('active');
         else dots[i].classList.remove('active');
         var sib3 = dots[i] ? dots[i].nextSibling : null;
-        if (sib3) sib3.textContent = caps[CAP.INPUT_EXT_1].value ? ' Open' : ' Closed';
+        if (sib3) sib3.textContent = caps[CAP.INPUT_EXT_1].value ? ' ' + T.open : ' ' + T.closed;
       }
     }
   }
@@ -2819,7 +2793,7 @@
         // Flow action: show camera on dashboard
         if (data.type === 'show_camera' && data.deviceId) {
           if (!data.targetIp || data.targetIp === _myIp) {
-            openCameraModal(data.deviceId, data.deviceName || '');
+            openCameraModal(data.deviceId, data.deviceName || '', data.duration || 0);
           }
         }
         // Flow action: show message on dashboard
@@ -2831,6 +2805,11 @@
         // Einstellung geändert die ein vollständiges Neuladen erfordert (z.B. Sprache)
         if (data.type === 'settings.reload') {
           loadData();
+        }
+        // Flow-/Mood-Liste in Homey geändert — Cache verwerfen und neu zeichnen
+        if (data.type === 'lists.changed') {
+          _invalidateFlowMoodLists();
+          render();
         }
 
         // Full update: availability change or metadata update
@@ -2887,13 +2866,21 @@
   }
 
   // ── UI-Hilfsfunktionen ──────────────────────────────
+  // Der Spinner erscheint nur, solange noch nichts angezeigt wird. Beim
+  // periodischen Auffrischen (alle 15 min) bleibt der bisherige Inhalt stehen
+  // und wird erst beim Eintreffen der neuen Daten ersetzt — sonst blitzt an
+  // einem fest montierten Display viermal pro Stunde der Ladezustand auf.
   function showLoading() {
+    if (_hasRendered) return;
     document.getElementById('loading').style.display = 'flex';
     document.getElementById('error-msg').style.display = 'none';
     document.getElementById('zones-container').style.display = 'none';
   }
 
+  // Ein fehlgeschlagener Hintergrund-Refresh darf ein bereits gezeichnetes
+  // Dashboard nicht leeren — der Retry laeuft ohnehin nach 5 s weiter.
   function showError() {
+    if (_hasRendered) return;
     document.getElementById('loading').style.display = 'none';
     document.getElementById('error-msg').style.display = 'flex';
     document.getElementById('zones-container').style.display = 'none';
@@ -2951,6 +2938,27 @@
     }, 400);
   }
 
+  // Die Kopfzeile ist fixiert; Inhalt, Raum-Chips und Modals richten sich
+  // über --header-h nach ihrer Höhe. Bei vielen Schnellzugriffen bricht sie
+  // auf schmalen Displays um und wird höher — dann muss die Variable folgen,
+  // sonst verdeckt sie den Anfang der Geräteliste.
+  function _syncHeaderHeight() {
+    var h = document.querySelector('.header');
+    if (!h) return;
+    var px = Math.round(h.getBoundingClientRect().height);
+    if (px > 0) document.documentElement.style.setProperty('--header-h', px + 'px');
+  }
+
+  function _watchHeaderHeight() {
+    _syncHeaderHeight();
+    if (typeof ResizeObserver !== 'undefined') {
+      var h = document.querySelector('.header');
+      if (h) new ResizeObserver(_syncHeaderHeight).observe(h);
+    } else {
+      window.addEventListener('resize', _syncHeaderHeight);
+    }
+  }
+
   // Übersetzt alle statischen Texte in index.html (data-i18n="key").
   function applyI18n() {
     document.documentElement.lang = lang;
@@ -2975,7 +2983,7 @@
   }
 
   // ── Start ───────────────────────────────────────────
-  function _boot() { applyI18n(); loadData(); }
+  function _boot() { applyI18n(); _watchHeaderHeight(); loadData(); }
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', _boot);
   } else {
@@ -3030,7 +3038,7 @@
       inner.classList.remove('shake');
       void inner.offsetWidth;
       inner.classList.add('shake');
-      document.getElementById('pin-error').textContent = 'Wrong PIN';
+      document.getElementById('pin-error').textContent = T.wrongPin;
       _pinEntry = '';
       updatePinDots();
     }
@@ -3050,6 +3058,7 @@
 
   // ── #13 Kamera-Modal mit Lade-Timeout ───────────────
   var _cameraRefreshTimer = null;
+  var _cameraAutoCloseTimer = null;  // Flow-Argument "duration" (Sekunden)
   var _cameraLoadTimer    = null;
 
   // Calculate the constrained display size for a camera image,
@@ -3062,7 +3071,7 @@
     return { w: Math.round(natW * scale), h: Math.round(natH * scale) };
   }
 
-  function openCameraModal(deviceId, deviceName) {
+  function openCameraModal(deviceId, deviceName, autoCloseSecs) {
     var modal = document.getElementById('camera-modal');
     var inner = document.getElementById('camera-modal-inner');
     var title = document.getElementById('camera-modal-title');
@@ -3148,11 +3157,23 @@
     refresh();
     clearInterval(_cameraRefreshTimer);
     _cameraRefreshTimer = setInterval(refresh, 10000);
+
+    // Automatisch schliessen, wenn der Flow eine Dauer mitgibt.
+    // 0 oder nichts = offen lassen (Verhalten vor der Erweiterung).
+    if (_cameraAutoCloseTimer) { clearTimeout(_cameraAutoCloseTimer); _cameraAutoCloseTimer = null; }
+    var secs = parseInt(autoCloseSecs, 10);
+    if (secs > 0) {
+      _cameraAutoCloseTimer = setTimeout(function () {
+        _cameraAutoCloseTimer = null;
+        closeCameraModal();
+      }, secs * 1000);
+    }
   }
 
   function closeCameraModal() {
     clearInterval(_cameraRefreshTimer);
     if (_cameraLoadTimer) { clearTimeout(_cameraLoadTimer); _cameraLoadTimer = null; }
+    if (_cameraAutoCloseTimer) { clearTimeout(_cameraAutoCloseTimer); _cameraAutoCloseTimer = null; }
     _cameraRefreshTimer = null;
     var modal = document.getElementById('camera-modal');
     modal.style.display = 'none';
@@ -3777,7 +3798,7 @@
     var result = _buildPriceChart(d);
     if (result) {
       var lbl = createElement('div', 'price-chart-label');
-      lbl.textContent = 'Next 8 hours' + (result.unit ? ' (' + result.unit + ')' : '');
+      lbl.textContent = T.next8h + (result.unit ? ' (' + result.unit + ')' : '');
       chartWrap.appendChild(lbl);
       chartWrap.appendChild(result.chart);
     }
@@ -4213,7 +4234,7 @@
     if (hasOO) {
       onOffEl.style.display = 'flex';
       onOffEl.classList.toggle('on', isOn);
-      onOffEl.textContent = isOn ? 'On' : 'Off';
+      onOffEl.textContent = isOn ? T.on : T.off;
     } else {
       onOffEl.style.display = 'none';
     }
@@ -4225,8 +4246,8 @@
       modesEl.style.display = 'flex';
       var curMode = modeCap.value;
       var vals    = (modeCap.values && modeCap.values.length) ? modeCap.values
-                  : [{id:'heat',title:{en:'Heat'}},{id:'cool',title:{en:'Cool'}},
-                     {id:'auto',title:{en:'Auto'}},{id:'off', title:{en:'Off'}}];
+                  : [{id:'heat',title:{en:T.modeHeat}},{id:'cool',title:{en:T.modeCool}},
+                     {id:'auto',title:{en:T.modeAuto}},{id:'off', title:{en:T.off}}];
       var modeIcons = {heat:'🔥', cool:'❄️', auto:'🔄', off:'○'};
       modesEl.innerHTML = '';
       vals.forEach(function (v) {
@@ -4352,11 +4373,11 @@
 
   function _formatEvCapValue(key, val, units) {
     if (typeof val === 'boolean') {
-      if (key === 'locked')         return val ? '🔒 Locked' : '🔓 Unlocked';
-      if (key === 'onoff')          return val ? 'On' : 'Off';
-      if (key === 'alarm_battery')  return val ? '⚠️ Low' : 'OK';
+      if (key === 'locked')         return val ? '🔒 ' + T.locked : '🔓 ' + T.unlocked;
+      if (key === 'onoff')          return val ? T.on : T.off;
+      if (key === 'alarm_battery')  return val ? '⚠️ ' + T.low : T.ok;
       if (key === 'charging_state') return val ? T.charging : T.notCharging;
-      return val ? 'Yes' : 'No';
+      return val ? T.yes : T.no;
     }
     if (typeof val === 'number') {
       var rounded = Math.round(val * 10) / 10;

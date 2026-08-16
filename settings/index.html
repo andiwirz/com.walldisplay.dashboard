@@ -1795,8 +1795,9 @@
     var _allDevices  = [];
     var _allZones    = {};
     var _allFlows    = [];
+    var _allMoods    = [];
     var _profiles    = [];   // Display-Profile (displayProfiles setting)
-    var _defaultProfile = { zones: [], devices: [], flows: [] };
+    var _defaultProfile = { zones: [], devices: [], flows: [], moods: ['__none__'] };
     var _dashboardBase = null;
 
     var CLASS_ICONS = {
@@ -2112,6 +2113,7 @@
       var port           = await hGetSafe('port', 7575);
       var storedUrl      = await hGetSafe('currentUrl', null);
       var enabledFlows    = await hGetSafe('enabledFlows', null);
+      var enabledMoods    = await hGetSafe('enabledMoods', null);
       var defaultZones    = await hGetSafe('defaultProfileZones', []);
       // Migrate from old enabledDevices key if defaultProfileDevices not yet set
       var rawDefaultDevices = await hGet('defaultProfileDevices');
@@ -2266,6 +2268,9 @@
         zones:   Array.isArray(defaultZones)   ? defaultZones   : [],
         devices: Array.isArray(defaultDevices) ? defaultDevices : [],
         flows:   Array.isArray(enabledFlows)   ? enabledFlows   : [],
+        // false = Nutzer hat explizit "alle" gewaehlt; null/undefined = nie
+        // konfiguriert -> Moods bleiben aus (siehe /api/settings im app.js).
+        moods:   Array.isArray(enabledMoods) ? enabledMoods : (enabledMoods === false ? [] : ['__none__']),
       };
       // Eigene IP ermitteln (best-effort)
       dashboardGet('/api/client-ip').then(function(r) {
@@ -2283,6 +2288,19 @@
         dashboardGet('/api/flows')
           .then(function(flows) {
             if (flows && flows.length) { _allFlows = flows; renderProfiles(); }
+          })
+          .catch(function() {});
+      }
+
+      // ── Moods (aus Cache oder HTTP) ───────────────────────────────
+      var cachedMoods = await hGet('cachedMoods');
+      if (cachedMoods && cachedMoods.length) {
+        _allMoods = cachedMoods;
+        renderProfiles();
+      } else {
+        dashboardGet('/api/moods')
+          .then(function(moods) {
+            if (moods && moods.length) { _allMoods = moods; renderProfiles(); }
           })
           .catch(function() {});
       }
@@ -3204,6 +3222,7 @@
 
       _appendDevicesSection(card, profile);
       _appendFlowsSection(card, profile);
+      _appendMoodsSection(card, profile);
 
       return card;
     }
@@ -3266,6 +3285,7 @@
 
       _appendDevicesSection(card, profile);
       _appendFlowsSection(card, profile);
+      _appendMoodsSection(card, profile);
 
       return card;
     }
@@ -3352,6 +3372,91 @@
         };
         var sp = document.createElement('span');
         sp.textContent = f.name;
+        sp.style.cssText = 'overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
+        row.appendChild(cb); row.appendChild(sp);
+        grid.appendChild(row);
+      });
+      body.appendChild(grid);
+      card.appendChild(toggle); card.appendChild(body);
+    }
+
+    function _appendMoodsSection(card, profile) {
+      if (!_allMoods.length) return;
+      var isNone    = Array.isArray(profile.moods) && profile.moods.includes('__none__');
+      var hasFilter = Array.isArray(profile.moods) && profile.moods.length > 0 && !isNone;
+      var toggle = document.createElement('div');
+      toggle.className = 'profile-section-toggle';
+      var lbl = document.createElement('span'); lbl.textContent = 'Moods';
+      var badge = document.createElement('span');
+      badge.style.cssText = 'font-size:11px;background:#f0f0f0;border-radius:4px;padding:1px 7px;color:#888;font-weight:600;';
+      badge.textContent = isNone
+        ? (lang === 'de' ? 'Keine' : 'None')
+        : (hasFilter
+          ? (lang === 'de' ? profile.moods.length + ' ausgewählt' : profile.moods.length + ' selected')
+          : (lang === 'de' ? 'Alle' : 'All'));
+      var arrow = document.createElement('span');
+      arrow.className = 'toggle-arrow'; arrow.textContent = '▼';
+      var left = document.createElement('div');
+      left.style.cssText = 'display:flex;align-items:center;gap:8px;';
+      left.appendChild(lbl); left.appendChild(badge);
+      toggle.appendChild(left); toggle.appendChild(arrow);
+
+      var body = document.createElement('div');
+      body.className = 'profile-section-body';
+      toggle.onclick = function() { toggle.classList.toggle('open'); body.classList.toggle('open'); };
+
+      function uncheckSpecial() {
+        var a = body.querySelector('[data-mood="__all__"]');  if (a) a.checked = false;
+        var n = body.querySelector('[data-mood="__none__"]'); if (n) n.checked = false;
+      }
+      function uncheckAll() {
+        body.querySelectorAll('[data-mood]').forEach(function(c) { c.checked = false; });
+      }
+
+      var allLabel = document.createElement('label');
+      allLabel.className = 'profile-zone-row';
+      allLabel.style.cssText = 'margin-bottom:2px;font-size:13px;color:#888;cursor:pointer;display:flex;align-items:center;gap:8px;';
+      var allCb = document.createElement('input');
+      allCb.type = 'checkbox';
+      allCb.style.cssText = 'width:15px;height:15px;accent-color:#F5A623;cursor:pointer;flex-shrink:0;';
+      allCb.checked = !hasFilter && !isNone;
+      allCb.setAttribute('data-mood', '__all__');
+      allCb.onchange = function() { if (this.checked) { uncheckAll(); this.checked = true; } };
+      var allSpan = document.createElement('span');
+      allSpan.textContent = lang === 'de' ? 'Alle Moods anzeigen' : 'Show all moods';
+      allLabel.appendChild(allCb); allLabel.appendChild(allSpan);
+      body.appendChild(allLabel);
+
+      var noneLabel = document.createElement('label');
+      noneLabel.className = 'profile-zone-row';
+      noneLabel.style.cssText = 'margin-bottom:6px;border-bottom:1px solid #eee;padding-bottom:6px;font-size:13px;color:#888;cursor:pointer;display:flex;align-items:center;gap:8px;';
+      var noneCb = document.createElement('input');
+      noneCb.type = 'checkbox';
+      noneCb.style.cssText = 'width:15px;height:15px;accent-color:#F5A623;cursor:pointer;flex-shrink:0;';
+      noneCb.checked = isNone;
+      noneCb.setAttribute('data-mood', '__none__');
+      noneCb.onchange = function() { if (this.checked) { uncheckAll(); this.checked = true; } };
+      var noneSpan = document.createElement('span');
+      noneSpan.textContent = lang === 'de' ? 'Keine Moods anzeigen' : 'Show no moods';
+      noneLabel.appendChild(noneCb); noneLabel.appendChild(noneSpan);
+      body.appendChild(noneLabel);
+
+      var grid = document.createElement('div');
+      grid.className = 'profile-zone-grid';
+      var moodSet = new Set(profile.moods || []);
+      _allMoods.forEach(function(m) {
+        var row = document.createElement('label');
+        row.className = 'profile-zone-row';
+        var cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.setAttribute('data-mood', m.id);
+        cb.checked = moodSet.has(m.id);
+        cb.onchange = function() {
+          if (this.checked) uncheckSpecial();
+        };
+        var sp = document.createElement('span');
+        // Zonenname als Zusatz — Moods heissen oft gleich in mehreren Räumen
+        sp.textContent = m.zone ? m.name + ' · ' + m.zone : m.name;
         sp.style.cssText = 'overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
         row.appendChild(cb); row.appendChild(sp);
         grid.appendChild(row);
@@ -3525,7 +3630,11 @@
         var name = (card.querySelector('[data-field="name"]') || {}).value || '';
         var ip   = ((card.querySelector('[data-field="ip"]')  || {}).value || '').trim();
         var data = _collectProfileData(card);
-        synced.push({ id: id || Date.now().toString(), name: name.trim(), ip: ip, devices: data.devices, flows: data.flows });
+        var prevSync = _profiles.find(function(pp) { return pp.id === id; });
+        var moodsSync = data.moods !== null
+          ? data.moods
+          : (prevSync && Array.isArray(prevSync.moods) ? prevSync.moods : ['__none__']);
+        synced.push({ id: id || Date.now().toString(), name: name.trim(), ip: ip, devices: data.devices, flows: data.flows, moods: moodsSync });
       });
       _profiles = synced;
     }
@@ -3538,6 +3647,7 @@
         ip: '',
         devices: [],
         flows: [],
+        moods: ['__none__'],
       };
       _profiles.push(newProfile);
       renderProfiles();
@@ -3565,7 +3675,21 @@
           if (cb.checked) flows.push(cb.getAttribute('data-flow'));
         });
       }
-      return { devices: devices, flows: flows };
+      // Die Moods-Sektion fehlt, wenn noch keine Moods existieren oder der
+      // Cache beim Speichern noch nicht geladen war. Dann null zurueckgeben,
+      // damit der bestehende Wert erhalten bleibt — ein leeres Array wuerde
+      // sonst als "alle Moods" gespeichert und sie ungefragt einschalten.
+      var moods = null;
+      if (card.querySelector('[data-mood]')) {
+        var allMoodCb = card.querySelector('[data-mood="__all__"]');
+        moods = [];
+        if (!allMoodCb || !allMoodCb.checked) {
+          card.querySelectorAll('[data-mood]:not([data-mood="__all__"])').forEach(function(cb) {
+            if (cb.checked) moods.push(cb.getAttribute('data-mood'));
+          });
+        }
+      }
+      return { devices: devices, flows: flows, moods: moods };
     }
 
     async function saveProfiles() {
@@ -3578,6 +3702,10 @@
         // flows=[] → false (all), flows=['__none__'] → [] (none), flows=[ids] → those ids
         var flowsToSave = defData.flows.length ? defData.flows : false;
         await hSet('enabledFlows', flowsToSave);
+        // null = Sektion war nicht gerendert -> bestehenden Wert nicht ueberschreiben
+        if (defData.moods !== null) {
+          await hSet('enabledMoods', defData.moods.length ? defData.moods : false);
+        }
       }
       // Save IP-specific profiles
       var result = [];
@@ -3587,7 +3715,11 @@
         var ip   = ((card.querySelector('[data-field="ip"]')  || {}).value || '').trim();
         if (!ip) return;
         var data = _collectProfileData(card);
-        result.push({ id: id || Date.now().toString(), name: name.trim(), ip: ip, devices: data.devices, flows: data.flows });
+        var prevSaved = _profiles.find(function(pp) { return pp.id === id; });
+        var moodsVal = data.moods !== null
+          ? data.moods
+          : (prevSaved && Array.isArray(prevSaved.moods) ? prevSaved.moods : ['__none__']);
+        result.push({ id: id || Date.now().toString(), name: name.trim(), ip: ip, devices: data.devices, flows: data.flows, moods: moodsVal });
       });
       _profiles = result;
       try {

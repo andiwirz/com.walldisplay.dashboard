@@ -14,7 +14,9 @@
   --shadow:      0 2px 8px rgba(0,0,0,0.07), 0 0 1px rgba(0,0,0,0.04);
   --shadow-on:   0 2px 10px rgba(245,166,35,0.18), 0 0 1px rgba(245,166,35,0.25);
   --radius:      14px;
-  --header-h:    45px;
+  /* Menueleiste und Fenster-Kopfzeilen sollen gleich hoch sein — beide 50 px.
+     Die Buttons messen 44 px, das laesst oben und unten etwas Luft. */
+  --header-h:    50px;
   --modal-hdr-h: 50px;  /* Modal-Header-Höhe — unabhängig von Header-Sichtbarkeit */
   --font-scale:  1;
   --tile-h:      100px;
@@ -219,6 +221,38 @@ html, body {
   display: flex;
   align-items: center;
   gap: 12px;
+  min-width: 0;
+}
+
+/* Ohne Umbruch wandern Uhrzeit und die rechten Symbole kommentarlos aus dem
+   Bild, sobald mehrere Schnellzugriffe aktiv sind. Auf schmalen Displays
+   deshalb: enger Abstand, schmaler Innenabstand — und wenn es dann immer noch
+   nicht reicht, bricht die Zeile um. Die Buttons behalten dabei ihre volle
+   Tastflaeche. Horizontales Scrollen scheidet aus: seitliche Wischgesten
+   fangen die Shelly-Displays selbst ab, verdeckte Buttons waeren
+   unerreichbar. */
+@media (max-width: 560px) {
+  .header {
+    padding-left: 10px;
+    padding-right: 10px;
+    height: auto;
+    min-height: 50px;   /* gleich wie --modal-hdr-h */
+  }
+  .header-right {
+    gap: 2px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+  .header-right > button {
+    /* Volle 44x44 Tastflaeche. Bis zu acht Buttons passen so in eine Zeile;
+       wer mehr Schnellzugriffe aktiviert, bekommt einen Umbruch statt
+       kleinerer Knoepfe — die meisten Installationen bleiben einzeilig. */
+    min-width: 44px;
+    min-height: 44px;
+    padding-left: 1px;
+    padding-right: 1px;
+  }
+  .view-toggle-btn { padding-left: 4px; padding-right: 4px; }
 }
 .header.searching .header-left,
 .header.searching .header-right { display: none; }
@@ -227,6 +261,8 @@ html, body {
 .search-hdr-btn {
   background: none; border: none; cursor: pointer;
   color: var(--text-muted); padding: 4px;
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 44px; min-height: 44px;
 }
 .search-hdr-btn .hdr-svg { width: 22px; height: 22px; }
 @media (hover: hover) { .search-hdr-btn:hover { color: var(--accent); } }
@@ -234,6 +270,9 @@ html, body {
 .filter-hdr-btn {
   background: none; border: none; cursor: pointer;
   color: var(--text-muted); padding: 4px;
+  /* gleiche Tap-Flaeche wie Wetter-/Energie-/EV-Button */
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 44px; min-height: 44px;
 }
 .filter-hdr-btn .hdr-svg { width: 22px; height: 22px; }
 @media (hover: hover) { .filter-hdr-btn:hover { color: var(--accent); } }
@@ -558,6 +597,15 @@ body.tile-colors-strong .flow-tile:not(.dashboard-shortcut-tile) {
 }
 
 /* ── Toggle switch ────────────────────────────── */
+/* Optik bleibt 38x22, die Trefferflaeche waechst ueber ::before auf 44x44 —
+   22 px sind auf einem Wanddisplay zu wenig zum sicheren Treffen.
+   .device-toggle hat bereits position: relative. */
+.device-toggle::before {
+  content: '';
+  position: absolute;
+  top: -11px; bottom: -11px; left: -3px; right: -3px;
+}
+
 .device-toggle {
   width: 38px;
   height: 22px;
@@ -690,21 +738,41 @@ body.tile-colors-strong .flow-tile:not(.dashboard-shortcut-tile) {
 /* ── Dim slider ───────────────────────────────── */
 .dim-slider {
   width: 100%;
-  height: 4px;
+  /* Sichtbare Spur bleibt 4 px, die Trefferflaeche ist 32 px hoch — sonst
+     muesste man auf dem Display eine 4 px hohe Linie treffen. Die negativen
+     Raender halten den Platzbedarf im Layout unveraendert. */
+  height: 32px;
+  margin-top: -10px;
+  margin-bottom: -10px;
   -webkit-appearance: none;
   appearance: none;
+  background: transparent;
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+}
+
+.dim-slider::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 2px;
   background: linear-gradient(to right,
     var(--accent) 0%,
     var(--accent) var(--val, 0%),
     #E5E5EA var(--val, 0%));
+}
+
+.dim-slider::-moz-range-track {
+  height: 4px;
   border-radius: 2px;
-  outline: none;
-  cursor: pointer;
-  margin-top: 4px;
+  background: linear-gradient(to right,
+    var(--accent) 0%,
+    var(--accent) var(--val, 0%),
+    #E5E5EA var(--val, 0%));
 }
 
 .dim-slider::-webkit-slider-thumb {
   -webkit-appearance: none;
+  margin-top: -6px;          /* Knopf auf der 4-px-Spur zentrieren */
   width: 16px; height: 16px;
   background: #fff;
   border-radius: 50%;
@@ -914,6 +982,12 @@ body.tile-colors-strong .flow-tile:not(.dashboard-shortcut-tile) {
   background: transparent;
   border: none;
   border-radius: 7px;
+  /* Mindest-Tastflaeche 44 px — Bedienung per Finger am Wanddisplay */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
   padding: 10px 13px;
   font-size: 12px;
   font-weight: 600;
@@ -944,6 +1018,12 @@ body.tile-colors-strong .flow-tile:not(.dashboard-shortcut-tile) {
   padding: 10px 14px;
   border-radius: 8px;
   line-height: 1;
+  /* Mindest-Tastflaeche 44 px — Bedienung per Finger am Wanddisplay */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
 }
 .energy-close-btn:hover { color: var(--text); background: var(--border); }
 
@@ -1292,6 +1372,16 @@ body.tile-colors-strong .flow-tile:not(.dashboard-shortcut-tile) {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+}
+
+/* Moods — eigenes Grid direkt unter den Flows. Erbt das Kachel-Layout
+   von .flow-tile; nur der Aussenabstand und die Akzentfarbe unterscheiden. */
+.mood-section {
+  margin-bottom: 12px;
+}
+
+.mood-tile .flow-tile-icon {
+  color: var(--mood-accent, #AF52DE);
 }
 
 .flow-tile {
@@ -2365,6 +2455,12 @@ body.view-zones.hdr-icons-svg #view-toggle .hdr-svg-rooms { display: inline-bloc
   border-radius: 8px;
   line-height: 1;
   margin: -6px -6px -6px 0;
+  /* Mindest-Tastflaeche 44 px — Bedienung per Finger am Wanddisplay */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
 }
 .ev-close-btn:hover { color: var(--text); background: var(--border); }
 
@@ -2575,6 +2671,12 @@ body.view-zones.hdr-icons-svg #view-toggle .hdr-svg-rooms { display: inline-bloc
   background: transparent;
   border: none;
   border-radius: 7px;
+  /* Mindest-Tastflaeche 44 px — Bedienung per Finger am Wanddisplay */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
   padding: 8px 13px;
   font-size: 12px;
   font-weight: 600;
@@ -2596,6 +2698,12 @@ body.view-zones.hdr-icons-svg #view-toggle .hdr-svg-rooms { display: inline-bloc
   line-height: 1;
   justify-self: end;
   margin-right: -6px;
+  /* Mindest-Tastflaeche 44 px — Bedienung per Finger am Wanddisplay */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
 }
 .weather-close-btn:hover { color: var(--text); background: var(--border); }
 .weather-body {

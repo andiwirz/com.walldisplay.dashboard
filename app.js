@@ -107,9 +107,18 @@ class ShellyWallDisplayApp extends Homey.App {
     // ── Flow Action: Show Camera on Dashboard ──────────────────────
     const showCameraAction = this.homey.flow.getActionCard('show_camera');
     showCameraAction.registerRunListener(async (args) => {
-      const { device, display } = args;
+      const { device, display, duration } = args;
       const targetIp = display && display.id !== '__all__' ? display.id : null;
-      this._broadcastSSE({ type: 'show_camera', deviceId: device.id, deviceName: device.name, targetIp });
+      // duration kam erst spaeter dazu. Flows, die vor dem Update angelegt
+      // wurden, liefern hier undefined — dann bleibt das Bild offen wie bisher.
+      const secs = Number.isFinite(duration) ? Math.max(0, Math.round(duration)) : 0;
+      this._broadcastSSE({
+        type: 'show_camera',
+        deviceId: device.id,
+        deviceName: device.name,
+        duration: secs,
+        targetIp,
+      });
       return true;
     });
     showCameraAction.registerArgumentAutocompleteListener('device', async (query) => {
@@ -252,6 +261,19 @@ class ShellyWallDisplayApp extends Homey.App {
         this.homeyApi.flow.on('flow.create', () => this._scheduleFlowCacheUpdate());
         this.homeyApi.flow.on('flow.delete', () => this._scheduleFlowCacheUpdate());
       } catch (_) {}
+
+      // Mood-Cache befuellen
+      this._updateMoodSettingsCache().catch((e) =>
+        this.error('Mood-Settings-Cache Fehler:', e.message)
+      );
+      // Moods aendern sich nur bei Struktur-Aenderungen. mood.update wird
+      // mitgenommen, da ein Mood beim Ausloesen keinen lastExecuted-Stempel
+      // bekommt (anders als Flows) und Umbenennungen sichtbar werden sollen.
+      try {
+        this.homeyApi.moods.on('mood.create', () => this._scheduleMoodCacheUpdate());
+        this.homeyApi.moods.on('mood.delete', () => this._scheduleMoodCacheUpdate());
+        this.homeyApi.moods.on('mood.update', () => this._scheduleMoodCacheUpdate());
+      } catch (_) {}
     } catch (err) {
       this.error('Homey API Fehler:', err.message);
     }
@@ -322,7 +344,38 @@ class ShellyWallDisplayApp extends Homey.App {
 
     flows.sort((a, b) => a.name.localeCompare(b.name));
     this.homey.settings.set('cachedFlows', flows);
+    // Clients halten die Flow-Liste im Speicher — Bescheid geben.
+    this._broadcastSSE({ type: 'lists.changed' });
     this.log(`Flow-Settings-Cache aktualisiert: ${flows.length} triggerbare Flows`);
+  }
+
+  // Schreibt alle Moods als kompaktes Array in die Homey-Settings.
+  // Ein Mood traegt eine zone-ID; der Zonenname wird fuer die Anzeige
+  // aufgeloest, analog zum Ordnernamen bei Flows.
+  async _updateMoodSettingsCache() {
+    if (!this.homeyApi) return;
+
+    let zoneMap = {};
+    try {
+      const zones = await this.homeyApi.zones.getZones();
+      for (const z of Object.values(zones)) zoneMap[z.id] = z.name;
+    } catch (_) {}
+
+    const raw = await this.homeyApi.moods.getMoods().catch(() => ({}));
+    const moods = [];
+    for (const m of Object.values(raw)) {
+      moods.push({
+        id:   m.id,
+        name: m.name,
+        zone: (m.zone && zoneMap[m.zone]) || null,
+        zoneId: m.zone || null,
+      });
+    }
+
+    moods.sort((a, b) => a.name.localeCompare(b.name));
+    this.homey.settings.set('cachedMoods', moods);
+    this._broadcastSSE({ type: 'lists.changed' });
+    this.log(`Mood-Settings-Cache aktualisiert: ${moods.length} Moods`);
   }
 
   async _startServer(port) {
@@ -529,10 +582,36 @@ class ShellyWallDisplayApp extends Homey.App {
         const rawEffectiveFlows = settingsProfile
           ? (Array.isArray(settingsProfile.flows) ? settingsProfile.flows : null)
           : globalEnabledFlows;
-        // ['__none__'] = explizit keine Flows → leeres Array; Client wertet [] als "keine Flows"
-        const effectiveEnabledFlows = Array.isArray(rawEffectiveFlows) && rawEffectiveFlows.includes('__none__')
-          ? []
-          : rawEffectiveFlows;
+        // ['__none__'] = explizit keine Flows → leeres Array; Client wertet [] als "keine Flows".
+        // Ein leeres Array aus dem Settings-UI bedeutet dagegen "alle Flows" — es muss
+        // deshalb zu null werden, sonst blendet der Client sie faelschlich komplett aus.
+        const effectiveEnabledFlows = !Array.isArray(rawEffectiveFlows)
+          ? rawEffectiveFlows
+          : rawEffectiveFlows.includes('__none__')
+            ? []
+            : (rawEffectiveFlows.length ? rawEffectiveFlows : null);
+
+        // Per-Display Mood-Filter — Semantik wie bei Flows (null/[] = alle,
+        // ['__none__'] = keine, [ids] = Auswahl), mit einem Unterschied:
+        // Moods sind ein nachtraeglich hinzugekommenes Feature. Wer sie nie
+        // konfiguriert hat, soll nach einem Update keine neue Kachelreihe
+        // bekommen — "noch nie gespeichert" gilt deshalb als "keine".
+        // Achtung: false ist der gespeicherte Wert fuer "alle" (siehe
+        // saveProfiles) und muss von "nie gesetzt" unterschieden werden.
+        const rawGlobalMoods = this.homey.settings.get('enabledMoods');
+        const globalEnabledMoods = (rawGlobalMoods === undefined || rawGlobalMoods === null)
+          ? ['__none__']
+          : (rawGlobalMoods || null);
+        const rawEffectiveMoods = settingsProfile
+          ? (Array.isArray(settingsProfile.moods) ? settingsProfile.moods : ['__none__'])
+          : globalEnabledMoods;
+        // null = alle. Leeres Array kommt aus dem Settings-UI, wenn dort
+        // "Alle Moods anzeigen" angehakt ist — ebenfalls alle, nicht keine.
+        const effectiveEnabledMoods = !Array.isArray(rawEffectiveMoods)
+          ? rawEffectiveMoods
+          : rawEffectiveMoods.includes('__none__')
+            ? []
+            : (rawEffectiveMoods.length ? rawEffectiveMoods : null);
 
         res.writeHead(200);
         res.end(JSON.stringify({
@@ -543,6 +622,7 @@ class ShellyWallDisplayApp extends Homey.App {
           tileSize: (tileSize >= 1 && tileSize <= 5) ? tileSize : 3,
           tileHeight: this.homey.settings.get('tileHeight') || 'auto',
           enabledFlows: effectiveEnabledFlows,
+          enabledMoods: effectiveEnabledMoods,
           flowTileWidth: this.homey.settings.get('flowTileWidth') || 'auto',
           flowConfirm: this.homey.settings.get('flowConfirm') === true,
           flowPosition: this.homey.settings.get('flowPosition') || 'top',
@@ -589,7 +669,7 @@ class ShellyWallDisplayApp extends Homey.App {
       if (url.pathname === '/api/settings' && req.method === 'POST') {
         const body = await this._readBody(req);
         const { key, value } = JSON.parse(body);
-        const allowed = ['port', 'enabledDevices', 'alarmPin', 'energyEnabled', 'batteryInvertSign', 'tileSize', 'tileHeight', 'enabledFlows', 'homeyToken', 'flowTileWidth', 'flowConfirm', 'flowPosition', 'dashboardTitle', 'fontSize', 'accentColor', 'tileRadius', 'headerHidden', 'viewDefault', 'viewBtnHidden', 'zoneOrder', 'coverFullscreen', 'coverFullscreenDelay', 'defaultProfileZones', 'defaultProfileDevices', 'tileColorMode', 'tileColorOn', 'tileColorOff', 'tileColorFlow', 'bgStyle', 'animMode', 'headerIconStyle', 'weatherEnabled', 'weatherHeaderBtn', 'weatherLat', 'weatherLon', 'weatherCity', 'weatherUnit', 'debugLogging', 'displayProfiles', 'evEnabled', 'evDeviceId', 'evCapabilities', 'evImageData', 'searchEnabled', 'themeMode', 'cameraFilterEnabled', 'speakerFilterEnabled', 'thermostatFilterEnabled', 'lightFilterEnabled', 'blindsFilterEnabled', 'roomFilterEnabled', 'dashboardLang'];
+        const allowed = ['port', 'enabledDevices', 'alarmPin', 'energyEnabled', 'batteryInvertSign', 'tileSize', 'tileHeight', 'enabledFlows', 'homeyToken', 'flowTileWidth', 'flowConfirm', 'flowPosition', 'dashboardTitle', 'fontSize', 'accentColor', 'tileRadius', 'headerHidden', 'viewDefault', 'viewBtnHidden', 'zoneOrder', 'coverFullscreen', 'coverFullscreenDelay', 'defaultProfileZones', 'defaultProfileDevices', 'tileColorMode', 'tileColorOn', 'tileColorOff', 'tileColorFlow', 'bgStyle', 'animMode', 'headerIconStyle', 'weatherEnabled', 'weatherHeaderBtn', 'weatherLat', 'weatherLon', 'weatherCity', 'weatherUnit', 'debugLogging', 'displayProfiles', 'evEnabled', 'evDeviceId', 'evCapabilities', 'evImageData', 'searchEnabled', 'themeMode', 'cameraFilterEnabled', 'speakerFilterEnabled', 'thermostatFilterEnabled', 'lightFilterEnabled', 'blindsFilterEnabled', 'roomFilterEnabled', 'dashboardLang', 'enabledMoods'];
         if (!allowed.includes(key)) {
           res.writeHead(400);
           res.end(JSON.stringify({ error: 'Not allowed' }));
@@ -714,6 +794,74 @@ class ShellyWallDisplayApp extends Homey.App {
         const flows = this.homey.settings.get('cachedFlows') || [];
         res.writeHead(200);
         res.end(JSON.stringify(flows));
+        return;
+      }
+
+      // GET /api/moods — alle Moods für das Dashboard (aus Settings-Cache)
+      if (url.pathname === '/api/moods' && req.method === 'GET') {
+        const moods = this.homey.settings.get('cachedMoods') || [];
+        res.writeHead(200);
+        res.end(JSON.stringify(moods));
+        return;
+      }
+
+      // POST /api/mood/:id/set — Mood aktivieren
+      const moodSetMatch = url.pathname.match(/^\/api\/mood\/([^/]+)\/set$/);
+      if (moodSetMatch && req.method === 'POST') {
+        const moodId = moodSetMatch[1];
+        let activated = false;
+        let lastError = null;
+        this.log(`Mood set: id=${moodId}`);
+
+        // Methode 1: SDK
+        try {
+          await this.homeyApi.moods.setMood({ id: moodId });
+          activated = true;
+          this.log('Mood aktiviert via setMood SDK');
+        } catch (e) {
+          lastError = e.message;
+          this.error('setMood SDK Fehler:', e.message);
+        }
+
+        // Methode 2: PAT — analog zu Flows bekommen App-Tokens den Scope
+        // homey.mood.set voraussichtlich nicht (Athom-Einschränkung).
+        if (!activated) {
+          const pat = this.homey.settings.get('homeyToken') || null;
+          if (!pat) {
+            lastError = 'Kein Personal Access Token hinterlegt. Bitte in den Einstellungen eintragen.';
+            this.error(lastError);
+          } else {
+            const setUrl = `${this.homeyBaseUrl}/api/manager/moods/mood/${moodId}/set`;
+            this.log('PAT HTTP-Request:', setUrl);
+            try {
+              const r = await this._nodeFetch(setUrl, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${pat}`, 'Content-Type': 'application/json' },
+                body: '{}',
+                agent: setUrl.startsWith('https') ? this._httpsAgent : undefined,
+              });
+              if (r.ok || r.status === 204) {
+                activated = true;
+                this.log(`Mood aktiviert via PAT (${r.status})`);
+              } else {
+                const body = await r.text().catch(() => '');
+                lastError = `HTTP ${r.status}: ${body}`;
+                this.error('PAT-Request Fehler:', lastError);
+              }
+            } catch (fetchErr) {
+              lastError = fetchErr.message;
+              this.error('PAT fetch Fehler:', fetchErr.message);
+            }
+          }
+        }
+
+        if (activated) {
+          res.writeHead(200);
+          res.end(JSON.stringify({ ok: true }));
+        } else {
+          res.writeHead(500);
+          res.end(JSON.stringify({ error: lastError || 'Mood konnte nicht aktiviert werden' }));
+        }
         return;
       }
 
@@ -2099,6 +2247,15 @@ class ShellyWallDisplayApp extends Homey.App {
     );
   }
 
+  // Debounce-Wrapper für _updateMoodSettingsCache (5 s).
+  _scheduleMoodCacheUpdate() {
+    clearTimeout(this._moodCacheTimer);
+    this._moodCacheTimer = setTimeout(
+      () => this._updateMoodSettingsCache().catch((e) => this.error('Mood-Cache Fehler:', e.message)),
+      5000
+    );
+  }
+
   // Debounce-Wrapper für _updateDeviceSettingsCache (3 s).
   // Schützt vor Burst-Fetches beim Pairen mehrerer Geräte gleichzeitig.
   _scheduleDeviceCacheUpdate() {
@@ -2314,7 +2471,7 @@ class ShellyWallDisplayApp extends Homey.App {
 // High-frequency polling paths that should not appear in the debug log buffer
 ShellyWallDisplayApp.SILENT_PATHS = new Set([
   '/api/devices', '/api/energy', '/api/zones', '/api/flows',
-  '/api/settings', '/api/client-ip', '/ping',
+  '/api/settings', '/api/client-ip', '/ping', '/api/moods',
   '/api/debug/logs', '/api/ev', '/api/ev-image',
 ]);
 

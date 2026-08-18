@@ -752,6 +752,32 @@
       <div class="status" id="dashboard-lang-status"></div>
     </div>
 
+    <!-- Rolladen-Bedienung -->
+    <div class="card collapsible" data-collapse-key="designBlind">
+      <div class="card-title" data-i18n="blindTitle">Blind controls</div>
+      <div class="hint" data-i18n="blindHint">Applies only to blinds that report both a position slider and up/down/stop. Some devices report a slider but cannot actually be positioned — switch to buttons for those.</div>
+      <div class="seg-btn-group" id="blind-control-group">
+        <button class="seg-btn active" data-value="slider"  onclick="setBlindControl('slider')"  data-i18n="blindSlider">Slider</button>
+        <button class="seg-btn"        data-value="buttons" onclick="setBlindControl('buttons')" data-i18n="blindButtons">Buttons</button>
+        <button class="seg-btn"        data-value="both"    onclick="setBlindControl('both')"    data-i18n="blindBoth">Both</button>
+      </div>
+      <div class="status" id="blind-control-status"></div>
+    </div>
+
+    <!-- Watt-Anzeige auf Kacheln -->
+    <div class="card collapsible" data-collapse-key="designTilePower">
+      <div class="card-title" data-i18n="tilePowerTitle">Power on tiles</div>
+      <div class="toggle-row">
+        <span class="toggle-label" data-i18n="tilePowerLabel">Show power consumption</span>
+        <label class="toggle-switch">
+          <input type="checkbox" id="tile-power-toggle" checked onchange="saveTilePower()">
+          <span class="toggle-track"></span>
+        </label>
+      </div>
+      <p class="toggle-hint" data-i18n="tilePowerHint">Shows the current wattage on device tiles that report it. Turn off for a calmer look on small displays — the Energy window still shows all values.</p>
+      <div class="status" id="tile-power-status"></div>
+    </div>
+
     <!-- Search Button -->
     <div class="card collapsible" data-collapse-key="designSearch">
       <div class="card-title" data-i18n="searchTitle">Search</div>
@@ -1402,6 +1428,16 @@
         themeModeDark:      'Dark',
         themeModeAuto:      'Auto',
         themeModeSaved:     'Setting saved',
+        blindTitle:      'Blind controls',
+        blindHint:       'Applies only to blinds that report both a position slider and up/down/stop. Some devices report a slider but cannot actually be positioned — switch to buttons for those.',
+        blindSlider:     'Slider',
+        blindButtons:    'Buttons',
+        blindBoth:       'Both',
+        blindSaved:      'Setting saved',
+        tilePowerTitle:  'Power on tiles',
+        tilePowerLabel:  'Show power consumption',
+        tilePowerHint:   'Shows the current wattage on device tiles that report it. Turn off for a calmer look on small displays — the Energy window still shows all values.',
+        tilePowerSaved:  'Setting saved',
         searchTitle:        'Search',
         searchLabel:        'Show search button',
         searchHint:         'Adds a search icon to the header bar. Tap to filter device tiles by name or room.',
@@ -1644,6 +1680,16 @@
         themeModeDark:      'Dunkel',
         themeModeAuto:      'Auto',
         themeModeSaved:     'Einstellung gespeichert',
+        blindTitle:      'Rolladen-Bedienung',
+        blindHint:       'Gilt nur für Rolladen, die sowohl einen Positionsregler als auch Auf/Ab/Stopp melden. Manche Geräte melden einen Regler, lassen sich aber nicht wirklich positionieren — dafür auf Tasten umstellen.',
+        blindSlider:     'Regler',
+        blindButtons:    'Tasten',
+        blindBoth:       'Beides',
+        blindSaved:      'Einstellung gespeichert',
+        tilePowerTitle:  'Watt-Anzeige auf Kacheln',
+        tilePowerLabel:  'Stromverbrauch anzeigen',
+        tilePowerHint:   'Zeigt den aktuellen Wattwert auf Gerätekacheln, die ihn melden. Zum Abschalten für ein ruhigeres Bild auf kleinen Displays — im Energie-Fenster bleiben alle Werte sichtbar.',
+        tilePowerSaved:  'Einstellung gespeichert',
         searchTitle:        'Suche',
         searchLabel:        'Suchbutton anzeigen',
         searchHint:         'Zeigt ein Suchsymbol in der Kopfzeile. Antippen filtert Gerätekacheln nach Name oder Raum.',
@@ -2148,6 +2194,8 @@
       var savedThemeMode      = await hGetSafe('themeMode', 'toggle');
       var savedDashboardLang  = await hGetSafe('dashboardLang', 'auto');
       var savedSearchEnabled  = await hGetSafe('searchEnabled', true);
+      var savedTilePower      = await hGetSafe('tilePowerEnabled', true);
+      var savedBlindControl   = await hGetSafe('blindControl', 'slider');
       var savedCameraFilter   = await hGetSafe('cameraFilterEnabled', false);
       var savedSpeakerFilter  = await hGetSafe('speakerFilterEnabled', false);
       var savedThermostatFilter = await hGetSafe('thermostatFilterEnabled', false);
@@ -2197,6 +2245,8 @@
       setThemeMode(savedThemeMode || 'toggle', true);
       setDashboardLang(savedDashboardLang || 'auto', true);
       document.getElementById('search-toggle').checked = savedSearchEnabled !== false;
+      document.getElementById('tile-power-toggle').checked = savedTilePower !== false;
+      setBlindControl(savedBlindControl || 'slider', true);
       document.getElementById('camera-filter-toggle').checked = savedCameraFilter === true;
       document.getElementById('speaker-filter-toggle').checked = savedSpeakerFilter === true;
       document.getElementById('thermostat-filter-toggle').checked = savedThermostatFilter === true;
@@ -2710,6 +2760,25 @@
         await hSet('headerHidden', !visible);
         showStatus('header-hidden-status', T.headerHiddenSaved, true);
       } catch (e) { showStatus('header-hidden-status', T.errorPrefix + e.message, false); }
+    }
+
+    async function setBlindControl(value, silent) {
+      document.querySelectorAll('#blind-control-group .seg-btn').forEach(function(btn) {
+        btn.classList.toggle('active', btn.getAttribute('data-value') === value);
+      });
+      if (silent) return;
+      try {
+        await hSet('blindControl', value);
+        showStatus('blind-control-status', T.blindSaved, true);
+      } catch (e) { showStatus('blind-control-status', T.errorPrefix + e.message, false); }
+    }
+
+    async function saveTilePower() {
+      var enabled = document.getElementById('tile-power-toggle').checked;
+      try {
+        await hSet('tilePowerEnabled', enabled);
+        showStatus('tile-power-status', T.tilePowerSaved, true);
+      } catch (e) { showStatus('tile-power-status', T.errorPrefix + e.message, false); }
     }
 
     async function saveSearchEnabled() {

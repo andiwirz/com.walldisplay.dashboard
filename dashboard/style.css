@@ -557,21 +557,36 @@ body.tile-colors-strong .flow-tile:not(.dashboard-shortcut-tile) {
 }
 
 /* ── Blind stop button (windowcoverings_state) ── */
-.wc-state-btn {
-  background: none;
+/* Fahrtasten Auf / Stopp / Ab. Ersetzen den fruehreren 22-px-Stopp-Knopf in
+   der Kachelecke; volle Tastflaechenhoehe, Breite gleichmaessig aufgeteilt. */
+.wc-btn-row {
+  display: flex;
+  gap: 4px;
+  margin-top: 6px;
+  width: 100%;
+}
+
+.wc-btn {
+  flex: 1 1 0;
+  min-height: 44px;
+  background: var(--tile-btn-bg, rgba(0,0,0,0.05));
   border: none;
+  border-radius: 8px;
   cursor: pointer;
-  font-size: 22px;
+  font-size: 15px;
   line-height: 1;
-  padding: 4px 6px;
   color: var(--text-secondary, #888);
-  border-radius: 6px;
-  flex-shrink: 0;
   transition: background 0.15s, color 0.15s;
 }
-.wc-state-btn:hover {
-  background: rgba(0,0,0,0.08);
-  color: var(--text-primary, #333);
+
+.wc-btn.active {
+  background: var(--accent);
+  color: #fff;
+}
+
+@media (hover: hover) {
+  .wc-btn:hover { background: rgba(0,0,0,0.10); color: var(--text-primary, #333); }
+  .wc-btn.active:hover { background: var(--accent); color: #fff; }
 }
 
 .device-icon {

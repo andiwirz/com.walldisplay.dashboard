@@ -63,6 +63,7 @@
       tryAgain: 'Try again', enterPin: 'Enter PIN', wrongPin: 'Wrong PIN',
       stop: 'Stop', next8h: 'Next 8 hours',
       on: 'On', off: 'Off', yes: 'Yes', no: 'No', ok: 'OK', low: 'Low',
+      wcUp: 'Open', wcDown: 'Close',
       modeHeat: 'Heat', modeCool: 'Cool', modeAuto: 'Auto',
       startFlow: 'Start Flow?', startBtn: '▶ Start',
       noImage: 'No image available', current: 'Current',
@@ -106,6 +107,7 @@
       tryAgain: 'Erneut versuchen', enterPin: 'PIN eingeben', wrongPin: 'Falsche PIN',
       stop: 'Stopp', next8h: 'Nächste 8 Stunden',
       on: 'Ein', off: 'Aus', yes: 'Ja', no: 'Nein', ok: 'OK', low: 'Niedrig',
+      wcUp: 'Öffnen', wcDown: 'Schliessen',
       modeHeat: 'Heizen', modeCool: 'Kühlen', modeAuto: 'Automatik',
       startFlow: 'Flow starten?', startBtn: '▶ Starten',
       noImage: 'Kein Bild verfügbar', current: 'Aktuell',
@@ -169,6 +171,8 @@
   var _flowPosition  = 'top'; // 'top' | 'bottom'
   var _headerHidden  = false; // true = Header ausgeblendet → Dashboard-Tiles im Grid
   var _searchEnabled  = false; // 🔍 Search Button aktiv
+  var _tilePower      = true;  // Watt-Wert auf den Gerätekacheln anzeigen
+  var _blindControl   = 'slider'; // 'slider' | 'buttons' | 'both'
   var _cameraFilterEnabled  = false; // 📷 Camera Filter Button
   var _speakerFilterEnabled = false; // 🎵 Speaker Filter Button
   var _thermostatFilterEnabled = false; // 🌡️ Thermostat Filter Button
@@ -1279,6 +1283,8 @@
 
         // Suchbutton
         _searchEnabled = cfg.searchEnabled === true;
+        _tilePower = cfg.tilePowerEnabled !== false;
+        _blindControl = cfg.blindControl || 'slider';
         var searchBtn = document.getElementById('search-btn');
         if (searchBtn) searchBtn.style.display = _searchEnabled ? '' : 'none';
 
@@ -2109,6 +2115,20 @@
     return section;
   }
 
+  // Rolladen: Positionsregler (windowcoverings_set) und Fahrtasten
+  // (windowcoverings_state) sind getrennte Faehigkeiten. Welche Bedienung
+  // erscheint, haengt vom Geraet ab — und wenn es beide meldet, von der
+  // Einstellung. Manche Geraete melden den Regler, koennen aber nicht
+  // positionieren (z.B. ueber Bond Bridge); dort helfen nur die Tasten.
+  function _wcControls(capIds) {
+    var hasSet   = capIds.indexOf(CAP.WC_SET)   !== -1;
+    var hasState = capIds.indexOf(CAP.WC_STATE) !== -1;
+    if (hasSet && hasState) {
+      return { slider: _blindControl !== 'buttons', buttons: _blindControl !== 'slider' };
+    }
+    return { slider: hasSet, buttons: hasState };
+  }
+
   function buildDeviceCard(d) {
     var card = createElement('div', 'device-card');
     card.id = 'card-' + d.id;
@@ -2122,7 +2142,8 @@
     var hasOnOff  = capIds.indexOf(CAP.ONOFF) !== -1;
     var hasAlarm  = d.class === 'homealarm' || capIds.indexOf(CAP.HOMEALARM) !== -1 || capIds.indexOf(CAP.HOMEALARM_STATE) !== -1;
     var hasDim    = capIds.indexOf(CAP.DIM) !== -1;
-    var hasWcState = capIds.indexOf(CAP.WC_STATE) !== -1 && capIds.indexOf(CAP.WC_SET) === -1;
+    var _wc        = _wcControls(capIds);
+    var hasWcState = _wc.buttons;
     var isSpeaker    = d.class === 'speaker' || d.class === 'mediaplayer';
     var isThermostat = capIds.indexOf(CAP.TARGET_TEMP) !== -1;
     var isLock       = d.class === 'lock';
@@ -2233,20 +2254,6 @@
       }(d.id, _buttonCapId, card));
     }
 
-    // windowcoverings_state (z.B. Somfy RTS — kein onoff, kein WC_SET)
-    if (hasWcState) {
-      card.classList.add('clickable');
-      (function (deviceId) {
-        card.addEventListener('click', function (e) {
-          if (e.target.classList.contains('wc-state-btn')) return;
-          var dv = devices[deviceId];
-          if (!dv) return;
-          var cur = (dv.capabilitiesObj[CAP.WC_STATE] || {}).value;
-          // Tap: öffnen wenn zu/gestoppt, schliessen wenn offen
-          setCapability(deviceId, CAP.WC_STATE, cur === 'up' ? 'down' : 'up');
-        });
-      }(d.id));
-    }
 
     var header = createElement('div', 'device-header');
     header.appendChild(buildIconElement(d));
@@ -2274,21 +2281,6 @@
         });
       }(d.id, _buttonCapId, btnTrigger));
       header.appendChild(btnTrigger);
-    }
-
-    if (hasWcState) {
-      // Stopp-Button (◼) — sendet 'idle'
-      var stopBtn = createElement('button', 'wc-state-btn');
-      stopBtn.textContent = '◼';
-      stopBtn.title = T.stop;
-      stopBtn.setAttribute('aria-label', T.stop);
-      (function (deviceId) {
-        stopBtn.addEventListener('click', function (e) {
-          e.stopPropagation();
-          setCapability(deviceId, CAP.WC_STATE, 'idle');
-        });
-      }(d.id));
-      header.appendChild(stopBtn);
     }
 
     if (hasAlarm) {
@@ -2335,7 +2327,8 @@
     var capIds     = d.capabilities || [];
     var hasOnOff   = capIds.indexOf(CAP.ONOFF) !== -1;
     var hasAlarm   = d.class === 'homealarm' || capIds.indexOf(CAP.HOMEALARM) !== -1 || capIds.indexOf(CAP.HOMEALARM_STATE) !== -1;
-    var hasWcState = capIds.indexOf(CAP.WC_STATE) !== -1 && capIds.indexOf(CAP.WC_SET) === -1;
+    var _wc        = _wcControls(capIds);
+    var hasWcState = _wc.buttons;
 
     if (d.class === 'lock') {
       var lkLocked = caps[CAP.LOCKED] && caps[CAP.LOCKED].value === true;
@@ -2454,8 +2447,8 @@
       added++;
     }
 
-    // Leistung
-    if (caps[CAP.MEASURE_POWER]) {
+    // Leistung — abschaltbar, da der Wert auf kleinen Kacheln schnell stört
+    if (caps[CAP.MEASURE_POWER] && _tilePower) {
       var el = createElement('div', 'device-value');
       var val = caps[CAP.MEASURE_POWER].value;
       el.textContent = '⚡ ' + (val !== null && val !== undefined ? Math.round(val) + ' W' : '--');
@@ -2483,12 +2476,40 @@
       slider.addEventListener('input', function () {
         this.style.setProperty('--val', this.value + '%');
       });
+      // Klick nicht an die Karte weiterreichen — sonst schaltet ein
+      // danebengegriffener Regler das Licht ein oder aus.
+      slider.addEventListener('click', function (e) { e.stopPropagation(); });
       container.appendChild(slider);
       added++;
     }
 
-    // Jalousie/Rollo-Slider
-    if (caps[CAP.WC_SET]) {
+    // Fahrtasten Auf / Stopp / Ab — ersetzen das fruehere Umschalten per Tipp
+    // auf die Kachel und den kleinen Stopp-Knopf in der Ecke.
+    if (caps[CAP.WC_STATE] && _wcControls(capIds).buttons) {
+      var wcRow = createElement('div', 'wc-btn-row');
+      var wcCur = caps[CAP.WC_STATE].value;
+      [['up', '\u25b2', T.wcUp], ['idle', '\u25a0', T.stop], ['down', '\u25bc', T.wcDown]]
+        .forEach(function (def) {
+          var b = createElement('button', 'wc-btn');
+          b.textContent = def[1];
+          b.title = def[2];
+          b.setAttribute('aria-label', def[2]);
+          b.setAttribute('data-wc', def[0]);
+          if (wcCur === def[0]) b.classList.add('active');
+          (function (deviceId, state) {
+            b.addEventListener('click', function (e) {
+              e.stopPropagation();
+              setCapability(deviceId, CAP.WC_STATE, state);
+            });
+          }(d.id, def[0]));
+          wcRow.appendChild(b);
+        });
+      container.appendChild(wcRow);
+      added++;
+    }
+
+    // Jalousie/Rollo-Regler — nur wenn die Bedienart ihn vorsieht
+    if (caps[CAP.WC_SET] && _wcControls(capIds).slider) {
       var val = caps[CAP.WC_SET].value !== null ? caps[CAP.WC_SET].value : 0;
       var pct = Math.round(val * 100);
       var label = createElement('div', 'device-value');
@@ -2513,6 +2534,7 @@
         var lbl = document.getElementById('wc-label-' + deviceId);
         if (lbl) lbl.textContent = '🪟 ' + this.value + ' %';
       });
+      slider.addEventListener('click', function (e) { e.stopPropagation(); });
       container.appendChild(slider);
       added++;
     }
@@ -2641,7 +2663,8 @@
     var capIds     = d.capabilities || [];
     var hasOnOff   = capIds.indexOf(CAP.ONOFF) !== -1;
     var hasAlarm   = d.class === 'homealarm' || capIds.indexOf(CAP.HOMEALARM) !== -1 || capIds.indexOf(CAP.HOMEALARM_STATE) !== -1;
-    var hasWcState = capIds.indexOf(CAP.WC_STATE) !== -1 && capIds.indexOf(CAP.WC_SET) === -1;
+    var _wc        = _wcControls(capIds);
+    var hasWcState = _wc.buttons;
     var isOn       = hasOnOff && caps[CAP.ONOFF] && caps[CAP.ONOFF].value === true;
     var alarmCapU  = hasAlarm ? getAlarmCapability(d) : null;
     var isArmed    = alarmCapU ? alarmIsArmed(alarmCapU.value) : false;
@@ -2710,6 +2733,13 @@
         var pct = Math.round((caps[CAP.WC_SET].value || 0) * 100);
         wcSlider.value = pct;
         wcSlider.style.setProperty('--val', pct + '%');
+      }
+      var wcRowU = card.querySelector('.wc-btn-row');
+      if (wcRowU && caps[CAP.WC_STATE]) {
+        var curU = caps[CAP.WC_STATE].value;
+        [].forEach.call(wcRowU.querySelectorAll('.wc-btn'), function (b) {
+          b.classList.toggle('active', b.getAttribute('data-wc') === curU);
+        });
       }
       var wcLabel = document.getElementById('wc-label-' + deviceId);
       if (wcLabel) {

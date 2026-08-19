@@ -955,7 +955,8 @@
       <div class="card-title" data-i18n="tileColorTitle">Tile Colors</div>
       <label data-i18n="tileColorModeLabel" style="font-size:13px;color:#555;">Color intensity</label>
       <div class="seg-btn-group" id="tile-color-mode-group" style="margin-top:6px;">
-        <button class="seg-btn active" data-value="off"    onclick="setTileColorMode('off')"    data-i18n="tileColorOff">Off</button>
+        <button class="seg-btn"        data-value="none"   onclick="setTileColorMode('none')"   data-i18n="tileColorNone">None</button>
+        <button class="seg-btn active" data-value="off"    onclick="setTileColorMode('off')"    data-i18n="tileColorOff">Default</button>
         <button class="seg-btn"        data-value="subtle" onclick="setTileColorMode('subtle')" data-i18n="tileColorSubtle">Subtle</button>
         <button class="seg-btn"        data-value="strong" onclick="setTileColorMode('strong')" data-i18n="tileColorStrong">Strong</button>
       </div>
@@ -1375,7 +1376,8 @@
         accentColorReset:   'Reset',
         tileColorTitle:     'Tile Colors',
         tileColorModeLabel: 'Color intensity',
-        tileColorOff:       'Off',
+        tileColorNone:      'None',
+        tileColorOff:       'Default',
         tileColorSubtle:    'Subtle',
         tileColorStrong:    'Strong',
         tileColorOnLabel:   'Active tile color',
@@ -1388,7 +1390,7 @@
         tileColorFlowLabel: 'Flow button color',
         tileColorFlowReset: 'Reset',
         tileColorFlowHint:  'Color for flow buttons on the dashboard.',
-        tileColorHint:      '💡 Tiles get a colored background based on their state.',
+        tileColorHint:      '💡 None: no background tint at all — an active device is shown by its icon and label only. Default: the built-in warm tint. Subtle and Strong let you pick your own colors.',
         tileColorSaved:     'Colors saved',
         weatherTitle:       'Weather Dashboard',
         weatherLabel:       'Show weather tile on dashboard',
@@ -1627,7 +1629,8 @@
         accentColorReset:   'Zurücksetzen',
         tileColorTitle:     'Kachelfarben',
         tileColorModeLabel: 'Farbintensität',
-        tileColorOff:       'Aus',
+        tileColorNone:      'Keine',
+        tileColorOff:       'Standard',
         tileColorSubtle:    'Subtil',
         tileColorStrong:    'Stark',
         tileColorOnLabel:   'Farbe aktiver Kacheln',
@@ -1640,7 +1643,7 @@
         tileColorFlowLabel: 'Flow-Button-Farbe',
         tileColorFlowReset: 'Zurücksetzen',
         tileColorFlowHint:  'Farbe der Flow-Buttons im Dashboard.',
-        tileColorHint:      '💡 Kacheln erhalten je nach Zustand einen farbigen Hintergrund.',
+        tileColorHint:      '💡 Keine: gar keine Einfärbung — ein aktives Gerät erkennt man nur an Symbol und Beschriftung. Standard: die eingebaute warme Tönung. Dezent und Kräftig erlauben eigene Farben.',
         tileColorSaved:     'Farben gespeichert',
         weatherTitle:       'Wetter-Dashboard',
         weatherLabel:       'Wetter-Kachel auf dem Dashboard anzeigen',
@@ -2508,7 +2511,8 @@
       document.querySelectorAll('#tile-color-mode-group .seg-btn').forEach(function(btn) {
         btn.classList.toggle('active', btn.getAttribute('data-value') === value);
       });
-      document.getElementById('tile-color-on-wrap').style.display = value !== 'off' ? '' : 'none';
+      var eigeneFarben = (value === 'subtle' || value === 'strong');
+      document.getElementById('tile-color-on-wrap').style.display = eigeneFarben ? '' : 'none';
     }
     function resetTileColorOn() {
       document.getElementById('tile-color-on-input').value = '#34C759';

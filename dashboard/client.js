@@ -1234,8 +1234,11 @@
         var colorOn   = cfg.tileColorOn   || '#34C759';
         var colorOff  = cfg.tileColorOff  || '';
         var colorFlow = cfg.tileColorFlow || '#AF52DE';
-        document.body.classList.remove('tile-colors-subtle', 'tile-colors-strong');
-        if (colorMode !== 'off') {
+        document.body.classList.remove('tile-colors-none', 'tile-colors-subtle', 'tile-colors-strong');
+        // 'none' schaltet auch die eingebaute Einfaerbung aktiver Kacheln ab;
+        // 'off' laesst sie stehen und verzichtet nur auf eigene Farben.
+        if (colorMode === 'none') document.body.classList.add('tile-colors-none');
+        if (colorMode === 'subtle' || colorMode === 'strong') {
           document.body.classList.add('tile-colors-' + colorMode);
           var onA     = colorMode === 'strong' ? 0.28 : 0.16;
           var shadowA = colorMode === 'strong' ? 0.24 : 0.13;
@@ -2115,6 +2118,34 @@
     return section;
   }
 
+  // windowcoverings_state meldet bei vielen Geraeten den zuletzt gesendeten
+  // Befehl und nicht, ob der Rolladen gerade faehrt — 'up' bleibt dann fuer
+  // immer stehen. Die Taste wird deshalb nur voruebergehend hervorgehoben:
+  // sofort beim Antippen, geloescht sobald das Geraet 'idle' meldet, und
+  // spaetestens nach einer vollen Fahrtdauer automatisch.
+  var _WC_MAX_TRAVEL_MS = 45000;
+  var _wcActiveTimers = {};
+
+  function _wcHighlight(deviceId, state) {
+    var card = document.getElementById('card-' + deviceId);
+    var row  = card && card.querySelector('.wc-btn-row');
+    if (!row) return;
+    if (_wcActiveTimers[deviceId]) {
+      clearTimeout(_wcActiveTimers[deviceId]);
+      delete _wcActiveTimers[deviceId];
+    }
+    var moving = (state === 'up' || state === 'down');
+    [].forEach.call(row.querySelectorAll('.wc-btn'), function (b) {
+      b.classList.toggle('active', moving && b.getAttribute('data-wc') === state);
+    });
+    if (moving) {
+      _wcActiveTimers[deviceId] = setTimeout(function () {
+        delete _wcActiveTimers[deviceId];
+        _wcHighlight(deviceId, 'idle');
+      }, _WC_MAX_TRAVEL_MS);
+    }
+  }
+
   // Rolladen: Positionsregler (windowcoverings_set) und Fahrtasten
   // (windowcoverings_state) sind getrennte Faehigkeiten. Welche Bedienung
   // erscheint, haengt vom Geraet ab — und wenn es beide meldet, von der
@@ -2487,7 +2518,6 @@
     // auf die Kachel und den kleinen Stopp-Knopf in der Ecke.
     if (caps[CAP.WC_STATE] && _wcControls(capIds).buttons) {
       var wcRow = createElement('div', 'wc-btn-row');
-      var wcCur = caps[CAP.WC_STATE].value;
       [['up', '\u25b2', T.wcUp], ['idle', '\u25a0', T.stop], ['down', '\u25bc', T.wcDown]]
         .forEach(function (def) {
           var b = createElement('button', 'wc-btn');
@@ -2495,11 +2525,13 @@
           b.title = def[2];
           b.setAttribute('aria-label', def[2]);
           b.setAttribute('data-wc', def[0]);
-          if (wcCur === def[0]) b.classList.add('active');
+          // Bewusst ohne Vorbelegung aus wcCur — ein stehengebliebenes
+          // 'up' wuerde die Taste nach jedem Neuzeichnen wieder aufleuchten.
           (function (deviceId, state) {
             b.addEventListener('click', function (e) {
               e.stopPropagation();
               setCapability(deviceId, CAP.WC_STATE, state);
+              _wcHighlight(deviceId, state);
             });
           }(d.id, def[0]));
           wcRow.appendChild(b);
@@ -2734,12 +2766,10 @@
         wcSlider.value = pct;
         wcSlider.style.setProperty('--val', pct + '%');
       }
-      var wcRowU = card.querySelector('.wc-btn-row');
-      if (wcRowU && caps[CAP.WC_STATE]) {
-        var curU = caps[CAP.WC_STATE].value;
-        [].forEach.call(wcRowU.querySelectorAll('.wc-btn'), function (b) {
-          b.classList.toggle('active', b.getAttribute('data-wc') === curU);
-        });
+      // Meldet das Geraet 'idle', verschwindet die Hervorhebung sofort;
+      // bei 'up'/'down' laeuft der Sicherheits-Timer im Helfer.
+      if (card.querySelector('.wc-btn-row') && caps[CAP.WC_STATE]) {
+        _wcHighlight(deviceId, caps[CAP.WC_STATE].value);
       }
       var wcLabel = document.getElementById('wc-label-' + deviceId);
       if (wcLabel) {

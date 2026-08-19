@@ -511,6 +511,13 @@ body.room-chips-visible .main {
   box-shadow: var(--shadow-on);
 }
 
+/* Farbstufe "Keine": auch die eingebaute Einfaerbung aktiver Kacheln faellt
+   weg. Erkennbar bleibt der Zustand ueber Symbolfarbe, Statustext und den
+   farbigen Schatten. */
+body.tile-colors-none .device-card.on {
+  background: var(--surface);
+}
+
 /* ── Tile Color Mode: Kacheln einfärben ──────────── */
 body.tile-colors-subtle .device-card.on:not(.open),
 body.tile-colors-strong .device-card.on:not(.open) {
@@ -765,6 +772,11 @@ body.tile-colors-strong .flow-tile:not(.dashboard-shortcut-tile) {
   border-radius: 2px;
   outline: none;
   cursor: pointer;
+  /* Ohne touch-action beansprucht der Regler die Wischgeste nicht — das
+     waagrechte Ziehen wandert dann an die Panel-Navigation des Shelly-Systems
+     weiter, und der Wert aendert sich nicht. Der Lautstaerkeregler hat die
+     Eigenschaft aus demselben Grund. */
+  touch-action: none;
 }
 
 .dim-slider::-webkit-slider-runnable-track {
@@ -1790,6 +1802,7 @@ body.tile-colors-strong .flow-tile:not(.dashboard-shortcut-tile) {
   cursor: pointer;
   background: var(--border);
   border-radius: 2px;
+  touch-action: none;   /* Wischgeste beanspruchen, siehe .dim-slider */
 }
 .speaker-vol-slider::-webkit-slider-thumb {
   -webkit-appearance: none;

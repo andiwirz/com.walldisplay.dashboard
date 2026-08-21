@@ -1856,8 +1856,16 @@ class ShellyWallDisplayApp extends Homey.App {
           const meterExported = caps[expCap]
             ? parseFloat((caps[expCap].value || 0).toFixed(2)) : null;
 
+          // Manche Zähler liefern den Netzfluss als eigene Sub-Capability
+          // (measure_power.grid, negativ = Einspeisung) und melden über
+          // measure_power stattdessen den Hausverbrauch. Wo das vorliegt,
+          // ist es die genaueste Quelle — kein Ableiten nötig.
+          const netGridW = caps['measure_power.grid']
+            ? Math.round(caps['measure_power.grid'].value || 0) : null;
+
           result.push({
             id: d.id, name: d.name, type, power, soc,
+            netGridW,
             // Ganzhaus-Messgerät laut Homey-Spec: measure_power ist der
             // Hausverbrauch, nicht der Netzfluss. cumulativeImported/Exported
             // markieren dasselbe bei Geräten ohne explizites cumulative-Flag.
@@ -1879,20 +1887,29 @@ class ShellyWallDisplayApp extends Homey.App {
         // Per the Homey energy spec, gridW must be derived from the energy balance.
         // Non-cumulative grid devices (e.g. current clamps without cumulative flag)
         // do report net grid power via measure_power and are summed directly.
-        const cumulativeGridDevices    = byType('grid').filter((d) =>  d.cumulative);
-        const nonCumulativeGridDevices = byType('grid').filter((d) => !d.cumulative);
-        const cumulativeHomeW = cumulativeGridDevices.length
-          ? Math.round(sum(cumulativeGridDevices))
-          : null;
-        const rawGridW = Math.round(sum(nonCumulativeGridDevices));
-        // If a cumulative meter is present its measure_power IS the home consumption;
-        // derive gridW from the energy balance: grid = home − solar + battery(charging)
-        const gridW = cumulativeHomeW !== null
-          ? cumulativeHomeW - solarW + batteryW
-          : rawGridW;
-        const homeW = cumulativeHomeW !== null
-          ? cumulativeHomeW
-          : Math.round(solarW + rawGridW - batteryW);
+        // Reihenfolge der Genauigkeit:
+        //   1. Zähler mit eigener measure_power.grid — exakter Netzfluss,
+        //      measure_power desselben Geräts ist dann der Hausverbrauch.
+        //   2. Als Ganzhaus markierter Zähler — measure_power ist der
+        //      Hausverbrauch, der Netzfluss wird aus der Bilanz abgeleitet.
+        //   3. Sonst meldet measure_power den Netzfluss (klassischer Fall).
+        const gridDevices   = byType('grid');
+        const meterWithNet  = gridDevices.find((d) => d.netGridW !== null);
+        const cumulativeMeter = gridDevices.find((d) => d.cumulative);
+
+        let gridW;
+        let homeW;
+        if (meterWithNet) {
+          gridW = meterWithNet.netGridW;
+          homeW = Math.round(meterWithNet.power || 0);
+        } else if (cumulativeMeter) {
+          const cumulativeHomeW = Math.round(sum(gridDevices.filter((d) => d.cumulative)));
+          gridW = cumulativeHomeW - solarW + batteryW;
+          homeW = cumulativeHomeW;
+        } else {
+          gridW = Math.round(sum(gridDevices));
+          homeW = Math.round(solarW + gridW - batteryW);
+        }
 
         res.writeHead(200);
         res.end(JSON.stringify({

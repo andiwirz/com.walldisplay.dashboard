@@ -1,4 +1,8 @@
 {
+  "1.3.68": {
+    "en": "The brightness and blind sliders are easier to grab: the track is twice as thick and the knob noticeably larger. The touch area was already generous but the control looked thin, which made it fiddly to aim for with a finger — especially on blind tiles. Tile heights are unchanged.",
+    "de": "Die Helligkeits- und Storenregler lassen sich leichter greifen: Die Spur ist doppelt so dick und der Knopf spürbar grösser. Die Trefferfläche war schon zuvor grosszügig, das Bedienelement sah aber schmal aus und war mit dem Finger entsprechend heikel zu zielen — besonders auf Storen-Kacheln. Die Kachelhöhen bleiben unverändert."
+  },
   "1.3.67": {
     "en": "House consumption is now read correctly from meters that report the grid flow as a separate value. Some meters expose measure_power.grid for the actual import/export and use measure_power for total house usage instead — the dashboard was treating the house figure as grid import and adding it to solar production, roughly doubling the house value. Where that separate value exists it is now used directly, so no estimation is involved.",
     "de": "Der Hausverbrauch wird jetzt korrekt von Zählern gelesen, die den Netzfluss als eigenen Wert melden. Manche Zähler liefern über measure_power.grid den tatsächlichen Bezug beziehungsweise die Einspeisung und geben über measure_power stattdessen den gesamten Hausverbrauch an — das Dashboard hielt den Hauswert für Netzbezug und addierte ihn zur Solarproduktion, was den Hausverbrauch etwa verdoppelte. Wo dieser eigene Wert vorliegt, wird er jetzt direkt verwendet, ganz ohne Schätzung."

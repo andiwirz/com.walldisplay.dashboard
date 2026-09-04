@@ -780,8 +780,8 @@ body.tile-colors-strong .flow-tile:not(.dashboard-shortcut-tile) {
 }
 
 .dim-slider::-webkit-slider-runnable-track {
-  height: 4px;
-  border-radius: 2px;
+  height: 8px;
+  border-radius: 4px;
   background: linear-gradient(to right,
     var(--accent) 0%,
     var(--accent) var(--val, 0%),
@@ -789,8 +789,8 @@ body.tile-colors-strong .flow-tile:not(.dashboard-shortcut-tile) {
 }
 
 .dim-slider::-moz-range-track {
-  height: 4px;
-  border-radius: 2px;
+  height: 8px;
+  border-radius: 4px;
   background: linear-gradient(to right,
     var(--accent) 0%,
     var(--accent) var(--val, 0%),
@@ -799,8 +799,8 @@ body.tile-colors-strong .flow-tile:not(.dashboard-shortcut-tile) {
 
 .dim-slider::-webkit-slider-thumb {
   -webkit-appearance: none;
-  margin-top: -6px;          /* Knopf auf der 4-px-Spur zentrieren */
-  width: 16px; height: 16px;
+  margin-top: -8px;          /* Knopf auf der 8-px-Spur zentrieren */
+  width: 24px; height: 24px;
   background: #fff;
   border-radius: 50%;
   cursor: pointer;

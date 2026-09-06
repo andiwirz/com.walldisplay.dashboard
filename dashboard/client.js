@@ -34,6 +34,10 @@
     THERMOSTAT_MODE: 'thermostat_mode',
     LOCKED:          'locked',
     LOCK_MODE:       'lock_mode',
+    LIGHT_HUE:       'light_hue',
+    LIGHT_SAT:       'light_saturation',
+    LIGHT_TEMP:      'light_temperature',
+    LIGHT_MODE:      'light_mode',
   };
 
   // ── i18n ───────────────────────────────────────────
@@ -63,6 +67,8 @@
       tryAgain: 'Try again', enterPin: 'Enter PIN', wrongPin: 'Wrong PIN',
       stop: 'Stop', next8h: 'Next 8 hours',
       on: 'On', off: 'Off', yes: 'Yes', no: 'No', ok: 'OK', low: 'Low',
+      brightness: 'Brightness', lightColor: 'Color', lightTemperature: 'White',
+      lightHue: 'Color', lightSaturation: 'Saturation', lightWhiteTone: 'White tone',
       wcUp: 'Open', wcDown: 'Close',
       modeHeat: 'Heat', modeCool: 'Cool', modeAuto: 'Auto',
       startFlow: 'Start Flow?', startBtn: '▶ Start',
@@ -107,6 +113,8 @@
       tryAgain: 'Erneut versuchen', enterPin: 'PIN eingeben', wrongPin: 'Falsche PIN',
       stop: 'Stopp', next8h: 'Nächste 8 Stunden',
       on: 'Ein', off: 'Aus', yes: 'Ja', no: 'Nein', ok: 'OK', low: 'Niedrig',
+      brightness: 'Helligkeit', lightColor: 'Farbe', lightTemperature: 'Weiß',
+      lightHue: 'Farbton', lightSaturation: 'Sättigung', lightWhiteTone: 'Weißton',
       wcUp: 'Öffnen', wcDown: 'Schliessen',
       modeHeat: 'Heizen', modeCool: 'Kühlen', modeAuto: 'Automatik',
       startFlow: 'Flow starten?', startBtn: '▶ Starten',
@@ -2179,6 +2187,12 @@
     var isThermostat = capIds.indexOf(CAP.TARGET_TEMP) !== -1;
     var isLock       = d.class === 'lock';
     var isCamera     = d.class === 'camera' || d.class === 'doorbell';
+    // Licht mit mehr als Ein/Aus — Helligkeit, Farbe oder Farbtemperatur.
+    // Solche Lampen bekommen ein eigenes Fenster, wie das Thermostat.
+    var isRichLight  = d.class === 'light' && (
+      capIds.indexOf(CAP.DIM) !== -1 ||
+      capIds.indexOf(CAP.LIGHT_HUE) !== -1 ||
+      capIds.indexOf(CAP.LIGHT_TEMP) !== -1);
     var isPriceDevice = capIds.indexOf('current_quarter_price') !== -1;
     var _buttonCapId = null;
     for (var _bi = 0; _bi < capIds.length; _bi++) {
@@ -2228,6 +2242,19 @@
       }(d.id));
     }
 
+    // Licht mit Helligkeit/Farbe → Fenster oeffnen. Der Ein/Aus-Schalter in der
+    // Ecke und der Helligkeitsregler auf der Kachel bleiben direkt bedienbar.
+    if (isRichLight) {
+      card.classList.add('clickable');
+      (function (deviceId) {
+        card.addEventListener('click', function (e) {
+          if (e.target.classList.contains('device-toggle')) return;
+          if (e.target.classList.contains('dim-slider')) return;
+          openLightModal(deviceId);
+        });
+      }(d.id));
+    }
+
     // Lock → Modal öffnen (Modal = Bestätigung + Aktionsauswahl)
     if (isLock) {
       card.classList.add('clickable');
@@ -2244,7 +2271,7 @@
       }(d.id));
     }
 
-    if (!isSpeaker && !isThermostat && !isLock && !isPriceDevice && !isCamera && (hasAlarm || hasOnOff)) {
+    if (!isSpeaker && !isThermostat && !isLock && !isPriceDevice && !isCamera && !isRichLight && (hasAlarm || hasOnOff)) {
       card.classList.add('clickable');
       (function (deviceId) {
         card.addEventListener('click', function (e) {
@@ -2781,6 +2808,7 @@
     if (_speakerModalId === deviceId) _updateSpeakerModal();
     // Thermostat-Modal live aktualisieren wenn offen
     if (_thermostatModalId === deviceId) _updateThermostatModal();
+    if (_lightModalId === deviceId) _updateLightModal();
     // Lock-Modal live aktualisieren wenn offen
     if (_alarmModalId === deviceId) _updateAlarmModal();
     if (_lockModalId === deviceId) _updateLockModal();
@@ -4253,6 +4281,210 @@
 
   // ── Thermostat-Modal ──────────────────────────────
   var _thermostatModalId = null;
+
+  // ── Licht-Fenster ───────────────────────────────────
+  // Zeigt nur die Regler, die das Geraet tatsaechlich unterstuetzt. Homey
+  // liefert Farbton, Saettigung und Temperatur jeweils als 0..1, nicht als
+  // Grad oder Kelvin.
+  var _lightModalId = null;
+
+  // Farbton 0..1 + Saettigung 0..1 -> CSS-Farbe fuer die Vorschau
+  function _lightCss(hue, sat) {
+    return 'hsl(' + Math.round((hue || 0) * 360) + ',' +
+           Math.round((sat === undefined ? 1 : sat) * 100) + '%,50%)';
+  }
+
+  // Warm -> kalt. 0 = warmweiss, 1 = kaltweiss (Homey-Konvention).
+  function _lightTempCss(t) {
+    var warm = [255, 170, 87], kalt = [201, 226, 255];
+    var m = function (i) { return Math.round(warm[i] + (kalt[i] - warm[i]) * (t || 0)); };
+    return 'rgb(' + m(0) + ',' + m(1) + ',' + m(2) + ')';
+  }
+
+  function openLightModal(deviceId) {
+    _lightModalId = deviceId;
+    var d = devices[deviceId];
+    if (!d) return;
+    document.getElementById('light-modal-name').textContent = d.name;
+    document.getElementById('light-modal').style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+    _buildLightControls(d);
+    _updateLightModal();
+  }
+
+  function closeLightModal() {
+    _lightModalId = null;
+    document.getElementById('light-modal').style.display = 'none';
+    document.body.style.overflow = '';
+  }
+
+  // Blendet die Zeilen ein, die dieses Geraet unterstuetzt, und haengt die
+  // Regler-Handler einmalig an.
+  function _buildLightControls(d) {
+    var capIds = d.capabilities || [];
+    var hat = function (c) { return capIds.indexOf(c) !== -1; };
+    var hatFarbe = hat(CAP.LIGHT_HUE);
+    var hatTemp  = hat(CAP.LIGHT_TEMP);
+
+    document.getElementById('light-dim-row').style.display   = hat(CAP.DIM) ? '' : 'none';
+    // Der Umschalter erscheint nur, wenn die Lampe beides kann
+    document.getElementById('light-mode-row').style.display  = (hatFarbe && hatTemp) ? '' : 'none';
+    document.getElementById('light-color-block').style.display = hatFarbe ? '' : 'none';
+    document.getElementById('light-temp-block').style.display  = hatTemp ? '' : 'none';
+    document.getElementById('light-onoff-btn').style.display   = hat(CAP.ONOFF) ? '' : 'none';
+
+    _bindLightSlider('light-dim-slider',  CAP.DIM,        null);
+    _bindLightSlider('light-hue-slider',  CAP.LIGHT_HUE,  'color');
+    _bindLightSlider('light-sat-slider',  CAP.LIGHT_SAT,  'color');
+    _bindLightSlider('light-temp-slider', CAP.LIGHT_TEMP, 'temperature');
+  }
+
+  // Haengt input/change einmalig an einen Regler. modeOnWrite setzt zusaetzlich
+  // light_mode \u2014 Homey macht das nicht von selbst, und ohne den Wechsel
+  // ignoriert die Lampe eine neue Farbe, solange sie im Weissmodus laeuft.
+  function _bindLightSlider(elId, capId, modeOnWrite) {
+    var el = document.getElementById(elId);
+    if (!el || el._lightBound) return;
+    el._lightBound = true;
+    el.addEventListener('input', function () {
+      _paintLightSliders();
+      _updateLightReadouts();
+    });
+    el.addEventListener('change', function () {
+      var id = _lightModalId;
+      if (!id) return;
+      var wert = parseInt(this.value, 10) / 100;
+      if (modeOnWrite) {
+        var dv = devices[id];
+        var caps = (dv && dv.capabilitiesObj) || {};
+        var beide = caps[CAP.LIGHT_HUE] && caps[CAP.LIGHT_TEMP];
+        if (beide && caps[CAP.LIGHT_MODE] && caps[CAP.LIGHT_MODE].value !== modeOnWrite) {
+          setCapability(id, CAP.LIGHT_MODE, modeOnWrite);
+          _noteLightMode(id, modeOnWrite);
+        }
+      }
+      setCapability(id, capId, wert);
+    });
+    el.addEventListener('click', function (e) { e.stopPropagation(); });
+  }
+
+  function lightSetMode(mode) {
+    if (!_lightModalId) return;
+    setCapability(_lightModalId, CAP.LIGHT_MODE, mode);
+    _noteLightMode(_lightModalId, mode);
+    _applyLightMode(mode);
+  }
+
+  // Der Geraetezustand kommt erst per SSE zurueck. Bis dahin wuerde ein
+  // direkt folgender Reglerzug denselben Moduswechsel ein zweites Mal senden.
+  function _noteLightMode(deviceId, mode) {
+    var d = devices[deviceId];
+    if (d && d.capabilitiesObj && d.capabilitiesObj[CAP.LIGHT_MODE]) {
+      d.capabilitiesObj[CAP.LIGHT_MODE].value = mode;
+    }
+  }
+
+  function lightToggleOnOff() {
+    if (!_lightModalId) return;
+    var d = devices[_lightModalId];
+    var an = d && d.capabilitiesObj[CAP.ONOFF] && d.capabilitiesObj[CAP.ONOFF].value === true;
+    setCapability(_lightModalId, CAP.ONOFF, !an);
+  }
+
+  // Bei Lampen, die beides koennen, ist immer nur ein Block sichtbar.
+  function _applyLightMode(mode) {
+    var d = devices[_lightModalId];
+    if (!d) return;
+    var capIds = d.capabilities || [];
+    var hatFarbe = capIds.indexOf(CAP.LIGHT_HUE) !== -1;
+    var hatTemp  = capIds.indexOf(CAP.LIGHT_TEMP) !== -1;
+    if (!(hatFarbe && hatTemp)) return;
+    var farbe = mode !== 'temperature';
+    document.getElementById('light-color-block').style.display = farbe ? '' : 'none';
+    document.getElementById('light-temp-block').style.display  = farbe ? 'none' : '';
+    document.getElementById('light-mode-color').classList.toggle('active', farbe);
+    document.getElementById('light-mode-temp').classList.toggle('active', !farbe);
+  }
+
+  // Faerbt die Regler passend zum aktuellen Zustand ein.
+  function _paintLightSliders() {
+    var hueEl = document.getElementById('light-hue-slider');
+    var satEl = document.getElementById('light-sat-slider');
+    var dimEl = document.getElementById('light-dim-slider');
+    var tmpEl = document.getElementById('light-temp-slider');
+    var hue = hueEl ? parseInt(hueEl.value, 10) / 100 : 0;
+    var sat = satEl ? parseInt(satEl.value, 10) / 100 : 1;
+
+    if (hueEl) hueEl.style.setProperty('--val', hueEl.value + '%');
+    if (dimEl) dimEl.style.setProperty('--val', dimEl.value + '%');
+    if (tmpEl) tmpEl.style.setProperty('--val', tmpEl.value + '%');
+    if (satEl) {
+      satEl.style.setProperty('--val', satEl.value + '%');
+      // Saettigungsverlauf laeuft von grau zum aktuellen Farbton
+      satEl.style.setProperty('--sat-to', _lightCss(hue, 1));
+    }
+
+    var vor = document.getElementById('light-preview');
+    if (vor) {
+      var d = devices[_lightModalId];
+      var caps = (d && d.capabilitiesObj) || {};
+      var modus = caps[CAP.LIGHT_MODE] ? caps[CAP.LIGHT_MODE].value : null;
+      var nurTemp = !caps[CAP.LIGHT_HUE] && caps[CAP.LIGHT_TEMP];
+      if (modus === 'temperature' || nurTemp) {
+        vor.style.background = _lightTempCss(tmpEl ? parseInt(tmpEl.value, 10) / 100 : 0);
+      } else if (caps[CAP.LIGHT_HUE]) {
+        vor.style.background = _lightCss(hue, sat);
+      } else {
+        vor.style.background = 'var(--accent)';
+      }
+    }
+  }
+
+  function _updateLightReadouts() {
+    var dimEl = document.getElementById('light-dim-slider');
+    var satEl = document.getElementById('light-sat-slider');
+    var dimOut = document.getElementById('light-dim-value');
+    var satOut = document.getElementById('light-sat-value');
+    if (dimOut && dimEl) dimOut.textContent = dimEl.value + ' %';
+    if (satOut && satEl) satOut.textContent = satEl.value + ' %';
+  }
+
+  // Uebernimmt den Geraetezustand in die Regler. Laeuft auch bei Live-Updates,
+  // ruehrt aber keinen Regler an, den der Nutzer gerade zieht.
+  function _updateLightModal() {
+    if (!_lightModalId) return;
+    var d = devices[_lightModalId];
+    if (!d) return;
+    var caps = d.capabilitiesObj || {};
+    var aktiv = document.activeElement;
+
+    function setze(elId, capId) {
+      var el = document.getElementById(elId);
+      if (!el || !caps[capId] || el === aktiv) return;
+      var v = caps[capId].value;
+      el.value = Math.round((v === null || v === undefined ? 0 : v) * 100);
+    }
+    setze('light-dim-slider',  CAP.DIM);
+    setze('light-hue-slider',  CAP.LIGHT_HUE);
+    setze('light-sat-slider',  CAP.LIGHT_SAT);
+    setze('light-temp-slider', CAP.LIGHT_TEMP);
+
+    var an = caps[CAP.ONOFF] && caps[CAP.ONOFF].value === true;
+    var btn = document.getElementById('light-onoff-btn');
+    if (btn) {
+      btn.textContent = an ? T.on : T.off;
+      btn.classList.toggle('on', !!an);
+    }
+
+    if (caps[CAP.LIGHT_MODE]) _applyLightMode(caps[CAP.LIGHT_MODE].value);
+    _paintLightSliders();
+    _updateLightReadouts();
+  }
+
+  window.openLightModal    = openLightModal;
+  window.closeLightModal   = closeLightModal;
+  window.lightSetMode      = lightSetMode;
+  window.lightToggleOnOff  = lightToggleOnOff;
 
   function openThermostatModal(deviceId) {
     _thermostatModalId = deviceId;

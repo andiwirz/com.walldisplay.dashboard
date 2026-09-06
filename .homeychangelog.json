@@ -1,4 +1,8 @@
 {
+  "1.3.69": {
+    "en": "Colour and colour temperature control for lights. A light that can do more than on/off now opens its own window when you tap the tile, the same way a thermostat does — the on/off switch in the corner and the brightness slider on the tile keep working as before. The window shows only what the lamp actually supports: brightness, colour with hue and saturation, white tone, and a colour/white switch for lamps that do both. Lights with nothing but on/off are unchanged.",
+    "de": "Farb- und Farbtemperatursteuerung für Lichter. Eine Lampe, die mehr als Ein/Aus kann, öffnet beim Antippen der Kachel ein eigenes Fenster — so wie das Thermostat. Der Ein/Aus-Schalter in der Ecke und der Helligkeitsregler auf der Kachel bleiben unverändert bedienbar. Im Fenster erscheint nur, was die Lampe tatsächlich unterstützt: Helligkeit, Farbe mit Farbton und Sättigung, Weisston, sowie eine Umschaltung zwischen Farbe und Weiss bei Lampen, die beides können. Lichter mit reinem Ein/Aus bleiben unverändert."
+  },
   "1.3.68": {
     "en": "The brightness and blind sliders are easier to grab: the track is twice as thick and the knob noticeably larger. The touch area was already generous but the control looked thin, which made it fiddly to aim for with a finger — especially on blind tiles. Tile heights are unchanged.",
     "de": "Die Helligkeits- und Storenregler lassen sich leichter greifen: Die Spur ist doppelt so dick und der Knopf spürbar grösser. Die Trefferfläche war schon zuvor grosszügig, das Bedienelement sah aber schmal aus und war mit dem Finger entsprechend heikel zu zielen — besonders auf Storen-Kacheln. Die Kachelhöhen bleiben unverändert."

@@ -12,6 +12,7 @@ The app runs a local HTTP/WebSocket server on your Homey that emulates the Home 
 - **Live dashboard** — all Homey devices as touch tiles, real-time state updates via Server-Sent Events (SSE) with adaptive fallback polling
 - **Device control** — toggle lights, sockets, locks, fans, blinds, heaters, TVs, and more directly from the wall
 - **Dimmer support** — tap anywhere on a dimmer tile to toggle on/off; drag the slider to adjust brightness; both gestures work independently and never interfere with each other
+- **Colour and white tone** — a light that can do more than on/off opens its own window when the tile is tapped, like a thermostat does. It shows only what the lamp supports: brightness, hue and saturation, white tone, and a colour/white switch for lamps that do both. The on/off switch in the corner and the brightness slider on the tile keep working directly, and lights with nothing but on/off are unaffected
 - **Blind controls** — position slider, ▲ ■ ▼ buttons, or both; choose per installation in Settings → Design. Blinds that only support up/down/stop always get the three buttons. Useful for devices that report a position slider but cannot actually be positioned (e.g. via Bond Bridge)
 - **Alarm control** — arm, disarm, or partially arm your home alarm; view motion and contact alerts
 - **PIN protection** — optional 4-digit PIN for the home alarm, configurable in the settings page
@@ -131,7 +132,7 @@ Homey App (com.walldisplay.dashboard)
 
 | Device Class | Icon | Controllable | Sensor Data |
 |---|---|---|---|
-| Light | 💡 | On/Off, Dim | — |
+| Light | 💡 | On/Off, Dim, Colour, White tone (via window) | — |
 | Socket | 🔌 | On/Off | Power (W) |
 | Thermostat | 🌡️ | Target Temp, On/Off, Mode (via modal) | Temperature |
 | Sensor | 📡 | — | Temperature, Humidity, CO₂ |
@@ -243,6 +244,7 @@ Tools for diagnosing camera, speaker, and logging issues. All output is shown in
 | Tap mood tile | Activate the mood |
 | Long-press tile (400 ms) | Start drag & drop to reorder |
 | Tap room title | Collapse / expand room tiles |
+| Tap light tile (colour or dimmable) | Open the light window |
 | Tap camera / doorbell tile | Open live snapshot |
 | Tap speaker / media player tile | Open media player modal |
 | Tap album art in media player | Open album art fullscreen immediately |

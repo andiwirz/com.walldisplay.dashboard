@@ -272,6 +272,62 @@
     </div>
   </div>
 
+  <!-- Licht-Modal: zeigt nur, was die Lampe tatsaechlich kann -->
+  <div id="light-modal" class="light-modal" style="display:none" onclick="if(event.target===this)closeLightModal()">
+    <div class="light-modal-inner">
+      <div class="light-modal-header">
+        <span id="light-modal-name" class="light-modal-name"></span>
+        <button class="light-modal-close" onclick="closeLightModal()">✕</button>
+      </div>
+      <div class="light-modal-body">
+
+        <div class="light-preview-row">
+          <div id="light-preview" class="light-preview"></div>
+          <button id="light-onoff-btn" class="light-onoff-btn" onclick="lightToggleOnOff()"></button>
+        </div>
+
+        <div id="light-dim-row" class="light-row" style="display:none">
+          <div class="light-row-head">
+            <span class="light-row-label" data-i18n="brightness">Brightness</span>
+            <span id="light-dim-value" class="light-row-value"></span>
+          </div>
+          <input type="range" id="light-dim-slider" class="light-slider light-slider-dim" min="0" max="100" value="0">
+        </div>
+
+        <div id="light-mode-row" class="light-row" style="display:none">
+          <div class="light-mode-group">
+            <button id="light-mode-color" class="light-mode-btn" onclick="lightSetMode('color')" data-i18n="lightColor">Color</button>
+            <button id="light-mode-temp"  class="light-mode-btn" onclick="lightSetMode('temperature')" data-i18n="lightTemperature">White</button>
+          </div>
+        </div>
+
+        <div id="light-color-block" style="display:none">
+          <div class="light-row">
+            <div class="light-row-head">
+              <span class="light-row-label" data-i18n="lightHue">Color</span>
+            </div>
+            <input type="range" id="light-hue-slider" class="light-slider light-slider-hue" min="0" max="100" value="0">
+          </div>
+          <div class="light-row">
+            <div class="light-row-head">
+              <span class="light-row-label" data-i18n="lightSaturation">Saturation</span>
+              <span id="light-sat-value" class="light-row-value"></span>
+            </div>
+            <input type="range" id="light-sat-slider" class="light-slider light-slider-sat" min="0" max="100" value="0">
+          </div>
+        </div>
+
+        <div id="light-temp-block" class="light-row" style="display:none">
+          <div class="light-row-head">
+            <span class="light-row-label" data-i18n="lightWhiteTone">White tone</span>
+          </div>
+          <input type="range" id="light-temp-slider" class="light-slider light-slider-temp" min="0" max="100" value="0">
+        </div>
+
+      </div>
+    </div>
+  </div>
+
   <!-- Speaker-Modal -->
   <div id="speaker-modal" class="speaker-modal" style="display:none" onclick="if(event.target===this)closeSpeakerModal()">
     <div class="speaker-modal-inner">
